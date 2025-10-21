@@ -1,12 +1,12 @@
 // src/routes/reservations.js
 import { Router } from 'express';
 import reservationsCtrl from '../controllers/reservationsController.js';
-import { authRequired } from '../middleware/auth.js';
+// import { authRequired } from '../middleware/auth.js';  // TẮT TẠM ĐỂ DEBUG
 
 const router = Router();
 
 // Tất cả routes đều yêu cầu auth
-router.use(authRequired);
+// router.use(authRequired);  // TẮT TẠM ĐỂ DEBUG
 
 // === RESERVATIONS ===
 

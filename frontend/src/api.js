@@ -8,21 +8,33 @@ async function request(method, path, body) {
   const headers = { 'Content-Type': 'application/json' };
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}${path}`, {
+  
+  const url = `${API_BASE}${path}`;
+  console.log(`🌐 API Request: ${method} ${url}`);
+  if (body) console.log('📦 Request body:', body);
+  
+  const res = await fetch(url, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+  
+  console.log(`📡 Response status: ${res.status} ${res.statusText}`);
+  
   if (res.status === 401) {
     clearToken();
     window.location.href = '/login';
     return;
   }
   const data = await res.json().catch(() => ({}));
+  
   if (!res.ok) {
+    console.error('❌ API Error response:', data);
     const msg = data?.error || data?.message || `HTTP ${res.status}`;
     throw new Error(msg);
   }
+  
+  console.log('✅ API Success response:', data);
   return data;
 }
 

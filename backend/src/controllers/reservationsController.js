@@ -7,10 +7,11 @@ class ReservationsController {
   createReservation = asyncHandler(async (req, res) => {
     console.log('📝 createReservation received body:', req.body);
     console.log('khu_vuc_id:', req.body.khu_vuc_id, 'type:', typeof req.body.khu_vuc_id);
+    console.log('req.user:', req.user);
     
     const data = {
       ...req.body,
-      created_by: req.user?.user_id
+      created_by: req.user?.user_id || null  // TẮM AUTH → null
     };
 
     const reservation = await reservationsService.createReservation(data);
@@ -111,7 +112,7 @@ class ReservationsController {
   checkInReservation = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { primary_table_id } = req.body;
-    const created_by = req.user?.user_id;
+    const created_by = req.user?.user_id || null;  // TẮT AUTH → null
 
     const result = await reservationsService.checkInReservation(
       parseInt(id),
