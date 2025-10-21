@@ -8,6 +8,8 @@ import OrderDrawer from '../components/OrderDrawer.jsx';
 import useSSE from '../hooks/useSSE.js';
 import MenuPanel from '../components/MenuPanel.jsx';
 import Toast from '../components/Toast.jsx';
+import ReservationPanel from '../components/ReservationPanel.jsx';
+import ReservationsList from '../components/ReservationsList.jsx';
 
 export default function Dashboard({ defaultMode = 'dashboard' }) {
   const [areas, setAreas] = useState([]);
@@ -26,6 +28,10 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   // Confirmation dialog states
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
   const [pendingOrderCreation, setPendingOrderCreation] = useState(null); // { type: 'table', table } hoặc { type: 'takeaway' }
+
+  // Reservation states
+  const [showReservationPanel, setShowReservationPanel] = useState(false);
+  const [showReservationsList, setShowReservationsList] = useState(false);
 
   // Debug: Log drawer state changes
   useEffect(() => {
@@ -300,12 +306,26 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             <h2 className="text-xl font-semibold">
               Khu vực <span className="text-sm text-gray-500 font-normal ml-2">{areas.length} khu vực</span>
             </h2>
-            <button
-              onClick={handleCreateTakeaway}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
-            >
-              + Đơn mang đi
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowReservationsList(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+              >
+                📋 Danh sách đặt bàn
+              </button>
+              <button
+                onClick={() => setShowReservationPanel(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+              >
+                📅 Đặt bàn
+              </button>
+              <button
+                onClick={handleCreateTakeaway}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
+              >
+                + Đơn mang đi
+              </button>
+            </div>
           </div>
           
           <div className="mt-3">
@@ -329,12 +349,26 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             </button>
             <h2 className="text-xl font-semibold">POS</h2>
           </div>
-          <button
-            onClick={handleCreateTakeaway}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
-          >
-            + Đơn mang đi
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowReservationsList(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium outline-none focus:outline-none"
+            >
+              📋 Đặt bàn
+            </button>
+            <button
+              onClick={() => setShowReservationPanel(true)}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium outline-none focus:outline-none"
+            >
+              📅 Tạo mới
+            </button>
+            <button
+              onClick={handleCreateTakeaway}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
+            >
+              + Đơn mang đi
+            </button>
+          </div>
         </div>
       )}
 
@@ -553,6 +587,71 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         title={toast.title}
         message={toast.message}
         onClose={() => setToast({ show: false, type: 'success', title: '', message: '' })}
+      />
+
+      {/* Reservation Panel */}
+      <ReservationPanel
+        open={showReservationPanel}
+        onClose={() => setShowReservationPanel(false)}
+        onSuccess={() => {
+          setShowReservationPanel(false);
+          loadTables();
+        }}
+        onShowToast={setToast}
+        areas={areas}
+      />
+
+      {/* Reservations List */}
+      <ReservationsList
+        open={showReservationsList}
+        onClose={() => setShowReservationsList(false)}
+        onCheckIn={async (reservation) => {
+          // Check-in: tạo order và mở drawer
+          try {
+            const primaryTableId = reservation.ban_ids?.[0];
+            if (!primaryTableId) {
+              setToast({
+                show: true,
+                type: 'error',
+                title: 'Lỗi check-in',
+                message: 'Đặt bàn chưa có bàn nào'
+              });
+              return;
+            }
+
+            const res = await api.checkInReservation(reservation.id, primaryTableId);
+            const result = res?.data || res;
+
+            setToast({
+              show: true,
+              type: 'success',
+              title: 'Check-in thành công!',
+              message: `Đã tạo đơn #${result.don_hang_id} cho ${reservation.khach}`
+            });
+
+            setShowReservationsList(false);
+            await loadTables();
+
+            // Mở drawer với order vừa tạo
+            setDrawer({
+              open: true,
+              order: {
+                id: result.don_hang_id,
+                ban_id: primaryTableId,
+                order_type: 'DINE_IN'
+              }
+            });
+          } catch (error) {
+            console.error('Error check-in:', error);
+            setToast({
+              show: true,
+              type: 'error',
+              title: 'Lỗi check-in',
+              message: error.message || 'Không thể check-in'
+            });
+          }
+        }}
+        onShowToast={setToast}
       />
     </AuthedLayout>
   );

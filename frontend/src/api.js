@@ -101,4 +101,35 @@ export const api = {
     }
   },
   addOrderItem: (orderId, payload) => request('POST', `/pos/orders/${orderId}/items`, payload),
+  
+  // === RESERVATIONS (ĐẶT BÀN) ===
+  // Tạo đặt bàn mới
+  createReservation: (data) => request('POST', '/reservations', data),
+  // Lấy danh sách theo ngày
+  getReservationsByDate: (date, status = null) => 
+    request('GET', `/reservations?date=${date}${status ? `&status=${status}` : ''}`),
+  // Chi tiết 1 đặt bàn
+  getReservationDetail: (id) => request('GET', `/reservations/${id}`),
+  // Cập nhật thông tin
+  updateReservation: (id, data) => request('PATCH', `/reservations/${id}`, data),
+  // Gán bàn
+  assignTablesToReservation: (id, table_ids) => request('POST', `/reservations/${id}/tables`, { table_ids }),
+  // Bỏ gán bàn
+  unassignTableFromReservation: (id, tableId) => request('DELETE', `/reservations/${id}/tables/${tableId}`),
+  // Xác nhận đặt bàn
+  confirmReservation: (id) => request('POST', `/reservations/${id}/confirm`),
+  // Check-in (tạo order)
+  checkInReservation: (id, primary_table_id) => request('POST', `/reservations/${id}/check-in`, { primary_table_id }),
+  // Hủy đặt bàn
+  cancelReservation: (id, reason = null) => request('POST', `/reservations/${id}/cancel`, { reason }),
+  // No-show
+  markReservationNoShow: (id) => request('POST', `/reservations/${id}/no-show`),
+  // Hoàn thành
+  completeReservation: (id) => request('POST', `/reservations/${id}/complete`),
+  // Tìm bàn trống
+  searchAvailableTables: (start, end, areaId = null) => 
+    request('GET', `/tables/availability?start=${start}&end=${end}${areaId ? `&area=${areaId}` : ''}`),
+  // Đặt bàn sắp tới của 1 bàn
+  getUpcomingReservation: (tableId, within = 60) => 
+    request('GET', `/tables/${tableId}/upcoming-reservation?within=${within}`),
 };

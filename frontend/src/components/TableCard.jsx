@@ -1,7 +1,7 @@
 // === src/components/TableCard.jsx ===
 import { useState } from 'react';
 
-export default function TableCard({ table, onClick, onCloseTable, onLockTable, onUnlockTable }) {
+export default function TableCard({ table, onClick, onCloseTable, onLockTable, onUnlockTable, upcomingReservation }) {
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockReason, setLockReason] = useState('');
   const [showReasonDialog, setShowReasonDialog] = useState(false);
@@ -10,6 +10,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
   const isPaid = table.order_status === 'PAID';
   const hasOrder = orderId || table.trang_thai === 'DANG_DUNG';
   const isLocked = table.trang_thai === 'KHOA';
+  const hasReservation = upcomingReservation !== null && upcomingReservation !== undefined;
   
   // Màu card theo trạng thái bàn
   const getStatusColor = () => {
@@ -62,6 +63,15 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-bold text-sm text-gray-900 truncate">{table.ten_ban}</h3>
         <div className="flex items-center gap-1 flex-wrap justify-end">
+          {/* Badge đặt bàn sắp tới */}
+          {hasReservation && !hasOrder && (
+            <span 
+              className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-indigo-100 text-indigo-700 border border-indigo-300"
+              title={`Đặt lúc ${new Date(upcomingReservation.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+            >
+              📅 ĐẶT
+            </span>
+          )}
           {/* Badge trạng thái bàn */}
           <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${tableStatusBadge.color}`}>
             {tableStatusBadge.text}
@@ -126,8 +136,22 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         </div>
       ) : !hasOrder ? (
         <div className="flex flex-col">
-          {/* Spacer để nút nằm ngang hàng */}
-          <div className="min-h-[40px]"></div>
+          {/* Hiển thị thông tin đặt bàn nếu có */}
+          {hasReservation ? (
+            <div className="mb-2 p-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+              <div className="text-[10px] font-semibold text-indigo-900 mb-1">ĐẶT BÀN SẮP TỚI:</div>
+              <div className="text-xs text-indigo-700">
+                🕐 {new Date(upcomingReservation.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                {' • '}
+                👥 {upcomingReservation.so_nguoi} người
+              </div>
+              <div className="text-xs text-indigo-600 truncate" title={upcomingReservation.khach}>
+                {upcomingReservation.khach}
+              </div>
+            </div>
+          ) : (
+            <div className="min-h-[40px]"></div>
+          )}
           <div 
             onClick={(e) => {
               console.log('Button "Tạo đơn" clicked');

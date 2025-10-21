@@ -67,6 +67,9 @@ app.use('/api/v1/areas', areasRouter);
 import menuRouter from './src/routes/menu.js'; // <— router quản lý menu
 app.use('/api/v1/menu', menuRouter);
 
+import reservationsRouter from './src/routes/reservations.js'; // <— router đặt bàn
+app.use('/api/v1', reservationsRouter);
+
 // Error handling middleware (phải ở cuối)
 app.use(errorHandler);
 
