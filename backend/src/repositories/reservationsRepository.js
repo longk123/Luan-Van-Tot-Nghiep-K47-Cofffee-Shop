@@ -271,7 +271,7 @@ class ReservationsRepository {
 
       // Update trạng thái bàn
       await client.query(
-        `UPDATE ban SET trang_thai = 'DANG_PHUC_VU' WHERE id = $1`,
+        `UPDATE ban SET trang_thai = 'DANG_DUNG' WHERE id = $1`,
         [primary_table_id]
       );
 
