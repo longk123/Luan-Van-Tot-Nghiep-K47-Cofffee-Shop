@@ -95,7 +95,7 @@ class ReservationsRepository {
               a.ten AS khu_vuc_ten
        FROM dat_ban r
        LEFT JOIN khach_hang k ON k.id = r.khach_hang_id
-       LEFT JOIN areas a ON a.id = r.khu_vuc_id
+       LEFT JOIN khu_vuc a ON a.id = r.khu_vuc_id
        WHERE r.id = $1`,
       [id]
     );
@@ -106,7 +106,7 @@ class ReservationsRepository {
       `SELECT l.ban_id, b.ten_ban, b.suc_chua, a.ten AS khu_vuc_ten
        FROM dat_ban_ban l
        JOIN ban b ON b.id = l.ban_id
-       LEFT JOIN areas a ON a.id = b.khu_vuc_id
+       LEFT JOIN khu_vuc a ON a.id = b.khu_vuc_id
        WHERE l.dat_ban_id = $1
        ORDER BY l.ban_id`,
       [id]

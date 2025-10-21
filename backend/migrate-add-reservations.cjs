@@ -48,7 +48,7 @@ async function migrate() {
         ten_khach       TEXT,
         so_dien_thoai   TEXT,
         so_nguoi        INT NOT NULL CHECK (so_nguoi > 0),
-        khu_vuc_id      INT REFERENCES areas(id),
+        khu_vuc_id      INT REFERENCES khu_vuc(id),
         start_at        TIMESTAMPTZ NOT NULL,
         end_at          TIMESTAMPTZ NOT NULL CHECK (end_at > start_at),
         trang_thai      TEXT NOT NULL DEFAULT 'PENDING',
