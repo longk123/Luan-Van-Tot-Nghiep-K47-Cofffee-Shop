@@ -148,4 +148,18 @@ export const api = {
   // Đặt bàn sắp tới của 1 bàn
   getUpcomingReservation: (tableId, within = 60) => 
     request('GET', `/reservations/tables/${tableId}/upcoming?within=${within}`),
+  
+  // === PAYMENTS (THANH TOÁN ĐA PHƯƠNG THỨC) ===
+  // Danh sách phương thức thanh toán
+  getPaymentMethods: () => request('GET', '/payments/methods'),
+  // Danh sách thanh toán của đơn
+  getOrderPayments: (orderId) => request('GET', `/pos/orders/${orderId}/payments`),
+  // Thu tiền (multi-tender)
+  createPayment: (orderId, data) => request('POST', `/pos/orders/${orderId}/payments`, data),
+  // Void payment
+  voidPayment: (orderId, paymentId) => request('POST', `/pos/orders/${orderId}/payments/${paymentId}/void`),
+  // Refund payment
+  refundPayment: (orderId, paymentId, data) => request('POST', `/pos/orders/${orderId}/payments/${paymentId}/refund`, data),
+  // Settlement (tổng tiền + còn phải trả)
+  getOrderSettlement: (orderId) => request('GET', `/pos/orders/${orderId}/settlement`),
 };

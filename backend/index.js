@@ -70,6 +70,9 @@ app.use('/api/v1/menu', menuRouter);
 import reservationsRouter from './src/routes/reservations.js'; // <— router đặt bàn
 app.use('/api/v1', reservationsRouter);
 
+import paymentsRouter from './src/routes/payments.js'; // <— router thanh toán
+app.use('/api/v1', paymentsRouter);
+
 // Error handling middleware (phải ở cuối)
 app.use(errorHandler);
 

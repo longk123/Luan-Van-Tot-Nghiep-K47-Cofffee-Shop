@@ -5,6 +5,7 @@ import useOrderDrawer from '../hooks/useOrderDrawer.js';
 import { api } from '../api.js';
 import LineItemWithOptions from './pos/LineItemWithOptions.jsx';
 import EditOptionsDialog from './pos/EditOptionsDialog.jsx';
+import PaymentSection from './PaymentSection.jsx';
 
 // Helper để nhóm bàn theo khu vực
 function groupTablesByArea(tables) {
@@ -826,55 +827,50 @@ export default function OrderDrawer({
           </div>
         </div>
 
+        {/* Payment Section - Multi-tender payments */}
+        {!isPaid && items.length > 0 && (
+          <div className="mt-4">
+            <PaymentSection
+              orderId={orderId}
+              onPaymentComplete={async () => {
+                await fetchOrderInfo();
+                await reloadTables?.();
+                onShowToast?.({
+                  show: true,
+                  type: 'success',
+                  title: 'Thanh toán hoàn tất!',
+                  message: 'Đơn hàng đã được thanh toán đủ.'
+                });
+              }}
+              onShowToast={onShowToast}
+            />
+          </div>
+        )}
 
-        {/* Action buttons - Hủy đơn & Thanh toán cùng dòng */}
-        <div className="flex gap-2 mt-3">
-          <button
-            onClick={() => !isPaid && setShowCancelDialog(true)}
-            disabled={isPaid}
-            className={`flex-1 bg-gradient-to-r from-red-50 to-red-100 text-red-700 py-3 px-3 rounded-xl border border-red-200 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm outline-none focus:outline-none ${
-              isPaid 
-                ? 'opacity-40 cursor-not-allowed' 
-                : 'hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-md cursor-pointer'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        {/* Action button - Chỉ nút Hủy đơn */}
+        {!isPaid && (
+          <div className="mt-3">
+            <button
+              onClick={() => setShowCancelDialog(true)}
+              className="w-full bg-gradient-to-r from-red-50 to-red-100 text-red-700 py-3 px-3 rounded-xl border border-red-200 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-md outline-none focus:outline-none"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Hủy đơn
+            </button>
+          </div>
+        )}
+
+        {/* Paid status */}
+        {isPaid && (
+          <div className="mt-3 bg-green-100 border-2 border-green-300 rounded-xl p-4 flex items-center justify-center gap-2">
+            <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            Hủy
-          </button>
-
-          <button
-            onClick={handleCheckout}
-            className={`flex-[2] bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-3 px-4 rounded-xl transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm outline-none focus:outline-none ${
-              !items.length || checkingOut || isPaid
-                ? 'opacity-40 cursor-not-allowed'
-                : 'hover:from-emerald-700 hover:to-emerald-800 hover:shadow-md cursor-pointer'
-            }`}
-            disabled={!items.length || checkingOut || isPaid}
-          >
-            {checkingOut ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                Đang thanh toán...
-              </>
-            ) : isPaid ? (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Đã thanh toán
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-                Thanh toán
-              </>
-            )}
-          </button>
-        </div>
+            <span className="text-lg font-bold text-green-700">Đã thanh toán</span>
+          </div>
+        )}
       </div>
     </div>
   );
