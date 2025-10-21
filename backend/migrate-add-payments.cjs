@@ -136,13 +136,13 @@ async function migrate() {
         o.id AS order_id,
         COALESCE(SUM((d.don_gia * d.so_luong)), 0)::INT AS subtotal_before_lines,
         COALESCE(SUM(COALESCE(d.giam_gia, 0)), 0)::INT AS line_discounts_total,
-        COALESCE(SUM((d.don_gia * d.so_luong)), 0)::INT AS subtotal_after_lines,
+        COALESCE(SUM((d.don_gia * d.so_luong) - COALESCE(d.giam_gia, 0)), 0)::INT AS subtotal_after_lines,
         0 AS promo_total,
         COALESCE(o.giam_gia_thu_cong, 0) AS manual_discount,
         0 AS service_fee,
         0.0 AS vat_rate,
         0 AS vat_amount,
-        COALESCE(SUM((d.don_gia * d.so_luong)), 0)::INT AS grand_total
+        (COALESCE(SUM((d.don_gia * d.so_luong) - COALESCE(d.giam_gia, 0)), 0) - COALESCE(o.giam_gia_thu_cong, 0))::INT AS grand_total
       FROM don_hang o
       LEFT JOIN don_hang_chi_tiet d ON d.don_hang_id = o.id
       GROUP BY o.id, o.giam_gia_thu_cong
