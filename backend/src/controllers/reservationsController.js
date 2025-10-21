@@ -5,6 +5,9 @@ import reservationsService from '../services/reservationsService.js';
 class ReservationsController {
   // POST /api/v1/reservations
   createReservation = asyncHandler(async (req, res) => {
+    console.log('📝 createReservation received body:', req.body);
+    console.log('khu_vuc_id:', req.body.khu_vuc_id, 'type:', typeof req.body.khu_vuc_id);
+    
     const data = {
       ...req.body,
       created_by: req.user?.user_id
