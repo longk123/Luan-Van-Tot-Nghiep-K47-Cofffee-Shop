@@ -1,0 +1,520 @@
+// src/repositories/posRepository.js
+import { pool } from '../db.js';
+
+const query = (text, params) => pool.query(text, params);
+
+export default {
+  // Danh sách bàn + tóm tắt order OPEN (nếu có)
+  async getTablesWithSummary({ areaId = null }) {
+    // Tự động hủy đơn mang đi quá 30 phút
+    await pool.query(`
+      UPDATE don_hang
+      SET trang_thai = 'CANCELLED'
+      WHERE order_type = 'TAKEAWAY'
+        AND trang_thai = 'OPEN'
+        AND opened_at < NOW() - INTERVAL '30 minutes';
+    `);
+
+    const params = [];
+    let where = '1=1';
+    if (areaId) {
+      params.push(Number(areaId));
+      where += ` AND b.khu_vuc_id = $${params.length}`;
+    }
+    const sql = `
+      WITH open_order AS (
+        SELECT ban_id, id AS order_id
+        FROM don_hang
+        WHERE trang_thai = 'OPEN' AND order_type = 'DINE_IN'
+      ),
+      last_paid AS (
+        SELECT DISTINCT ON (ban_id)
+               ban_id, id AS last_paid_order_id
+        FROM don_hang
+        WHERE ban_id IS NOT NULL AND trang_thai = 'PAID'
+        ORDER BY ban_id, closed_at DESC
+      ),
+      latest_order_for_using_table AS (
+        SELECT DISTINCT ON (dh.ban_id)
+               dh.ban_id, dh.id AS latest_order_id
+        FROM don_hang dh
+        INNER JOIN ban b ON b.id = dh.ban_id
+        WHERE dh.ban_id IS NOT NULL 
+          AND dh.trang_thai IN ('OPEN', 'PAID')
+          AND b.trang_thai = 'DANG_DUNG'
+        ORDER BY dh.ban_id, dh.opened_at DESC
+      ),
+      summary AS (
+        SELECT lo.ban_id,
+               COUNT(don_hang_chi_tiet.id) AS item_count,
+               COALESCE(SUM(don_hang_chi_tiet.so_luong * don_hang_chi_tiet.don_gia), 0) AS subtotal,
+               COUNT(*) FILTER (WHERE don_hang_chi_tiet.trang_thai_che_bien='QUEUED') AS q_count,
+               COUNT(*) FILTER (WHERE don_hang_chi_tiet.trang_thai_che_bien='MAKING') AS m_count,
+               COUNT(*) FILTER (WHERE don_hang_chi_tiet.trang_thai_che_bien='DONE') AS done_count
+        FROM latest_order_for_using_table lo
+        INNER JOIN don_hang ON don_hang.id = lo.latest_order_id
+        LEFT JOIN don_hang_chi_tiet ON don_hang.id = don_hang_chi_tiet.don_hang_id
+        GROUP BY lo.ban_id
+      )
+      SELECT
+        b.id,
+        b.ten_ban,
+        b.khu_vuc_id,
+        kv.ten AS khu_vuc_ten,
+        kv.ten AS khu_vuc,
+        b.suc_chua,
+        b.trang_thai,
+        b.ghi_chu,
+        o.id AS order_id,
+        o.id AS current_order_id,
+        o.opened_at,
+        o.trang_thai AS order_status,
+        COALESCE(s.item_count,0)::int AS item_count,
+        COALESCE(s.subtotal,0)::int AS subtotal,
+        COALESCE(s.q_count,0)::int AS q_count,
+        COALESCE(s.m_count,0)::int AS m_count,
+        COALESCE(s.done_count,0)::int AS done_count,
+        CASE
+          WHEN oo.order_id IS NOT NULL THEN 'CHUA_TT'
+          WHEN lp.ban_id IS NOT NULL THEN 'DA_TT'
+          ELSE 'NONE'
+        END AS payment_status
+      FROM ban b
+      LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
+      LEFT JOIN (
+        SELECT 
+          dh.ban_id,
+          dh.id,
+          dh.opened_at,
+          dh.trang_thai,
+          ROW_NUMBER() OVER (PARTITION BY dh.ban_id ORDER BY dh.opened_at DESC) as rn
+        FROM don_hang dh
+        INNER JOIN ban b2 ON b2.id = dh.ban_id
+        WHERE dh.ban_id IS NOT NULL 
+          AND dh.trang_thai IN ('OPEN', 'PAID')
+          AND b2.trang_thai = 'DANG_DUNG'
+      ) o ON o.ban_id = b.id AND o.rn = 1
+      LEFT JOIN summary s ON s.ban_id = b.id
+      LEFT JOIN open_order oo ON oo.ban_id = b.id
+      LEFT JOIN last_paid lp ON lp.ban_id = b.id
+      WHERE ${where}
+      ORDER BY kv.thu_tu, b.ten_ban
+    `;
+    const { rows } = await pool.query(sql, params);
+    return rows;
+  },
+
+  // Lấy order OPEN của 1 bàn (nếu có)
+  async getOpenOrderByTable(banId) {
+    const sql = `
+      SELECT o.*, 
+        COALESCE(oi.item_count,0)::int AS item_count,
+        COALESCE(oi.subtotal,0)::int AS subtotal
+      FROM don_hang o
+      LEFT JOIN (
+        SELECT 
+          don_hang_id,
+          COUNT(*) as item_count,
+          SUM(so_luong * don_gia - COALESCE(giam_gia,0)) as subtotal
+        FROM don_hang_chi_tiet 
+        GROUP BY don_hang_id
+      ) oi ON oi.don_hang_id = o.id
+      WHERE o.ban_id = $1 AND o.trang_thai = 'OPEN'
+      ORDER BY o.opened_at DESC
+      LIMIT 1
+    `;
+    const { rows } = await pool.query(sql, [banId]);
+    return rows[0] || null;
+  },
+
+  // Lấy chi tiết order (items)
+  async getOrderItems(orderId) {
+    const sql = `
+      SELECT 
+        d.id,
+        d.mon_id,
+        COALESCE(d.ten_mon_snapshot, m.ten) AS ten_mon,
+        d.bien_the_id,
+        mbt.ten_bien_the,
+        d.so_luong,
+        d.don_gia,
+        COALESCE(d.giam_gia,0) AS giam_gia,
+        (d.so_luong * d.don_gia - COALESCE(d.giam_gia,0)) AS line_total
+      FROM don_hang_chi_tiet d
+      LEFT JOIN mon m ON m.id = d.mon_id
+      LEFT JOIN mon_bien_the mbt ON mbt.id = d.bien_the_id
+      WHERE d.don_hang_id = $1
+      ORDER BY d.id
+    `;
+    const { rows } = await pool.query(sql, [orderId]);
+    return rows;
+  },
+
+  // Lấy tổng kết order + trạng thái thanh toán
+  async getOrderSummary(orderId) {
+    const sql = `
+      SELECT 
+        o.id,
+        o.ban_id,
+        o.trang_thai,
+        o.trang_thai AS status,
+        o.order_type,
+        o.opened_at,
+        o.closed_at,
+        CASE WHEN o.trang_thai = 'PAID' THEN true ELSE false END AS da_thanh_toan,
+        COUNT(d.id) AS total_lines,
+        COALESCE(SUM(d.so_luong), 0) AS total_quantity,
+        COALESCE(SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia,0)), 0) AS subtotal
+      FROM don_hang o
+      LEFT JOIN don_hang_chi_tiet d ON d.don_hang_id = o.id
+      WHERE o.id = $1
+      GROUP BY o.id, o.ban_id, o.trang_thai, o.order_type, o.opened_at, o.closed_at
+    `;
+    const { rows } = await pool.query(sql, [orderId]);
+    return rows[0] || { total_lines: 0, total_quantity: 0, subtotal: 0, trang_thai: 'OPEN', da_thanh_toan: false };
+  },
+
+  // Lấy thông tin đơn hàng theo ID
+  async getOrderById(orderId) {
+    const sql = `SELECT * FROM don_hang WHERE id = $1`;
+    const { rows } = await pool.query(sql, [orderId]);
+    return rows[0] || null;
+  },
+
+  // Cập nhật trạng thái đơn hàng
+  async setOrderStatus(orderId, status, reason = null) {
+    const sql = `
+      UPDATE don_hang
+      SET trang_thai = $2, ly_do_huy = $3
+      WHERE id = $1
+      RETURNING *;
+    `;
+    const { rows } = await pool.query(sql, [orderId, status, reason]);
+    return rows[0] || null;
+  },
+
+  // Thêm item vào order
+  async addItemToOrder({ orderId, monId, bienTheId, soLuong, donGia, giamGia = 0 }) {
+    // Lấy thông tin món để snapshot
+    const { rows: monRows } = await pool.query(
+      `SELECT ten, gia_mac_dinh FROM mon WHERE id = $1`,
+      [monId]
+    );
+    const mon = monRows[0];
+    
+    const sql = `
+      INSERT INTO don_hang_chi_tiet (don_hang_id, mon_id, bien_the_id, so_luong, don_gia, giam_gia, ten_mon_snapshot, gia_niem_yet_snapshot)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `;
+    const { rows } = await pool.query(sql, [orderId, monId, bienTheId, soLuong, donGia, giamGia, mon?.ten, mon?.gia_mac_dinh]);
+    return rows[0];
+  },
+
+  // Cập nhật số lượng item
+  async updateItemQuantity({ itemId, soLuong }) {
+    const sql = `
+      UPDATE don_hang_chi_tiet 
+      SET so_luong = $2
+      WHERE id = $1
+      RETURNING *
+    `;
+    const { rows } = await pool.query(sql, [itemId, soLuong]);
+    return rows[0];
+  },
+
+  // Xóa item khỏi order
+  async removeItemFromOrder(itemId) {
+    const sql = `DELETE FROM don_hang_chi_tiet WHERE id = $1`;
+    await pool.query(sql, [itemId]);
+  },
+
+  // Lấy danh sách món theo loại (có kèm variants)
+  async getMenuByCategory(categoryId = null) {
+    let sql = `
+      SELECT 
+        m.id,
+        m.ten,
+        m.ma,
+        m.loai_id,
+        lm.ten AS loai_ten,
+        m.don_vi,
+        m.gia_mac_dinh,
+        m.active,
+        m.thu_tu,
+        m.mo_ta,
+        m.hinh_anh,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', mbt.id,
+              'ten_bien_the', mbt.ten_bien_the,
+              'gia', mbt.gia,
+              'thu_tu', mbt.thu_tu,
+              'active', mbt.active
+            ) ORDER BY mbt.thu_tu
+          ) FILTER (WHERE mbt.id IS NOT NULL), 
+          '[]'::json
+        ) AS variants
+      FROM mon m
+      LEFT JOIN loai_mon lm ON lm.id = m.loai_id
+      LEFT JOIN mon_bien_the mbt ON mbt.mon_id = m.id AND mbt.active = true
+      WHERE m.active = true
+    `;
+    const params = [];
+    if (categoryId) {
+      sql += ` AND m.loai_id = $1`;
+      params.push(categoryId);
+    }
+    sql += ` GROUP BY m.id, m.ten, m.ma, m.loai_id, lm.ten, m.don_vi, m.gia_mac_dinh, m.active, m.thu_tu, m.mo_ta, m.hinh_anh, lm.thu_tu
+             ORDER BY lm.thu_tu, m.thu_tu, m.ten`;
+    
+    const { rows } = await pool.query(sql, params);
+    return rows;
+  },
+
+  // Lấy biến thể của món
+  async getMenuItemVariants(monId) {
+    const sql = `
+      SELECT id, ten_bien_the, gia, thu_tu, active
+      FROM mon_bien_the
+      WHERE mon_id = $1 AND active = true
+      ORDER BY thu_tu
+    `;
+    const { rows } = await pool.query(sql, [monId]);
+    return rows;
+  },
+
+  // Lấy loại món
+  async getMenuCategories() {
+    const sql = `
+      SELECT id, ten, mo_ta, thu_tu, active
+      FROM loai_mon
+      WHERE active = true
+      ORDER BY thu_tu
+    `;
+    const { rows } = await pool.query(sql);
+    return rows;
+  },
+
+  // Tạo order mới cho bàn
+  async createOrderWithTable({ banId, userId }) {
+    const sql = `
+      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, opened_at, order_type)
+      VALUES ($1, $2,
+        (SELECT id FROM ca_lam WHERE status='OPEN' AND nhan_vien_id=$2 ORDER BY started_at DESC LIMIT 1),
+        'OPEN', NOW(), 'DINE_IN')
+      RETURNING id, ban_id, trang_thai, order_type, opened_at
+    `;
+    const { rows } = await pool.query(sql, [banId, userId]);
+    return rows[0];
+  },
+
+  // Tạo order mang đi (không bàn)
+  async createOrderNoTable({ order_type, userId }) {
+    const sql = `
+      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, opened_at, order_type)
+      VALUES (NULL, $1,
+        (SELECT id FROM ca_lam WHERE status='OPEN' AND nhan_vien_id=$1 ORDER BY started_at DESC LIMIT 1),
+        'OPEN', NOW(), $2)
+      RETURNING id, ban_id, trang_thai, order_type, opened_at
+    `;
+    const { rows } = await pool.query(sql, [userId, order_type]);
+    return rows[0];
+  },
+
+  // Di chuyển order sang bàn khác
+  // Đổi bàn - hỗ trợ cả OPEN và PAID
+  async moveOrderToTable({ orderId, toTableId }) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1) Lấy thông tin đơn hàng
+      const { rows: ordRows } = await client.query(
+        `SELECT id, ban_id, trang_thai, order_type FROM don_hang WHERE id=$1 FOR UPDATE`,
+        [orderId]
+      );
+      if (!ordRows[0]) {
+        const err = new Error('Không tìm thấy đơn hàng.');
+        err.status = 404;
+        throw err;
+      }
+      const order = ordRows[0];
+
+      // 2) Chỉ cho phép đổi đơn OPEN hoặc PAID
+      if (!['OPEN', 'PAID'].includes(order.trang_thai)) {
+        const err = new Error('Chỉ có thể đổi bàn với đơn OPEN hoặc PAID.');
+        err.status = 400;
+        throw err;
+      }
+
+      if (order.order_type !== 'DINE_IN') {
+        const err = new Error('Chỉ có thể đổi bàn với đơn tại chỗ (DINE_IN).');
+        err.status = 400;
+        throw err;
+      }
+
+      // 3) Kiểm tra bàn đích
+      const { rows: toRows } = await client.query(
+        `SELECT id, trang_thai FROM ban WHERE id=$1 FOR UPDATE`, 
+        [toTableId]
+      );
+      if (!toRows[0]) {
+        const err = new Error('Không tìm thấy bàn đích.');
+        err.status = 404;
+        throw err;
+      }
+      const targetTable = toRows[0];
+
+      // Bàn đích phải TRONG (không cho KHOA và DANG_DUNG)
+      if (targetTable.trang_thai !== 'TRONG') {
+        const err = new Error('Bàn đích phải ở trạng thái TRỐNG. Vui lòng chọn bàn khác.');
+        err.status = 400;
+        throw err;
+      }
+
+      const oldTableId = order.ban_id;
+
+      // 4) Cập nhật đơn hàng → chuyển sang bàn mới
+      await client.query(
+        `UPDATE don_hang SET ban_id=$1 WHERE id=$2`, 
+        [toTableId, orderId]
+      );
+
+      // 5) Cập nhật trạng thái bàn đích → DANG_DUNG
+      await client.query(
+        `UPDATE ban SET trang_thai='DANG_DUNG', updated_at=NOW() WHERE id=$1`, 
+        [toTableId]
+      );
+
+      // 6) Cập nhật bàn cũ: nếu không còn đơn OPEN nào → cho về TRONG
+      if (oldTableId) {
+        const { rows: stillOpenRows } = await client.query(
+          `SELECT COUNT(*)::int AS c 
+           FROM don_hang 
+           WHERE ban_id=$1 AND trang_thai='OPEN' AND order_type='DINE_IN'`,
+          [oldTableId]
+        );
+        const stillOpen = stillOpenRows[0]?.c || 0;
+        
+        if (stillOpen === 0) {
+          await client.query(
+            `UPDATE ban SET trang_thai='TRONG', updated_at=NOW() WHERE id=$1`, 
+            [oldTableId]
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+      
+      return { 
+        order_id: orderId, 
+        old_table_id: oldTableId,
+        new_table_id: toTableId,
+        order_status: order.trang_thai
+      };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  },
+
+  // Thanh toán order
+  async checkoutOrder({ orderId, payment_method, keepSeated, note, userId }) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const { rows: ordRows } = await client.query(
+        `SELECT id, ban_id, trang_thai, order_type FROM don_hang WHERE id=$1 FOR UPDATE`,
+        [orderId]
+      );
+      if (!ordRows[0]) throw new Error('Order not found');
+      const order = ordRows[0];
+      if (order.trang_thai !== 'OPEN') throw new Error('Order already closed');
+
+      const { rows: totalRows } = await client.query(
+        `SELECT COALESCE(SUM(so_luong * don_gia - COALESCE(giam_gia,0)),0) AS total
+         FROM don_hang_chi_tiet WHERE don_hang_id=$1`,
+        [orderId]
+      );
+      const total = Number(totalRows[0].total) || 0;
+
+      await client.query(
+        `UPDATE don_hang
+           SET trang_thai='PAID', closed_at=NOW()
+         WHERE id=$1`,
+        [orderId]
+      );
+
+      await client.query('COMMIT');
+      return { order_id: orderId, ban_id: order.ban_id, total, status: 'PAID', keepSeated: !!keepSeated };
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  },
+
+  // Lấy order gần nhất (dù là PAID)
+  async getLatestOrderByTable(banId) {
+    const sql = `
+      SELECT * FROM don_hang
+      WHERE ban_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const { rows } = await query(sql, [banId]);
+    return rows[0] || null;
+  },
+
+  // Tạo đơn hàng với bàn
+  async createOrderWithTable({ banId, nhanVienId }) {
+    const sql = `
+      INSERT INTO don_hang (ban_id, nhan_vien_id, trang_thai, order_type)
+      VALUES ($1, $2, 'OPEN', 'DINE_IN')
+      RETURNING *;
+    `;
+    const { rows } = await pool.query(sql, [banId, nhanVienId]);
+    return rows[0];
+  },
+
+  // Tạo đơn hàng mang đi (không có bàn)
+  async createOrderNoTable({ nhanVienId, caLamId }) {
+    const sql = `
+      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type)
+      VALUES (NULL, $1, $2, 'OPEN', 'TAKEAWAY')
+      RETURNING *;
+    `;
+    const { rows } = await pool.query(sql, [nhanVienId, caLamId]);
+    return rows[0];
+  },
+
+  // Lấy đơn gần nhất của bàn
+  async getLatestOrderByTable(banId) {
+    const sql = `
+      SELECT * FROM don_hang
+      WHERE ban_id = $1
+      ORDER BY opened_at DESC
+      LIMIT 1;
+    `;
+    const { rows } = await pool.query(sql, [banId]);
+    return rows[0] || null;
+  },
+
+  // Đổi trạng thái bàn (TRỐNG <-> KHÓA)
+  async setTableStatus(banId, status, ghi_chu = null) {
+    const sql = `
+      UPDATE ban
+      SET trang_thai = $2, ghi_chu = $3
+      WHERE id = $1
+      RETURNING id, ten_ban, trang_thai, ghi_chu;
+    `;
+    const { rows } = await pool.query(sql, [banId, status, ghi_chu]);
+    return rows[0] || null;
+  }
+};

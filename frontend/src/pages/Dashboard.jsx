@@ -1,0 +1,559 @@
+// === src/pages/Dashboard.jsx ===
+import { useEffect, useMemo, useState } from 'react';
+import AuthedLayout from '../layouts/AuthedLayout.jsx';
+import { api } from '../api.js';
+import AreaTabs from '../components/AreaTabs.jsx';
+import TableCard from '../components/TableCard.jsx';
+import OrderDrawer from '../components/OrderDrawer.jsx';
+import useSSE from '../hooks/useSSE.js';
+import MenuPanel from '../components/MenuPanel.jsx';
+import Toast from '../components/Toast.jsx';
+
+export default function Dashboard({ defaultMode = 'dashboard' }) {
+  const [areas, setAreas] = useState([]);
+  const [activeArea, setActiveArea] = useState(null);
+  const [tables, setTables] = useState([]);
+  const [drawer, setDrawer] = useState({ open: false, order: null });
+  const [loading, setLoading] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [shift, setShift] = useState(null);
+  const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+  const [triggerCancelDialog, setTriggerCancelDialog] = useState(false);
+  
+  // POS mode states
+  const [posMode, setPosMode] = useState(defaultMode === 'pos');
+  
+  // Confirmation dialog states
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+  const [pendingOrderCreation, setPendingOrderCreation] = useState(null); // { type: 'table', table } hoặc { type: 'takeaway' }
+
+  // Debug: Log drawer state changes
+  useEffect(() => {
+    console.log('📦 Drawer state changed:', drawer);
+  }, [drawer]);
+
+  async function loadAreas() {
+    const res = await api.get('/areas');
+    const data = res?.data || res || [];
+    setAreas(data);
+    if (!activeArea && data.length) setActiveArea(data[0].id);
+  }
+
+  async function loadTables() {
+    setLoading(true);
+    try {
+      const res = await api.getPosTables();
+      setTables(res?.data || res || []);
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadAreas(); }, []);
+  useEffect(() => { loadTables(); }, []);
+
+  // Load shift info
+  useEffect(() => {
+    api.getCurrentShift()
+      .then(res => setShift(res?.data || res || null))
+      .catch(err => console.error('Error loading shift:', err));
+  }, []);
+
+  // SSE for real-time updates
+  useSSE('/api/v1/pos/events', (evt) => {
+    if (['table.updated','order.updated','order.closed','order.items.changed'].includes(evt.type)) {
+      loadTables();
+      if (drawer.open) {
+        setRefreshTick((x) => x + 1);
+      }
+    }
+  }, []);
+
+  // Group tables by area
+  const tablesByArea = useMemo(() => {
+    const map = new Map();
+    areas.forEach((a) => map.set(a.id, { ...a, tables: [] }));
+    tables.forEach((t) => {
+      const key = t.khu_vuc_id || 0;
+      if (!map.has(key)) map.set(key, { id: key, ten: t.khu_vuc || "Khác", tables: [] });
+      map.get(key).tables.push(t);
+    });
+    return Array.from(map.values()).sort((a, b) => (a.thu_tu || 0) - (b.thu_tu || 0));
+  }, [areas, tables]);
+
+  // Current area tables
+  const currentAreaTables = useMemo(() => {
+    if (posMode) return tables;
+    return tables.filter(t => t.khu_vuc_id === activeArea);
+  }, [tables, activeArea, posMode]);
+
+  async function handleTableClick(table) {
+    console.log('=== TableCard clicked ===');
+    console.log('Table:', table);
+    
+    // Backend trả về order_id hoặc current_order_id
+    const orderId = table.order_id || table.current_order_id || table.don_hang_id;
+    console.log('Has order ID?', orderId);
+    console.log('Table status:', table.trang_thai);
+    
+    // Nếu bàn có đơn (dù thanh toán hay chưa), mở drawer để xem chi tiết
+    if (orderId) {
+      console.log('✅ Opening drawer for order:', orderId);
+      const drawerData = { 
+        open: true, 
+        order: { 
+          id: orderId, 
+          ban_id: table.id, 
+          order_type: 'DINE_IN',
+          trang_thai: table.order_status,
+          status: table.order_status
+        } 
+      };
+      console.log('Setting drawer:', drawerData);
+      setDrawer(drawerData);
+      console.log('Drawer state should be updated now');
+    } 
+    // Nếu bàn trống, hiển thị dialog xác nhận trước khi tạo đơn
+    else if (table.trang_thai === 'TRONG') {
+      console.log('📋 Showing confirmation for table:', table.id);
+      setPendingOrderCreation({ type: 'table', table });
+      setShowCreateConfirm(true);
+    } else {
+      console.log('⚠️ Table not clickable. Status:', table.trang_thai, 'Order ID:', orderId);
+    }
+  }
+
+  // Hàm xác nhận tạo đơn cho bàn
+  async function confirmCreateTableOrder() {
+    const table = pendingOrderCreation?.table;
+    if (!table) return;
+    
+    console.log('✅ Creating new order for table:', table.id);
+    setShowCreateConfirm(false);
+    
+    try {
+      const res = await api.createOrderForTable(table.id);
+      const newOrder = res?.data || res;
+      console.log('New order created:', newOrder);
+      
+      const drawerData = { 
+        open: true, 
+        order: { 
+          id: newOrder.id,
+          ban_id: table.id, 
+          order_type: 'DINE_IN' 
+        } 
+      };
+      console.log('Setting drawer:', drawerData);
+      setDrawer(drawerData);
+      
+      loadTables();
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Tạo đơn thành công',
+        message: `Đơn hàng cho ${table.ten_ban} đã được tạo.`
+      });
+    } catch (err) {
+      console.error('❌ Error creating order:', err);
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi tạo đơn',
+        message: err.message || 'Không thể tạo đơn hàng mới.'
+      });
+    } finally {
+      setPendingOrderCreation(null);
+    }
+  }
+
+  async function handleCreateTakeaway() {
+    // Hiển thị dialog xác nhận
+    setPendingOrderCreation({ type: 'takeaway' });
+    setShowCreateConfirm(true);
+  }
+
+  // Hàm xác nhận tạo đơn mang đi
+  async function confirmCreateTakeawayOrder() {
+    setShowCreateConfirm(false);
+    
+    try {
+      const res = await api.createTakeawayOrder();
+      const newOrder = res?.data || res;
+      
+      setDrawer({ 
+        open: true, 
+        order: { 
+          id: newOrder.id,
+          order_type: 'TAKEAWAY' 
+        } 
+      });
+      
+      loadTables();
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Đơn mang đi',
+        message: `Đã tạo đơn mang đi #${newOrder.id}`
+      });
+    } catch (err) {
+      console.error('Error creating takeaway order:', err);
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi tạo đơn',
+        message: err.message || 'Không thể tạo đơn mang đi.'
+      });
+    } finally {
+      setPendingOrderCreation(null);
+    }
+  }
+
+  async function handleCloseTable(tableId, toStatus = 'TRONG') {
+    try {
+      await api.closeTableAfterPaid(tableId, toStatus);
+      await loadTables();
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Dọn bàn thành công',
+        message: `Bàn đã được chuyển về trạng thái ${toStatus === 'TRONG' ? 'trống' : toStatus}.`
+      });
+    } catch (err) {
+      console.error('Error closing table:', err);
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi dọn bàn',
+        message: err.message || 'Không thể dọn bàn.'
+      });
+    }
+  }
+
+  async function handleLockTable(tableId, reason = null) {
+    try {
+      await api.lockTable(tableId, reason);
+      await loadTables();
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Khóa bàn thành công',
+        message: reason ? `Bàn đã khóa. Lý do: ${reason}` : 'Bàn đã được khóa.'
+      });
+    } catch (err) {
+      console.error('Error locking table:', err);
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi khóa bàn',
+        message: err.message || 'Không thể khóa bàn.'
+      });
+    }
+  }
+
+  async function handleUnlockTable(tableId) {
+    try {
+      await api.unlockTable(tableId);
+      await loadTables();
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Mở khóa thành công',
+        message: 'Bàn đã được mở khóa và chuyển về trạng thái trống.'
+      });
+    } catch (err) {
+      console.error('Error unlocking table:', err);
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi mở khóa',
+        message: err.message || 'Không thể mở khóa bàn.'
+      });
+    }
+  }
+
+  // Callback khi đổi bàn thành công - mở drawer với bàn mới
+  async function handleTableChanged(newTableId, orderId) {
+    console.log('Table changed, opening drawer for new table:', newTableId, 'with order:', orderId);
+    
+    // Reload tables để có dữ liệu mới nhất
+    await loadTables();
+    
+    // Mở drawer với đơn hàng đã đổi sang bàn mới
+    setDrawer({ 
+      open: true, 
+      order: { 
+        id: orderId, 
+        ban_id: newTableId, 
+        order_type: 'DINE_IN' 
+      } 
+    });
+  }
+
+  const showWorkpane = drawer.open; // Hiển thị menu khi có drawer mở (dù mode nào)
+  const rightPad = showWorkpane ? 640 : 0;
+
+  return (
+    <AuthedLayout shift={shift}>
+      {/* Header with area info */}
+      {!posMode && !showWorkpane && (
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">
+              Khu vực <span className="text-sm text-gray-500 font-normal ml-2">{areas.length} khu vực</span>
+            </h2>
+            <button
+              onClick={handleCreateTakeaway}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
+            >
+              + Đơn mang đi
+            </button>
+          </div>
+          
+          <div className="mt-3">
+            <AreaTabs areas={areas} activeId={activeArea} onChange={setActiveArea} />
+          </div>
+        </>
+      )}
+
+      {/* POS mode header */}
+      {posMode && (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setPosMode(false);
+                setDrawer({ open: false, order: null });
+              }}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors outline-none focus:outline-none"
+            >
+              ← Dashboard
+            </button>
+            <h2 className="text-xl font-semibold">POS</h2>
+          </div>
+          <button
+            onClick={handleCreateTakeaway}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
+          >
+            + Đơn mang đi
+          </button>
+        </div>
+      )}
+
+      {/* Workpane (Menu + back button) - Hiển thị khi có đơn đang mở */}
+      {showWorkpane && (
+        <div className="mb-4" style={{ paddingRight: rightPad }}>
+          <div className="flex items-center justify-between">
+            <button 
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors outline-none focus:outline-none" 
+              onClick={() => {
+                setDrawer({ open: false, order: null });
+                if (drawer.order?.order_type === 'TAKEAWAY' && !drawer.order?.id) {
+                  setTriggerCancelDialog(true);
+                }
+              }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {posMode ? 'Danh sách bàn' : 'Quay lại'}
+            </button>
+            <div className="text-sm text-gray-500">
+              {drawer.order?.order_type === 'TAKEAWAY' 
+                ? `Mang đi • Đơn #${drawer.order?.id}` 
+                : `Bàn ${drawer.order?.ban_id} • Đơn #${drawer.order?.id}`
+              }
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <MenuPanel
+              orderId={drawer.order?.id}
+              onAdded={() => setRefreshTick((x) => x + 1)}
+              onShowToast={setToast}
+              disabled={drawer.order?.trang_thai === 'PAID' || drawer.order?.status === 'PAID'}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Tables grid */}
+      {!showWorkpane && (
+        <div className="mt-6">
+          {loading ? (
+            <div className="p-6 text-gray-500">Đang tải bàn...</div>
+          ) : posMode ? (
+            // POS mode - all tables by area
+            <div className="space-y-6">
+              {tablesByArea.map(area => (
+                <div key={area.id}>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                    {area.ten} ({area.tables.length})
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {area.tables.map((t) => (
+                      <TableCard 
+                        key={t.id} 
+                        table={t} 
+                        onClick={handleTableClick}
+                        onCloseTable={handleCloseTable}
+                        onLockTable={handleLockTable}
+                        onUnlockTable={handleUnlockTable}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Dashboard mode - current area only
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {currentAreaTables.map((t) => (
+                <TableCard 
+                  key={t.id} 
+                  table={t} 
+                  onClick={handleTableClick}
+                  onCloseTable={handleCloseTable}
+                  onLockTable={handleLockTable}
+                  onUnlockTable={handleUnlockTable}
+                />
+              ))}
+              {!currentAreaTables.length && <div className="text-gray-500">Không có bàn.</div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* OrderDrawer */}
+      <OrderDrawer
+        key={drawer.order?.id || 'empty'}
+        open={drawer.open}
+        order={drawer.order}
+        onClose={() => setDrawer({ open: false, order: null })}
+        onPaid={() => loadTables()}
+        refreshTick={refreshTick}
+        width={posMode ? 680 : 640}
+        docked
+        shift={shift}
+        reloadTables={loadTables}
+        onShowToast={setToast}
+        triggerCancelDialog={triggerCancelDialog}
+        onTriggerCancelDialog={() => setTriggerCancelDialog(false)}
+        onTableChanged={handleTableChanged}
+      />
+
+      {/* Confirmation Dialog */}
+      {showCreateConfirm && (
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => {
+              setShowCreateConfirm(false);
+              setPendingOrderCreation(null);
+            }}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-emerald-50 rounded-full">
+                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 text-center mb-2">
+                Tạo đơn hàng mới
+              </h3>
+              <p className="text-gray-600 text-center text-sm leading-relaxed">
+                {pendingOrderCreation?.type === 'takeaway' 
+                  ? 'Bạn có chắc chắn muốn tạo đơn mang đi mới?'
+                  : `Bạn có chắc chắn muốn tạo đơn cho ${pendingOrderCreation?.table?.ten_ban}?`
+                }
+              </p>
+            </div>
+            
+            {/* Order Info Card */}
+            {pendingOrderCreation?.type === 'table' && (
+              <div className="mx-6 mb-6">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl p-4 border border-emerald-200">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 font-medium">Bàn:</span>
+                      <span className="font-bold text-gray-900">
+                        {pendingOrderCreation.table.ten_ban}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 font-medium">Khu vực:</span>
+                      <span className="font-bold text-gray-900">
+                        {pendingOrderCreation.table.khu_vuc || 'Không rõ'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 font-medium">Sức chứa:</span>
+                      <span className="font-bold text-emerald-600 text-lg">
+                        {pendingOrderCreation.table.suc_chua} người
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {pendingOrderCreation?.type === 'takeaway' && (
+              <div className="mx-6 mb-6">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl p-4 border border-emerald-200">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 font-medium">Loại đơn:</span>
+                      <span className="font-bold text-emerald-600 text-lg">
+                        Mang đi
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Action Buttons */}
+            <div className="px-6 pb-6">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCreateConfirm(false);
+                    setPendingOrderCreation(null);
+                  }}
+                  className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-200 hover:shadow-md outline-none focus:outline-none"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={() => {
+                    if (pendingOrderCreation?.type === 'takeaway') {
+                      confirmCreateTakeawayOrder();
+                    } else if (pendingOrderCreation?.type === 'table') {
+                      confirmCreateTableOrder();
+                    }
+                  }}
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white rounded-xl font-semibold transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] outline-none focus:outline-none"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      <Toast
+        show={toast.show}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+        onClose={() => setToast({ show: false, type: 'success', title: '', message: '' })}
+      />
+    </AuthedLayout>
+  );
+}
