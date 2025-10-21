@@ -127,8 +127,12 @@ export const api = {
   // Hoàn thành
   completeReservation: (id) => request('POST', `/reservations/${id}/complete`),
   // Tìm bàn trống
-  searchAvailableTables: (start, end, areaId = null) => 
-    request('GET', `/reservations/available-tables?start=${start}&end=${end}${areaId ? `&area=${areaId}` : ''}`),
+  searchAvailableTables: (start, end, areaId = null) => {
+    // Clean areaId - không gửi NaN
+    const cleanAreaId = (areaId && !isNaN(areaId)) ? areaId : null;
+    const areaParam = cleanAreaId ? `&area=${cleanAreaId}` : '';
+    return request('GET', `/reservations/available-tables?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${areaParam}`);
+  },
   // Đặt bàn sắp tới của 1 bàn
   getUpcomingReservation: (tableId, within = 60) => 
     request('GET', `/reservations/tables/${tableId}/upcoming?within=${within}`),

@@ -45,7 +45,20 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
   }, [open, areas]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Đảm bảo không có NaN trong state
+    let cleanValue = value;
+    
+    if (field === 'khu_vuc_id' || field === 'so_nguoi' || field === 'duration' || field === 'dat_coc') {
+      // Nếu là số, parse an toàn
+      if (typeof value === 'string') {
+        const parsed = parseInt(value);
+        cleanValue = isNaN(parsed) ? null : parsed;
+      } else if (typeof value === 'number' && isNaN(value)) {
+        cleanValue = null;
+      }
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: cleanValue }));
   };
 
   const getStartEndTime = () => {
@@ -74,10 +87,18 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
 
     setLoading(true);
     try {
+      // Đảm bảo khu_vuc_id là null hoặc số hợp lệ
+      let areaId = formData.khu_vuc_id;
+      if (areaId === '' || areaId === 'null' || areaId === undefined || (typeof areaId === 'number' && isNaN(areaId))) {
+        areaId = null;
+      }
+      
+      console.log('Searching tables with:', { start: times.start_at, end: times.end_at, areaId });
+      
       const res = await api.searchAvailableTables(
         times.start_at,
         times.end_at,
-        formData.khu_vuc_id
+        areaId
       );
       
       const tables = res?.data || res || [];
@@ -319,7 +340,15 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
                   </label>
                   <select
                     value={formData.khu_vuc_id || ''}
-                    onChange={(e) => handleInputChange('khu_vuc_id', e.target.value ? parseInt(e.target.value) : null)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || val === 'null' || !val) {
+                        handleInputChange('khu_vuc_id', null);
+                      } else {
+                        const parsed = parseInt(val);
+                        handleInputChange('khu_vuc_id', isNaN(parsed) ? null : parsed);
+                      }
+                    }}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Tất cả</option>
