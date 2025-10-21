@@ -10,6 +10,13 @@ const router = Router();
 
 // === RESERVATIONS ===
 
+// === UTILITIES (PHẢI ĐẶT TRƯỚC :id ROUTES!) ===
+
+// Tìm bàn trống (moved here to avoid conflict)
+router.get('/reservations/available-tables', reservationsCtrl.searchAvailableTables);
+
+// === MAIN RESERVATION ROUTES ===
+
 // Tạo đặt bàn mới
 router.post('/reservations', reservationsCtrl.createReservation);
 
@@ -47,10 +54,7 @@ router.post('/reservations/:id/no-show', reservationsCtrl.markNoShow);
 // Hoàn thành
 router.post('/reservations/:id/complete', reservationsCtrl.completeReservation);
 
-// === UTILITIES ===
-
-// Tìm bàn trống (moved to avoid conflict with /tables/:id)
-router.get('/reservations/available-tables', reservationsCtrl.searchAvailableTables);
+// === UTILITIES (already defined above) ===
 
 // Lấy đặt bàn sắp tới của 1 bàn
 router.get('/reservations/tables/:id/upcoming', reservationsCtrl.getUpcomingReservation);
