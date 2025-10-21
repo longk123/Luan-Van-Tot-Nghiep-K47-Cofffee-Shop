@@ -29,14 +29,41 @@ export default function PaymentSection({ orderId, onPaymentComplete, onShowToast
   const loadSettlement = async () => {
     if (!orderId) return;
     try {
-      const res = await api.getOrderSettlement(orderId);
-      const data = res?.data || {};
-      setSettlement(data.settlement);
-      setPayments(data.payments || []);
+      // Load money summary (có topping) và payments
+      const [summaryRes, paymentsRes] = await Promise.all([
+        api.getOrderMoneySummary(orderId),
+        api.getOrderPayments(orderId)
+      ]);
+      
+      const moneySummary = summaryRes?.data?.summary || summaryRes?.summary || {};
+      const paymentsData = paymentsRes?.data || [];
+      
+      // Tính payments captured & net
+      const paymentsCaptured = paymentsData
+        .filter(p => p.status === 'CAPTURED')
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      const paymentsRefunded = 0; // TODO: Calculate from refunds
+      const paymentsNet = paymentsCaptured - paymentsRefunded;
+      
+      // Tính amount_due
+      const grandTotal = moneySummary.grand_total || 0;
+      const amountDue = Math.max(0, grandTotal - paymentsNet);
+      
+      // Tạo settlement object
+      const settlement = {
+        ...moneySummary,
+        payments_captured: paymentsCaptured,
+        payments_refunded: paymentsRefunded,
+        payments_net: paymentsNet,
+        amount_due: amountDue
+      };
+      
+      setSettlement(settlement);
+      setPayments(paymentsData);
       
       // Auto-fill amount = amount_due
-      const due = data.settlement?.amount_due || 0;
-      setAmount(due > 0 ? due.toString() : '');
+      setAmount(amountDue > 0 ? amountDue.toString() : '');
     } catch (error) {
       console.error('Error loading settlement:', error);
     }

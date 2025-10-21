@@ -123,6 +123,31 @@ async function migrate() {
       LEFT JOIN ref r ON r.order_id=o.id
     `);
     
+    // 7a. Drop views dependency trước
+    console.log('🗑️ Drop views để recreate...');
+    await client.query(`DROP VIEW IF EXISTS v_order_settlement CASCADE`);
+    await client.query(`DROP VIEW IF EXISTS v_order_money_totals CASCADE`);
+    
+    // 7a. Tạo view v_order_money_totals đơn giản (chỉ tính từ chi tiết đơn)
+    console.log('💰 Tạo view v_order_money_totals...');
+    await client.query(`
+      CREATE VIEW v_order_money_totals AS
+      SELECT
+        o.id AS order_id,
+        COALESCE(SUM((d.don_gia * d.so_luong)), 0)::INT AS subtotal_before_lines,
+        COALESCE(SUM(COALESCE(d.giam_gia, 0)), 0)::INT AS line_discounts_total,
+        COALESCE(SUM((d.don_gia * d.so_luong)), 0)::INT AS subtotal_after_lines,
+        0 AS promo_total,
+        COALESCE(o.giam_gia_thu_cong, 0) AS manual_discount,
+        0 AS service_fee,
+        0.0 AS vat_rate,
+        0 AS vat_amount,
+        COALESCE(SUM((d.don_gia * d.so_luong)), 0)::INT AS grand_total
+      FROM don_hang o
+      LEFT JOIN don_hang_chi_tiet d ON d.don_hang_id = o.id
+      GROUP BY o.id, o.giam_gia_thu_cong
+    `);
+    
     // 7. View settlement (tổng tiền cuối + còn phải trả)
     console.log('📊 Tạo view v_order_settlement...');
     await client.query(`
