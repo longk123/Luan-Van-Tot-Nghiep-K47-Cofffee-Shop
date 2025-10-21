@@ -39,10 +39,17 @@ async function migrate() {
       )
     `);
     
-    // 3. Bảng đặt bàn (header)
-    console.log('📅 Tạo bảng dat_ban...');
+    // 3. Drop bảng cũ nếu có (backup trước nếu có data)
+    console.log('🗑️ Drop bảng dat_ban cũ (nếu có)...');
     await client.query(`
-      CREATE TABLE IF NOT EXISTS dat_ban (
+      DROP TABLE IF EXISTS dat_ban_ban CASCADE;
+      DROP TABLE IF EXISTS dat_ban CASCADE;
+    `);
+    
+    // 3. Bảng đặt bàn (header) - Schema mới
+    console.log('📅 Tạo bảng dat_ban mới...');
+    await client.query(`
+      CREATE TABLE dat_ban (
         id              SERIAL PRIMARY KEY,
         khach_hang_id   INT REFERENCES khach_hang(id),
         ten_khach       TEXT,
@@ -63,42 +70,8 @@ async function migrate() {
       )
     `);
     
-    // Thêm các cột mới nếu bảng đã tồn tại nhưng thiếu cột
-    await client.query(`
-      ALTER TABLE dat_ban 
-        ADD COLUMN IF NOT EXISTS khach_hang_id INT REFERENCES khach_hang(id),
-        ADD COLUMN IF NOT EXISTS ten_khach TEXT,
-        ADD COLUMN IF NOT EXISTS so_dien_thoai TEXT,
-        ADD COLUMN IF NOT EXISTS nguon TEXT DEFAULT 'PHONE',
-        ADD COLUMN IF NOT EXISTS dat_coc INT DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS dat_coc_trang_thai TEXT DEFAULT 'NONE',
-        ADD COLUMN IF NOT EXISTS don_hang_id INT REFERENCES don_hang(id),
-        ADD COLUMN IF NOT EXISTS created_by INT REFERENCES users(user_id),
-        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
-    `);
-    
-    // 4. Fix data cũ và thêm constraint
-    console.log('✅ Fix data cũ và thêm constraint trạng thái...');
-    
-    // Drop tất cả constraint cũ nếu có
-    await client.query(`
-      ALTER TABLE IF EXISTS dat_ban DROP CONSTRAINT IF EXISTS chk_dat_ban_status;
-      ALTER TABLE IF EXISTS dat_ban DROP CONSTRAINT IF EXISTS chk_dat_coc_status;
-      ALTER TABLE IF EXISTS dat_ban DROP CONSTRAINT IF EXISTS dat_ban_trang_thai_check;
-      ALTER TABLE IF EXISTS dat_ban DROP CONSTRAINT IF EXISTS dat_ban_dat_coc_trang_thai_check;
-    `);
-    
-    // Fix data không hợp lệ (nếu có)
-    await client.query(`
-      UPDATE dat_ban SET trang_thai = 'PENDING'
-      WHERE trang_thai NOT IN ('PENDING','CONFIRMED','SEATED','COMPLETED','CANCELLED','NO_SHOW');
-      
-      UPDATE dat_ban SET dat_coc_trang_thai = 'NONE'
-      WHERE dat_coc_trang_thai NOT IN ('NONE','HELD','PAID','REFUNDED','FORFEIT')
-         OR dat_coc_trang_thai IS NULL;
-    `);
-    
-    // Add constraint
+    // 4. Thêm constraint
+    console.log('✅ Thêm constraint trạng thái...');
     await client.query(`
       ALTER TABLE dat_ban
         ADD CONSTRAINT chk_dat_ban_status
