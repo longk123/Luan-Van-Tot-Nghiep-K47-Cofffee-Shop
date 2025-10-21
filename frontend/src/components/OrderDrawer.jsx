@@ -774,59 +774,6 @@ export default function OrderDrawer({
           </div>
         ) : null}
         
-        {/* Tổng tiền chi tiết */}
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-3 border-2 border-amber-200 space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-700">Tạm tính:</span>
-            <span className="font-semibold text-gray-900">
-              {(moneySummary?.subtotal_after_lines || summary?.subtotal || 0).toLocaleString()}đ
-            </span>
-          </div>
-          
-          {moneySummary?.promo_total > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-green-700">Giảm KM:</span>
-              <span className="font-semibold text-green-600">
-                -{moneySummary.promo_total.toLocaleString()}đ
-              </span>
-            </div>
-          )}
-          
-          {moneySummary?.manual_discount > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-blue-700">Giảm thủ công:</span>
-              <span className="font-semibold text-blue-600">
-                -{moneySummary.manual_discount.toLocaleString()}đ
-              </span>
-            </div>
-          )}
-          
-          {moneySummary?.service_fee > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-700">Phí dịch vụ:</span>
-              <span className="font-semibold text-gray-900">
-                +{moneySummary.service_fee.toLocaleString()}đ
-              </span>
-            </div>
-          )}
-          
-          {moneySummary?.vat_amount > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-700">VAT ({moneySummary.vat_rate}%):</span>
-              <span className="font-semibold text-gray-900">
-                +{moneySummary.vat_amount.toLocaleString()}đ
-              </span>
-            </div>
-          )}
-          
-          <div className="pt-2 border-t-2 border-amber-300 flex items-center justify-between">
-            <span className="font-bold text-amber-900">Tổng cộng:</span>
-            <span className="font-bold text-amber-600 text-2xl">
-              {(moneySummary?.grand_total || summary?.subtotal || 0).toLocaleString()}đ
-            </span>
-          </div>
-        </div>
-
         {/* Payment Section - Multi-tender payments */}
         {!isPaid && items.length > 0 && (
           <div className="mt-4">
