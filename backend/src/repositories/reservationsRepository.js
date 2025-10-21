@@ -55,7 +55,11 @@ class ReservationsRepository {
       params
     );
 
-    return rows[0];
+    const result = rows[0];
+    console.log('✅ Insert result:', result);
+    console.log('  result.id:', result?.id, 'isNaN:', isNaN(result?.id));
+
+    return result;
   }
 
   // Gán bàn cho đặt chỗ
