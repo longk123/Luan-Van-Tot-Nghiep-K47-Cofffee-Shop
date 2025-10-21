@@ -59,10 +59,15 @@ class ReservationsService {
     }
 
     // Tạo đặt bàn
-    const reservation = await reservationsRepo.create({
+    const createData = {
       ...data,
       khach_hang_id
-    });
+    };
+    
+    console.log('🔧 Service createReservation - data to repository:', createData);
+    console.log('khu_vuc_id value:', createData.khu_vuc_id, 'isNaN:', isNaN(createData.khu_vuc_id));
+    
+    const reservation = await reservationsRepo.create(createData);
 
     // Gán bàn nếu có
     if (data.table_ids && data.table_ids.length > 0) {

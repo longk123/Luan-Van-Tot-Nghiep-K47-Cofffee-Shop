@@ -20,10 +20,30 @@ class ReservationsRepository {
     } = data;
 
     // Clean NaN values for integer fields
+    console.log('🧹 Repository.create - Cleaning values:');
+    console.log('  khach_hang_id:', khach_hang_id, 'isNaN:', isNaN(khach_hang_id));
+    console.log('  khu_vuc_id:', khu_vuc_id, 'isNaN:', isNaN(khu_vuc_id));
+    console.log('  so_nguoi:', so_nguoi, 'isNaN:', isNaN(so_nguoi));
+    console.log('  dat_coc:', dat_coc, 'isNaN:', isNaN(dat_coc));
+    console.log('  created_by:', created_by, 'isNaN:', isNaN(created_by));
+    
     const cleanKhuVucId = (khu_vuc_id && !isNaN(khu_vuc_id)) ? khu_vuc_id : null;
     const cleanKhachHangId = (khach_hang_id && !isNaN(khach_hang_id)) ? khach_hang_id : null;
     const cleanCreatedBy = (created_by && !isNaN(created_by)) ? created_by : null;
+    const cleanSoNguoi = (so_nguoi && !isNaN(so_nguoi)) ? so_nguoi : 2;
     const cleanDatCoc = (dat_coc && !isNaN(dat_coc)) ? dat_coc : 0;
+
+    console.log('✅ After cleaning:');
+    console.log('  cleanKhachHangId:', cleanKhachHangId);
+    console.log('  cleanKhuVucId:', cleanKhuVucId);
+    console.log('  cleanSoNguoi:', cleanSoNguoi);
+    console.log('  cleanDatCoc:', cleanDatCoc);
+    console.log('  cleanCreatedBy:', cleanCreatedBy);
+
+    const params = [cleanKhachHangId, ten_khach, so_dien_thoai, cleanSoNguoi, cleanKhuVucId,
+       start_at, end_at, ghi_chu, cleanDatCoc, dat_coc_trang_thai, nguon, cleanCreatedBy];
+    
+    console.log('💉 SQL Params:', params);
 
     const { rows } = await pool.query(
       `INSERT INTO dat_ban(
@@ -32,8 +52,7 @@ class ReservationsRepository {
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'PENDING')
       RETURNING *`,
-      [cleanKhachHangId, ten_khach, so_dien_thoai, so_nguoi, cleanKhuVucId,
-       start_at, end_at, ghi_chu, cleanDatCoc, dat_coc_trang_thai, nguon, cleanCreatedBy]
+      params
     );
 
     return rows[0];
@@ -41,21 +60,34 @@ class ReservationsRepository {
 
   // Gán bàn cho đặt chỗ
   async assignTables(dat_ban_id, table_ids) {
+    console.log('🔗 assignTables called:', { dat_ban_id, table_ids });
+    console.log('  dat_ban_id isNaN:', isNaN(dat_ban_id));
+    
+    // Clean NaN
+    const cleanDatBanId = (dat_ban_id && !isNaN(dat_ban_id)) ? dat_ban_id : null;
+    const cleanTableIds = table_ids.map(id => {
+      const cleaned = (id && !isNaN(id)) ? id : null;
+      console.log(`  table_id ${id} → ${cleaned} (isNaN: ${isNaN(id)})`);
+      return cleaned;
+    }).filter(id => id !== null);
+    
+    console.log('✅ Cleaned:', { cleanDatBanId, cleanTableIds });
+    
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       
-      for (const ban_id of table_ids) {
+      for (const ban_id of cleanTableIds) {
         await client.query(
           `INSERT INTO dat_ban_ban(dat_ban_id, ban_id)
            VALUES ($1, $2)
            ON CONFLICT DO NOTHING`,
-          [dat_ban_id, ban_id]
+          [cleanDatBanId, ban_id]
         );
       }
       
       await client.query('COMMIT');
-      return { assigned: table_ids.length };
+      return { assigned: cleanTableIds.length };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
