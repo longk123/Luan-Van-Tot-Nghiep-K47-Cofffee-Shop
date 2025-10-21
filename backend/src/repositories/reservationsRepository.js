@@ -19,6 +19,12 @@ class ReservationsRepository {
       created_by
     } = data;
 
+    // Clean NaN values for integer fields
+    const cleanKhuVucId = (khu_vuc_id && !isNaN(khu_vuc_id)) ? khu_vuc_id : null;
+    const cleanKhachHangId = (khach_hang_id && !isNaN(khach_hang_id)) ? khach_hang_id : null;
+    const cleanCreatedBy = (created_by && !isNaN(created_by)) ? created_by : null;
+    const cleanDatCoc = (dat_coc && !isNaN(dat_coc)) ? dat_coc : 0;
+
     const { rows } = await pool.query(
       `INSERT INTO dat_ban(
         khach_hang_id, ten_khach, so_dien_thoai, so_nguoi, khu_vuc_id,
@@ -26,8 +32,8 @@ class ReservationsRepository {
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'PENDING')
       RETURNING *`,
-      [khach_hang_id, ten_khach, so_dien_thoai, so_nguoi, khu_vuc_id,
-       start_at, end_at, ghi_chu, dat_coc, dat_coc_trang_thai, nguon, created_by]
+      [cleanKhachHangId, ten_khach, so_dien_thoai, so_nguoi, cleanKhuVucId,
+       start_at, end_at, ghi_chu, cleanDatCoc, dat_coc_trang_thai, nguon, cleanCreatedBy]
     );
 
     return rows[0];
@@ -251,9 +257,14 @@ class ReservationsRepository {
 
   // Tìm bàn trống
   async findAvailableTables(start_at, end_at, khu_vuc_id = null) {
+    // Clean NaN - CRITICAL: PostgreSQL sẽ reject "NaN" string cho integer
+    const cleanKhuVucId = (khu_vuc_id && !isNaN(khu_vuc_id)) ? khu_vuc_id : null;
+    
+    console.log('Repository findAvailableTables:', { start_at, end_at, khu_vuc_id, cleanKhuVucId });
+    
     const { rows } = await pool.query(
       `SELECT * FROM fn_tables_available($1::timestamptz, $2::timestamptz, $3)`,
-      [start_at, end_at, khu_vuc_id]
+      [start_at, end_at, cleanKhuVucId]
     );
 
     return rows;
