@@ -779,9 +779,18 @@ export default function OrderDrawer({
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700">Tạm tính:</span>
             <span className="font-semibold text-gray-900">
-              {(moneySummary?.subtotal_after_lines || summary?.subtotal || 0).toLocaleString()}đ
+              {(moneySummary?.subtotal_before_lines || summary?.subtotal || 0).toLocaleString()}đ
             </span>
           </div>
+          
+          {moneySummary?.line_discounts_total > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-purple-700">Giảm topping:</span>
+              <span className="font-semibold text-purple-600">
+                -{moneySummary.line_discounts_total.toLocaleString()}đ
+              </span>
+            </div>
+          )}
           
           {moneySummary?.promo_total > 0 && (
             <div className="flex items-center justify-between text-sm">
