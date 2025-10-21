@@ -144,7 +144,7 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
         ten_khach: formData.ten_khach,
         so_dien_thoai: formData.so_dien_thoai,
         so_nguoi: formData.so_nguoi,
-        khu_vuc_id: formData.khu_vuc_id,
+        khu_vuc_id: formData.khu_vuc_id || null,
         start_at: times.start_at,
         end_at: times.end_at,
         ghi_chu: formData.ghi_chu || null,

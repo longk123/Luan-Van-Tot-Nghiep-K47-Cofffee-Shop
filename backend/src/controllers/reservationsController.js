@@ -148,14 +148,23 @@ class ReservationsController {
     });
   });
 
-  // GET /api/v1/tables/availability?start=...&end=...&area=...
+  // GET /api/v1/reservations/available-tables?start=...&end=...&area=...
   searchAvailableTables = asyncHandler(async (req, res) => {
     const { start, end, area } = req.query;
+
+    // Parse area safely
+    let areaId = null;
+    if (area && area !== 'null' && area !== 'undefined') {
+      const parsed = parseInt(area);
+      if (!isNaN(parsed)) {
+        areaId = parsed;
+      }
+    }
 
     const tables = await reservationsService.searchAvailableTables(
       start,
       end,
-      area ? parseInt(area) : null
+      areaId
     );
 
     res.json({
