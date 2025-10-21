@@ -74,8 +74,14 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
   };
 
   const handleSearchTables = async () => {
+    console.log('🔍 handleSearchTables called');
+    console.log('📋 Current formData:', formData);
+    
     const times = getStartEndTime();
+    console.log('⏰ Times:', times);
+    
     if (!times) {
+      console.log('❌ No times, showing error toast');
       onShowToast?.({
         show: true,
         type: 'error',
@@ -86,14 +92,19 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
     }
 
     setLoading(true);
+    console.log('⏳ Loading started');
+    
     try {
       // Đảm bảo khu_vuc_id là null hoặc số hợp lệ
       let areaId = formData.khu_vuc_id;
+      console.log('🏢 Original areaId:', areaId, 'type:', typeof areaId);
+      
       if (areaId === '' || areaId === 'null' || areaId === undefined || (typeof areaId === 'number' && isNaN(areaId))) {
         areaId = null;
       }
       
-      console.log('Searching tables with:', { start: times.start_at, end: times.end_at, areaId });
+      console.log('✅ Cleaned areaId:', areaId);
+      console.log('📡 Calling API with:', { start: times.start_at, end: times.end_at, areaId });
       
       const res = await api.searchAvailableTables(
         times.start_at,
@@ -101,9 +112,14 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
         areaId
       );
       
+      console.log('📥 API Response:', res);
+      
       const tables = res?.data || res || [];
+      console.log('🏠 Tables found:', tables.length, tables);
+      
       setAvailableTables(tables);
       setStep(2);
+      console.log('✅ Moved to step 2');
       
       if (tables.length === 0) {
         onShowToast?.({
@@ -114,7 +130,13 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
         });
       }
     } catch (error) {
-      console.error('Error searching tables:', error);
+      console.error('❌ Error searching tables:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      
       onShowToast?.({
         show: true,
         type: 'error',
@@ -122,6 +144,7 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
         message: error.message || 'Không thể tìm bàn trống'
       });
     } finally {
+      console.log('🏁 Search completed, loading:', false);
       setLoading(false);
     }
   };
