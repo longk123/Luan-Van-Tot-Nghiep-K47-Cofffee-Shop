@@ -133,21 +133,23 @@ export default function PaymentSection({ orderId, onPaymentComplete, onShowToast
 
   return (
     <div className="space-y-3">
-      {/* Settlement Summary */}
+      {/* Payment Summary */}
       {settlement && (
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border-2 border-emerald-200">
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-700">Tổng cộng:</span>
-              <span className="font-bold text-gray-900">
-                {settlement.grand_total?.toLocaleString()}đ
-              </span>
-            </div>
             {settlement.payments_captured > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-green-700">Đã thu:</span>
                 <span className="font-semibold text-green-600">
-                  -{settlement.payments_captured?.toLocaleString()}đ
+                  {settlement.payments_captured?.toLocaleString()}đ
+                </span>
+              </div>
+            )}
+            {settlement.payments_refunded > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-red-700">Đã hoàn:</span>
+                <span className="font-semibold text-red-600">
+                  -{settlement.payments_refunded?.toLocaleString()}đ
                 </span>
               </div>
             )}
