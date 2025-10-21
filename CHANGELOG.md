@@ -2,6 +2,196 @@
 
 All notable changes to this Coffee Shop POS project will be documented in this file.
 
+## [1.1.0] - 2025-10-22
+
+### Added
+
+#### Complete Reservation System (Đặt Bàn)
+- **Table Booking Feature**: Full-featured reservation system
+  - 2-step wizard UI (Info → Select Tables)
+  - Date/Time picker with smart defaults (+1 hour from now)
+  - Duration selector (60-180 minutes)
+  - People counter with stepper
+  - Area/zone selector
+  - Deposit amount tracking
+  - Source tracking (Phone/Walkin/Online)
+  - Notes field for special requests
+
+- **Smart Table Search**:
+  - Real-time availability check
+  - Filter by area
+  - Show only truly available tables in time range
+  - Multi-table selection for large groups
+  - Visual feedback for selected tables
+
+- **Reservation Management**:
+  - Timeline view by date
+  - Filter by status (Pending/Confirmed/Seated)
+  - Confirm reservation (PENDING → CONFIRMED)
+  - Cancel with reason tracking
+  - Mark no-show
+  - Auto-refresh list
+
+- **Seamless Check-in Flow**:
+  - One-click check-in from reservation list
+  - Automatically creates DINE_IN order
+  - Opens OrderDrawer immediately
+  - Updates table status
+  - Links reservation to order
+
+- **Visual Indicators**:
+  - Indigo badge "📅 ĐẶT" on TableCard for upcoming reservations
+  - Tooltip shows reservation time
+  - Info card with time, people count, customer name
+  - Status badges (6 states)
+
+#### Database Features
+- **New Tables**:
+  - `khach_hang`: Customer information for repeat bookings
+  - `dat_ban`: Reservation header with all details
+  - `dat_ban_ban`: Reservation-Table link table (supports multi-table)
+
+- **Exclusion Constraint**: Database-level double-booking prevention
+  ```sql
+  EXCLUDE USING gist (ban_id WITH =, tstzrange(start_at, end_at) WITH &&)
+  ```
+  - Hard protection at PostgreSQL level
+  - Prevents overlapping bookings on same table
+  - Works even with multiple concurrent requests
+
+- **Database Functions**:
+  - `fn_tables_available(start, end, area)`: Find available tables
+  - Automatic time range validation
+
+- **Triggers**:
+  - Auto-sync start/end times to linked tables
+  - Auto-sync status to all table links
+
+- **Views**:
+  - `v_reservation_calendar`: Timeline view with customer and table info
+
+#### Backend APIs (12 endpoints)
+```
+POST   /api/v1/reservations                      # Create reservation
+GET    /api/v1/reservations?date=&status=        # List by date
+GET    /api/v1/reservations/:id                  # Get detail
+PATCH  /api/v1/reservations/:id                  # Update info
+POST   /api/v1/reservations/:id/tables           # Assign tables
+DELETE /api/v1/reservations/:id/tables/:tableId  # Unassign table
+POST   /api/v1/reservations/:id/confirm          # Confirm booking
+POST   /api/v1/reservations/:id/check-in         # Check-in (create order)
+POST   /api/v1/reservations/:id/cancel           # Cancel with reason
+POST   /api/v1/reservations/:id/no-show          # Mark no-show
+POST   /api/v1/reservations/:id/complete         # Complete
+GET    /api/v1/tables/availability               # Search available tables
+```
+
+#### Frontend Components
+- **ReservationPanel.jsx**: Beautiful 2-step booking wizard
+  - Step 1: Customer info, date/time, people count, duration
+  - Step 2: Smart table selection with visual feedback
+  - Gradient design (blue to indigo)
+  - Form validation
+  - Error handling with toasts
+
+- **ReservationsList.jsx**: Comprehensive reservation management
+  - Date picker for viewing different days
+  - Status filter (All/Pending/Confirmed/Seated)
+  - Action buttons per reservation
+  - One-click check-in
+  - Confirm/Cancel/No-show actions
+  - Responsive cards with all info
+
+- **Enhanced TableCard.jsx**:
+  - Upcoming reservation badge (indigo)
+  - Tooltip with reservation time
+  - Info card showing reservation details
+  - Conditional rendering based on reservation state
+
+- **Enhanced Dashboard.jsx**:
+  - "📅 Đặt bàn" button (create new)
+  - "📋 Danh sách đặt bàn" button (view/manage)
+  - Check-in handler with auto OrderDrawer opening
+  - Integrated with existing table flow
+
+#### Business Logic & Validation
+- **Time Validation**:
+  - No past bookings allowed
+  - Minimum duration: 15 minutes
+  - Maximum duration: 4 hours
+  - Auto-calculate end_at from duration
+
+- **Customer Management**:
+  - Upsert customer by phone (auto-update if exists)
+  - Reuse customer info for returning customers
+
+- **Smart Defaults**:
+  - Default time: +1 hour from now (rounded)
+  - Default duration: 90 minutes
+  - Default source: PHONE
+
+#### Documentation
+- **RESERVATION_SYSTEM.md**: Complete system documentation
+  - Database schema explained
+  - All API endpoints with examples
+  - User flows (phone booking, check-in)
+  - UI design patterns
+  - Testing guide
+  - Troubleshooting
+  - Future enhancements roadmap
+
+### Technical Details
+
+#### Backend Structure
+```
+backend/src/
+├── controllers/reservationsController.js  # 12 endpoint handlers
+├── services/reservationsService.js        # Business logic, validation
+├── repositories/reservationsRepository.js # 15 database methods
+└── routes/reservations.js                 # Route definitions
+```
+
+#### Frontend Structure
+```
+frontend/src/
+├── api.js                              # +15 reservation methods
+├── components/
+│   ├── ReservationPanel.jsx           # Booking wizard
+│   ├── ReservationsList.jsx           # Management interface
+│   └── TableCard.jsx                  # Enhanced with badge
+└── pages/
+    └── Dashboard.jsx                   # Integrated buttons
+```
+
+### Files Changed
+- **Backend**: 5 new files
+  - migrate-add-reservations.cjs
+  - reservationsController.js
+  - reservationsService.js
+  - reservationsRepository.js
+  - reservations.js (routes)
+  - index.js (updated)
+
+- **Frontend**: 4 files
+  - api.js (updated +32 lines)
+  - ReservationPanel.jsx (new)
+  - ReservationsList.jsx (new)
+  - TableCard.jsx (updated)
+  - Dashboard.jsx (updated)
+
+- **Documentation**: 1 file
+  - RESERVATION_SYSTEM.md (new, 400+ lines)
+
+### Statistics
+- **13 files** changed
+- **2,702 insertions**, **15 deletions**
+- **12 API endpoints** added
+- **3 database tables** created
+- **1 exclusion constraint** for data integrity
+- **0 linter errors**
+
+---
+
 ## [1.0.0] - 2025-10-22
 
 ### Added
