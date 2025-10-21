@@ -152,14 +152,19 @@ class ReservationsController {
   searchAvailableTables = asyncHandler(async (req, res) => {
     const { start, end, area } = req.query;
 
+    console.log('🔍 searchAvailableTables received:', { start, end, area, type: typeof area });
+
     // Parse area safely
     let areaId = null;
-    if (area && area !== 'null' && area !== 'undefined') {
+    if (area && area !== 'null' && area !== 'undefined' && area !== 'NaN') {
       const parsed = parseInt(area);
+      console.log('Parsed area:', parsed, 'isNaN:', isNaN(parsed));
       if (!isNaN(parsed)) {
         areaId = parsed;
       }
     }
+
+    console.log('Final areaId:', areaId);
 
     const tables = await reservationsService.searchAvailableTables(
       start,
