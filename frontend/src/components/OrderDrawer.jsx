@@ -608,7 +608,7 @@ export default function OrderDrawer({
         )}
       </div>
 
-      <div className="mt-3 border-t pt-2.5">
+      <div className="mt-3 border-t pt-2.5 shrink-0 overflow-y-auto" style={{ maxHeight: '40vh' }}>
         {/* Trạng thái tổng quan */}
         {items.length > 0 && (
           <div className="mb-3 flex items-center gap-2 text-xs">
