@@ -126,6 +126,17 @@ class ReservationsRepository {
 
   // Lấy chi tiết 1 đặt bàn
   async getById(id) {
+    console.log('🔍 getById called with id:', id, 'type:', typeof id, 'isNaN:', isNaN(id));
+    
+    // CRITICAL: Clean NaN for id parameter
+    const cleanId = (id && !isNaN(id)) ? id : null;
+    console.log('✅ cleanId:', cleanId);
+    
+    if (!cleanId) {
+      console.log('❌ Invalid ID, returning null');
+      return null;
+    }
+    
     const header = await pool.query(
       `SELECT r.*, 
               k.ten AS khach_hang_ten,
@@ -135,7 +146,7 @@ class ReservationsRepository {
        LEFT JOIN khach_hang k ON k.id = r.khach_hang_id
        LEFT JOIN khu_vuc a ON a.id = r.khu_vuc_id
        WHERE r.id = $1`,
-      [id]
+      [cleanId]
     );
 
     if (!header.rows[0]) return null;
