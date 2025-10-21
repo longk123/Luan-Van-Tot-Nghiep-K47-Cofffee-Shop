@@ -128,8 +128,8 @@ export const api = {
   completeReservation: (id) => request('POST', `/reservations/${id}/complete`),
   // Tìm bàn trống
   searchAvailableTables: (start, end, areaId = null) => 
-    request('GET', `/tables/availability?start=${start}&end=${end}${areaId ? `&area=${areaId}` : ''}`),
+    request('GET', `/reservations/available-tables?start=${start}&end=${end}${areaId ? `&area=${areaId}` : ''}`),
   // Đặt bàn sắp tới của 1 bàn
   getUpcomingReservation: (tableId, within = 60) => 
-    request('GET', `/tables/${tableId}/upcoming-reservation?within=${within}`),
+    request('GET', `/reservations/tables/${tableId}/upcoming?within=${within}`),
 };

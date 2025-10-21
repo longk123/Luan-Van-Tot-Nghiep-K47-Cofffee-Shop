@@ -49,11 +49,11 @@ router.post('/reservations/:id/complete', reservationsCtrl.completeReservation);
 
 // === UTILITIES ===
 
-// Tìm bàn trống
-router.get('/tables/availability', reservationsCtrl.searchAvailableTables);
+// Tìm bàn trống (moved to avoid conflict with /tables/:id)
+router.get('/reservations/available-tables', reservationsCtrl.searchAvailableTables);
 
 // Lấy đặt bàn sắp tới của 1 bàn
-router.get('/tables/:id/upcoming-reservation', reservationsCtrl.getUpcomingReservation);
+router.get('/reservations/tables/:id/upcoming', reservationsCtrl.getUpcomingReservation);
 
 export default router;
 
