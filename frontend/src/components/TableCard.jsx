@@ -141,8 +141,8 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         <div className="flex flex-col">
           {/* Hiển thị thông tin đặt bàn nếu có */}
           {hasReservation && reservationData && reservationData.start_at ? (
-            <div className="flex items-start gap-2 mb-0">
-              <div className="flex-1 p-2 bg-indigo-50 border-2 border-indigo-300 rounded-lg">
+            <>
+              <div className="p-2 bg-indigo-50 border-2 border-indigo-300 rounded-lg mb-2">
                 <div className="text-[10px] font-semibold text-indigo-900 mb-0.5 uppercase">
                   📅 {reservationData.trang_thai === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : 'CHỜ XÁC NHẬN'}
                 </div>
@@ -174,11 +174,11 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                     handleCardClick();
                   }
                 }}
-                className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95"
               >
                 Tạo đơn
               </div>
-            </div>
+            </>
           ) : (
             <div className="min-h-[40px] flex items-end">
               <div 
