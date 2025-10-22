@@ -2,12 +2,15 @@
 import { useState } from 'react';
 
 import { api } from '../api.js';
+import ConfirmDialog from './ConfirmDialog.jsx';
 
 export default function TableCard({ table, onClick, onCloseTable, onLockTable, onUnlockTable, upcomingReservation }) {
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockReason, setLockReason] = useState('');
   const [showReasonDialog, setShowReasonDialog] = useState(false);
   const [showReservationInfo, setShowReservationInfo] = useState(false);
+  const [unlockConfirm, setUnlockConfirm] = useState(false);
+  const [cleanConfirm, setCleanConfirm] = useState(false);
   // Backend trả về order_id hoặc current_order_id
   const orderId = table.order_id || table.current_order_id || table.don_hang_id;
   const isPaid = table.order_status === 'PAID';
@@ -118,11 +121,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           <div className="min-h-[40px]"></div>
           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={async () => {
-                if (confirm(`Mở khóa bàn ${table.ten_ban}?`)) {
-                  await onUnlockTable?.(table.id);
-                }
-              }}
+              onClick={() => setUnlockConfirm(true)}
               className="flex-1 px-3 py-2.5 bg-white border border-amber-300 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-colors outline-none focus:outline-none"
             >
               Mở khóa
@@ -233,11 +232,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                 Xem
               </button>
               <button
-                onClick={async () => {
-                  if (confirm(`Dọn bàn ${table.ten_ban} và chuyển về trạng thái trống?`)) {
-                    await onCloseTable?.(table.id, 'TRONG');
-                  }
-                }}
+                onClick={() => setCleanConfirm(true)}
                 className="flex-1 px-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
               >
                 Dọn
@@ -410,6 +405,33 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         </div>
       </>
     )}
+    
+    {/* Confirm dialogs */}
+    <ConfirmDialog
+      open={unlockConfirm}
+      title="Mở khóa bàn"
+      message={`Bạn có chắc muốn mở khóa bàn ${table.ten_ban}?`}
+      confirmText="Mở khóa"
+      type="warning"
+      onConfirm={async () => {
+        setUnlockConfirm(false);
+        await onUnlockTable?.(table.id);
+      }}
+      onCancel={() => setUnlockConfirm(false)}
+    />
+    
+    <ConfirmDialog
+      open={cleanConfirm}
+      title="Dọn bàn"
+      message={`Dọn bàn ${table.ten_ban} và chuyển về trạng thái trống?`}
+      confirmText="Dọn bàn"
+      type="success"
+      onConfirm={async () => {
+        setCleanConfirm(false);
+        await onCloseTable?.(table.id, 'TRONG');
+      }}
+      onCancel={() => setCleanConfirm(false)}
+    />
     </>
   );
 }

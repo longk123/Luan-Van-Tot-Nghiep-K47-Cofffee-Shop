@@ -1307,6 +1307,17 @@ export default function OrderDrawer({
         onClose={() => setEditDialog({ open: false, line: null })}
         onConfirm={handleConfirmEdit}
       />
+      
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        title="Xóa món khỏi đơn"
+        message={`Bạn có chắc muốn xóa "${deleteConfirm.line?.ten_mon}" khỏi đơn hàng?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+        onConfirm={confirmDeleteLine}
+        onCancel={() => setDeleteConfirm({ open: false, line: null })}
+      />
     </>
   );
 }

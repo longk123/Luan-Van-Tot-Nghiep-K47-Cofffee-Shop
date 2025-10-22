@@ -1,12 +1,14 @@
 // src/components/ReservationsList.jsx
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
+import ConfirmDialog from './ConfirmDialog.jsx';
 
 export default function ReservationsList({ open, onClose, onCheckIn, onReservationUpdated, onShowToast }) {
   const [selectedDate, setSelectedDate] = useState('');
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('ALL'); // ALL, PENDING, CONFIRMED, SEATED
+  const [noShowConfirm, setNoShowConfirm] = useState({ open: false, id: null });
 
   useEffect(() => {
     if (open) {
@@ -93,9 +95,14 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
     }
   };
 
-  const handleNoShow = async (id) => {
-    if (!confirm('Xác nhận khách không đến?')) return;
+  const handleNoShow = (id) => {
+    setNoShowConfirm({ open: true, id });
+  };
 
+  const confirmNoShow = async () => {
+    const id = noShowConfirm.id;
+    setNoShowConfirm({ open: false, id: null });
+    
     try {
       await api.markReservationNoShow(id);
       onShowToast?.({
@@ -340,6 +347,16 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
           </button>
         </div>
       </div>
+      
+      <ConfirmDialog
+        open={noShowConfirm.open}
+        title="Khách không đến"
+        message="Xác nhận khách không đến? Bàn sẽ được giải phóng."
+        confirmText="Xác nhận"
+        type="warning"
+        onConfirm={confirmNoShow}
+        onCancel={() => setNoShowConfirm({ open: false, id: null })}
+      />
     </div>
   );
 }
