@@ -6,6 +6,7 @@ import { api } from '../api.js';
 import LineItemWithOptions from './pos/LineItemWithOptions.jsx';
 import EditOptionsDialog from './pos/EditOptionsDialog.jsx';
 import PaymentSection from './PaymentSection.jsx';
+import ConfirmDialog from './ConfirmDialog.jsx';
 
 // Helper để nhóm bàn theo khu vực
 function groupTablesByArea(tables) {
@@ -45,6 +46,7 @@ export default function OrderDrawer({
   const [loadingTables, setLoadingTables] = useState(false);
   const [editDialog, setEditDialog] = useState({ open: false, line: null });
   const [showMoveTable, setShowMoveTable] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, line: null });
   
   useEffect(() => setLocalOrder(order), [order]);
   
@@ -365,7 +367,15 @@ export default function OrderDrawer({
       return;
     }
     
-    if (!confirm(`Xóa ${line.ten_mon}?`)) return;
+    // Mở confirm dialog thay vì dùng confirm()
+    setDeleteConfirm({ open: true, line });
+  };
+
+  const confirmDeleteLine = async () => {
+    const line = deleteConfirm.line;
+    setDeleteConfirm({ open: false, line: null });
+    
+    if (!line) return;
     
     try {
       const actualLineId = line.line_id || line.id;
