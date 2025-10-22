@@ -152,14 +152,22 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               <div className="text-[10px] font-semibold text-indigo-900 mb-1 uppercase">
                 📅 {reservationData.trang_thai === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : 'CHỜ XÁC NHẬN'}
               </div>
-              <div className="text-xs text-indigo-700">
+              <div className="text-xs text-indigo-700 mb-0.5">
                 🕐 {new Date(reservationData.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                {' • '}
-                👥 {reservationData.so_nguoi} người
+                {reservationData.so_nguoi && (
+                  <span> • 👥 {reservationData.so_nguoi} người</span>
+                )}
               </div>
-              <div className="text-xs text-indigo-800 font-medium truncate" title={reservationData.khach}>
-                {reservationData.khach}
-              </div>
+              {table.reservation_guest && (
+                <div className="text-xs text-indigo-800 font-semibold truncate" title={table.reservation_guest}>
+                  👤 {table.reservation_guest}
+                </div>
+              )}
+              {table.reservation_phone && (
+                <div className="text-xs text-indigo-700 font-medium" title={table.reservation_phone}>
+                  📞 {table.reservation_phone}
+                </div>
+              )}
             </div>
           ) : (
             <div className="min-h-[40px]"></div>

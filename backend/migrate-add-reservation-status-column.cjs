@@ -46,6 +46,7 @@ async function run() {
       ALTER TABLE ban 
       ADD COLUMN IF NOT EXISTS reservation_id INT DEFAULT NULL,
       ADD COLUMN IF NOT EXISTS reservation_guest TEXT DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS reservation_phone TEXT DEFAULT NULL,
       ADD COLUMN IF NOT EXISTS reservation_time TIMESTAMPTZ DEFAULT NULL
     `);
     
@@ -64,6 +65,7 @@ async function run() {
           r.id,
           r.trang_thai,
           r.ten_khach,
+          r.so_dien_thoai,
           r.start_at
         INTO v_reservation
         FROM dat_ban r
@@ -82,6 +84,7 @@ async function run() {
             trang_thai_dat_ban = v_reservation.trang_thai,
             reservation_id = v_reservation.id,
             reservation_guest = v_reservation.ten_khach,
+            reservation_phone = v_reservation.so_dien_thoai,
             reservation_time = v_reservation.start_at
           WHERE id = p_ban_id;
         ELSE
@@ -91,6 +94,7 @@ async function run() {
             trang_thai_dat_ban = NULL,
             reservation_id = NULL,
             reservation_guest = NULL,
+            reservation_phone = NULL,
             reservation_time = NULL
           WHERE id = p_ban_id;
         END IF;
@@ -146,7 +150,7 @@ async function run() {
     await client.query('COMMIT');
     console.log('✅ Migration complete!');
     console.log('📋 Đã thêm:');
-    console.log('  - Cột: trang_thai_dat_ban, reservation_id, reservation_guest, reservation_time');
+    console.log('  - Cột: trang_thai_dat_ban, reservation_id, reservation_guest, reservation_phone, reservation_time');
     console.log('  - Function: fn_sync_table_reservation_status()');
     console.log('  - Trigger: Auto-sync khi thay đổi reservation');
     
