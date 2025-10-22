@@ -10,7 +10,15 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
 
   useEffect(() => {
     if (open) {
-      const today = new Date().toISOString().split('T')[0];
+      // Lấy ngày hiện tại theo timezone Việt Nam
+      const now = new Date();
+      const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+      
+      const year = vietnamTime.getFullYear();
+      const month = String(vietnamTime.getMonth() + 1).padStart(2, '0');
+      const day = String(vietnamTime.getDate()).padStart(2, '0');
+      const today = `${year}-${month}-${day}`;
+      
       setSelectedDate(today);
     }
   }, [open]);
