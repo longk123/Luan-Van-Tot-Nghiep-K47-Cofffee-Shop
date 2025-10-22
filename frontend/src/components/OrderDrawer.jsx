@@ -262,7 +262,12 @@ export default function OrderDrawer({
       onClose?.();
     } catch (e) {
       console.error('Error during checkout:', e);
-      alert('Lỗi khi thanh toán: ' + e.message);
+      onShowToast?.({
+        show: true,
+        type: 'error',
+        title: 'Lỗi thanh toán',
+        message: e.message || 'Không thể thanh toán'
+      });
     }
   };
 
