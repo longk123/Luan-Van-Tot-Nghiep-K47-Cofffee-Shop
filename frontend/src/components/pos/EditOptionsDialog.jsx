@@ -88,12 +88,13 @@ export default function EditOptionsDialog({
     // Add ice (luôn gửi, kể cả 100% để hiển thị rõ)
     options.ICE = { he_so: ice };
     
-    // Add toppings
+    // Add toppings (gửi cả so_luong = 0 để backend biết cần xóa)
     Object.entries(selectedToppings).forEach(([ma, soLuong]) => {
-      if (soLuong > 0) {
-        options[ma] = { so_luong: soLuong };
-      }
+      options[ma] = { so_luong: soLuong };
     });
+    
+    console.log('🔧 EditOptionsDialog - selectedToppings:', selectedToppings);
+    console.log('🔧 EditOptionsDialog - Sending options:', options);
 
     onConfirm?.({ options, note });
   };
@@ -251,7 +252,7 @@ export default function EditOptionsDialog({
                             const newToppings = { ...selectedToppings };
                             if (count > 0) {
                               newToppings[topping.ma] = count - 1;
-                              if (newToppings[topping.ma] === 0) delete newToppings[topping.ma];
+                              // Giữ lại topping với value = 0 để backend biết cần xóa
                             }
                             setSelectedToppings(newToppings);
                           }}

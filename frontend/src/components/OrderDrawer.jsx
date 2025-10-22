@@ -326,7 +326,14 @@ export default function OrderDrawer({
       });
       
       setEditDialog({ open: false, line: null });
-      fetchData();
+      
+      // Refresh data và money summary
+      console.log('🔄 Refreshing after edit topping...');
+      await Promise.all([
+        fetchData(),
+        fetchMoneySummary()
+      ]);
+      console.log('✅ Refresh complete');
     } catch (error) {
       console.error('Error updating line:', error);
       onShowToast?.({
@@ -377,8 +384,11 @@ export default function OrderDrawer({
         message: `${line.ten_mon} đã được xóa khỏi đơn.`
       });
       
-      // Refresh data
-      fetchData();
+      // Refresh data và money summary
+      await Promise.all([
+        fetchData(),
+        fetchMoneySummary()
+      ]);
     } catch (error) {
       console.error('Error deleting line:', error);
       onShowToast?.({
@@ -795,13 +805,13 @@ export default function OrderDrawer({
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700">Tạm tính:</span>
             <span className="font-semibold text-gray-900">
-              {(moneySummary?.subtotal_before_lines || summary?.subtotal || 0).toLocaleString()}đ
+              {(moneySummary?.subtotal_after_lines || summary?.subtotal || 0).toLocaleString()}đ
             </span>
           </div>
           
           {moneySummary?.line_discounts_total > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-purple-700">Giảm topping:</span>
+              <span className="text-purple-700">Giảm món:</span>
               <span className="font-semibold text-purple-600">
                 -{moneySummary.line_discounts_total.toLocaleString()}đ
               </span>
@@ -853,11 +863,13 @@ export default function OrderDrawer({
         </div>
 
         {/* Payment Section - Multi-tender payments */}
-        {!isPaid && items.length > 0 && (
+        {items.length > 0 && (
           <div className="mt-4">
             <PaymentSection
               orderId={orderId}
               grandTotal={moneySummary?.grand_total || summary?.subtotal || 0}
+              isPaid={isPaid}
+              refreshTrigger={moneySummary?.grand_total}
               onPaymentComplete={async () => {
                 // Fetch lại thông tin đơn để lấy trạng thái mới
                 await fetchOrderInfo();

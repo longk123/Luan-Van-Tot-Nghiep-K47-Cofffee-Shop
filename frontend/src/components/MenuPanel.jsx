@@ -64,7 +64,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                         <div className="flex justify-between items-center">
                           <span className={`font-semibold ${
                             variantId === variant.id ? 'text-amber-900' : 'text-amber-700'
-                          }`}>{variant.ten}</span>
+                          }`}>{variant.ten_bien_the}</span>
                           <span className={`text-lg font-bold ${
                             variantId === variant.id ? 'text-orange-600' : 'text-amber-600'
                           }`}>

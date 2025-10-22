@@ -27,7 +27,8 @@ class PaymentsController {
   listOrderPayments = asyncHandler(async (req, res) => {
     const orderId = parseInt(req.params.orderId);
     
-    const { rows } = await pool.query(
+    // Get payments
+    const { rows: payments } = await pool.query(
       `SELECT id, method_code, status, amount, amount_tendered, change_given, 
               currency, tx_ref, note, created_at, created_by
        FROM order_payment 
@@ -36,7 +37,21 @@ class PaymentsController {
       [orderId]
     );
     
-    res.json({ success: true, data: rows });
+    // Get refunds for each payment
+    for (const payment of payments) {
+      const { rows: refunds } = await pool.query(
+        `SELECT id, amount, reason, created_at, created_by
+         FROM order_payment_refund
+         WHERE payment_id=$1
+         ORDER BY id`,
+        [payment.id]
+      );
+      
+      payment.refunds = refunds;
+      payment.total_refunded = refunds.reduce((sum, r) => sum + (r.amount || 0), 0);
+    }
+    
+    res.json({ success: true, data: payments });
   });
 
   // POST /api/v1/pos/orders/:orderId/payments
