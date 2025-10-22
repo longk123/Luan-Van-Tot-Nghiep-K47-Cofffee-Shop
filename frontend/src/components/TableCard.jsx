@@ -55,15 +55,8 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
   const paymentStatusBadge = getPaymentStatusBadge();
 
   const handleCardClick = () => {
-    console.log('Card clicked, table:', table);
-    console.log('Detected orderId:', orderId);
-    console.log('hasOrder:', hasOrder);
-    console.log('isPaid:', isPaid);
     if (!isLocked) {
-      console.log('Calling onClick with table');
       onClick(table);
-    } else {
-      console.log('Card is locked, ignoring click');
     }
   };
 
@@ -209,7 +202,6 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           {!isPaid && (
             <div 
               onClick={(e) => {
-                console.log('Button "Xem đơn & Thanh toán" clicked');
                 e.stopPropagation();
                 handleCardClick();
               }}
