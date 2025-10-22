@@ -22,25 +22,46 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
     nguon: 'PHONE'
   });
 
-  // Initialize date/time to now + 1 hour
+  // Initialize date/time to now + 1 hour (Vietnam timezone)
   useEffect(() => {
     if (open) {
+      // Lấy giờ hiện tại của Việt Nam (UTC+7)
       const now = new Date();
-      now.setHours(now.getHours() + 1);
-      now.setMinutes(0);
+      const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
       
-      const dateStr = now.toISOString().split('T')[0];
-      const timeStr = now.toTimeString().slice(0, 5);
+      // Cộng 1 tiếng
+      vietnamTime.setHours(vietnamTime.getHours() + 1);
+      vietnamTime.setMinutes(0);
+      vietnamTime.setSeconds(0);
       
-      setFormData(prev => ({
-        ...prev,
+      // Format ngày: YYYY-MM-DD
+      const year = vietnamTime.getFullYear();
+      const month = String(vietnamTime.getMonth() + 1).padStart(2, '0');
+      const day = String(vietnamTime.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      // Format giờ: HH:MM
+      const hours = String(vietnamTime.getHours()).padStart(2, '0');
+      const minutes = String(vietnamTime.getMinutes()).padStart(2, '0');
+      const timeStr = `${hours}:${minutes}`;
+      
+      // Reset toàn bộ form
+      setFormData({
+        ten_khach: '',
+        so_dien_thoai: '',
+        so_nguoi: 2,
+        khu_vuc_id: areas && areas.length > 0 ? areas[0].id : null,
         date: dateStr,
         time: timeStr,
-        khu_vuc_id: areas && areas.length > 0 ? areas[0].id : null
-      }));
+        duration: 90,
+        ghi_chu: '',
+        dat_coc: 0,
+        nguon: 'PHONE'
+      });
       
       setStep(1);
       setSelectedTables([]);
+      setAvailableTables([]);
     }
   }, [open, areas]);
 
