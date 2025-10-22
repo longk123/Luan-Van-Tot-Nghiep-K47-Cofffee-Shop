@@ -74,10 +74,10 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         <h3 className="font-bold text-sm text-gray-900 truncate">{table.ten_ban}</h3>
         <div className="flex items-center gap-1 flex-wrap justify-end">
           {/* Badge đặt bàn sắp tới */}
-          {hasReservation && !hasOrder && (
+          {hasReservation && !hasOrder && reservationData?.start_at && (
             <span 
               className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-indigo-100 text-indigo-700 border border-indigo-300"
-              title={`Đặt lúc ${new Date(upcomingReservation.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+              title={`Đặt lúc ${new Date(reservationData.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
             >
               📅 ĐẶT
             </span>
