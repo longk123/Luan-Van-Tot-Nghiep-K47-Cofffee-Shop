@@ -16,7 +16,6 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
     khu_vuc_id: null,
     date: '',
     time: '',
-    duration: 90, // minutes
     ghi_chu: '',
     dat_coc: 0,
     nguon: 'PHONE'
@@ -53,7 +52,6 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
         khu_vuc_id: null, // Tất cả khu vực
         date: dateStr,
         time: timeStr,
-        duration: 60,
         ghi_chu: '',
         dat_coc: 0,
         nguon: 'PHONE'
@@ -86,7 +84,8 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
     if (!formData.date || !formData.time) return null;
     
     const start = new Date(`${formData.date}T${formData.time}`);
-    const end = new Date(start.getTime() + formData.duration * 60000);
+    // End_at = cuối ngày (23:59:59)
+    const end = new Date(`${formData.date}T23:59:59`);
     
     return {
       start_at: start.toISOString(),
@@ -366,22 +365,6 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Thời lượng (phút)
-                  </label>
-                  <select
-                    value={formData.duration}
-                    onChange={(e) => handleInputChange('duration', parseInt(e.target.value))}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="60">60 phút</option>
-                    <option value="90">90 phút</option>
-                    <option value="120">120 phút</option>
-                    <option value="150">150 phút</option>
-                    <option value="180">180 phút</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Khu vực
                   </label>
                   <select
@@ -457,7 +440,7 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-blue-900">Chọn bàn ({selectedTables.length} đã chọn)</h4>
                   <span className="text-sm text-blue-700">
-                    {formData.date} • {formData.time} • {formData.duration}' • {areaName}
+                    {formData.date} • {formData.time} • {areaName}
                   </span>
                 </div>
                 <p className="text-sm text-blue-600">
