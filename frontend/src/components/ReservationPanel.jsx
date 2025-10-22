@@ -49,11 +49,11 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
       setFormData({
         ten_khach: '',
         so_dien_thoai: '',
-        so_nguoi: 2,
-        khu_vuc_id: areas && areas.length > 0 ? areas[0].id : null,
+        so_nguoi: 1,
+        khu_vuc_id: null, // Tất cả khu vực
         date: dateStr,
         time: timeStr,
-        duration: 90,
+        duration: 60,
         ghi_chu: '',
         dat_coc: 0,
         nguon: 'PHONE'
