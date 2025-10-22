@@ -55,23 +55,6 @@ export default {
         INNER JOIN don_hang ON don_hang.id = lo.latest_order_id
         LEFT JOIN don_hang_chi_tiet ON don_hang.id = don_hang_chi_tiet.don_hang_id
         GROUP BY lo.ban_id
-      ),
-      active_reservations AS (
-        SELECT DISTINCT ON (dbb.ban_id)
-               dbb.ban_id,
-               r.id AS reservation_id,
-               r.khach_ten,
-               r.so_dien_thoai,
-               r.so_nguoi,
-               r.start_at,
-               r.end_at,
-               r.trang_thai AS reservation_status
-        FROM dat_ban r
-        JOIN dat_ban_ban dbb ON dbb.dat_ban_id = r.id
-        WHERE r.trang_thai IN ('PENDING', 'CONFIRMED')
-          AND r.start_at <= now() + interval '24 hours'
-          AND r.end_at >= now()
-        ORDER BY dbb.ban_id, r.start_at
       )
       SELECT
         b.id,
@@ -95,13 +78,7 @@ export default {
           WHEN oo.order_id IS NOT NULL THEN 'CHUA_TT'
           WHEN lp.ban_id IS NOT NULL THEN 'DA_TT'
           ELSE 'NONE'
-        END AS payment_status,
-        ar.reservation_id,
-        ar.khach_ten AS reservation_guest,
-        ar.so_nguoi AS reservation_guests,
-        ar.start_at AS reservation_start,
-        ar.end_at AS reservation_end,
-        ar.reservation_status
+        END AS payment_status
       FROM ban b
       LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
       LEFT JOIN (
@@ -120,7 +97,6 @@ export default {
       LEFT JOIN summary s ON s.ban_id = b.id
       LEFT JOIN open_order oo ON oo.ban_id = b.id
       LEFT JOIN last_paid lp ON lp.ban_id = b.id
-      LEFT JOIN active_reservations ar ON ar.ban_id = b.id
       WHERE ${where}
       ORDER BY kv.thu_tu, b.ten_ban
     `;
