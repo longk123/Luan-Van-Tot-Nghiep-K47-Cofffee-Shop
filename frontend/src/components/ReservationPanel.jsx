@@ -113,9 +113,11 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
       );
       
       console.log('📥 API Response:', res);
+      console.log('📥 Response type:', typeof res, 'success:', res?.success, 'data:', res?.data);
       
       const tables = res?.data || res || [];
       console.log('🏠 Tables found:', tables.length, tables);
+      console.log('🏠 Tables is array?', Array.isArray(tables));
       
       setAvailableTables(tables);
       setStep(2);
