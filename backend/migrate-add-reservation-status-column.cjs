@@ -63,7 +63,7 @@ async function run() {
         SELECT 
           r.id,
           r.trang_thai,
-          r.khach_ten,
+          r.ten_khach,
           r.start_at
         INTO v_reservation
         FROM dat_ban r
@@ -81,7 +81,7 @@ async function run() {
           SET 
             trang_thai_dat_ban = v_reservation.trang_thai,
             reservation_id = v_reservation.id,
-            reservation_guest = v_reservation.khach_ten,
+            reservation_guest = v_reservation.ten_khach,
             reservation_time = v_reservation.start_at
           WHERE id = p_ban_id;
         ELSE
@@ -105,6 +105,7 @@ async function run() {
       RETURNS TRIGGER AS $$
       DECLARE
         v_ban_ids INT[];
+        v_ban_id INT;
       BEGIN
         -- Lấy tất cả ban_id liên quan
         IF TG_OP = 'DELETE' THEN

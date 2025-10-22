@@ -11,15 +11,14 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
   const hasOrder = orderId || table.trang_thai === 'DANG_DUNG';
   const isLocked = table.trang_thai === 'KHOA';
   
-  // Kiểm tra reservation - ưu tiên từ table object
-  const hasReservation = table.reservation_id || (upcomingReservation !== null && upcomingReservation !== undefined);
-  const reservationData = table.reservation_id ? {
+  // Kiểm tra reservation từ cột mới trong bảng ban
+  const hasReservation = table.trang_thai_dat_ban || table.reservation_id;
+  const reservationData = hasReservation ? {
     khach: table.reservation_guest,
-    so_nguoi: table.reservation_guests,
-    start_at: table.reservation_start,
-    end_at: table.reservation_end,
-    trang_thai: table.reservation_status
-  } : upcomingReservation;
+    start_at: table.reservation_time,
+    trang_thai: table.trang_thai_dat_ban,
+    so_nguoi: upcomingReservation?.so_nguoi // Fallback từ prop cũ nếu cần
+  } : null;
   
   // Màu card theo trạng thái bàn
   const getStatusColor = () => {

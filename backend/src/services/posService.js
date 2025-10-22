@@ -14,26 +14,20 @@ export default {
     const exist = await repo.default.getOpenOrderByTable(banId);
     if (exist) return exist;
 
-    // ✅ Kiểm tra bàn có reservation PENDING/CONFIRMED không
+    // ✅ Kiểm tra bàn có reservation PENDING/CONFIRMED không (dùng cột mới)
     const { pool } = await import('../db.js');
-    const reservationCheck = await pool.query(
-      `SELECT r.id, r.khach_ten, r.trang_thai, r.start_at, r.end_at
-       FROM dat_ban r
-       JOIN dat_ban_ban dbb ON dbb.dat_ban_id = r.id
-       WHERE dbb.ban_id = $1
-         AND r.trang_thai IN ('PENDING', 'CONFIRMED')
-         AND r.start_at <= now() + interval '2 hours'
-         AND r.end_at >= now()
-       ORDER BY r.start_at
-       LIMIT 1`,
+    const tableCheck = await pool.query(
+      `SELECT trang_thai_dat_ban, reservation_guest, reservation_time
+       FROM ban
+       WHERE id = $1`,
       [banId]
     );
     
-    if (reservationCheck.rows.length > 0) {
-      const res = reservationCheck.rows[0];
-      const startTime = new Date(res.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    if (tableCheck.rows.length > 0 && tableCheck.rows[0].trang_thai_dat_ban) {
+      const table = tableCheck.rows[0];
+      const startTime = new Date(table.reservation_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
       const err = new Error(
-        `Bàn đã có đặt trước (${res.trang_thai}) cho khách "${res.khach_ten || 'N/A'}" lúc ${startTime}. ` +
+        `Bàn đã có đặt trước (${table.trang_thai_dat_ban}) cho khách "${table.reservation_guest || 'N/A'}" lúc ${startTime}. ` +
         `Vui lòng check-in từ màn hình Đặt bàn hoặc hủy/no-show đặt bàn này trước.`
       );
       err.status = 400;
