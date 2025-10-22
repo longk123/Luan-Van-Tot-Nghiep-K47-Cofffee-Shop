@@ -26,9 +26,7 @@ class ReservationsService {
     if (duration < 15) {
       throw new BadRequest('Thời gian đặt bàn tối thiểu 15 phút');
     }
-    if (duration > 240) {
-      throw new BadRequest('Thời gian đặt bàn tối đa 4 giờ');
-    }
+    // Bỏ giới hạn tối đa - khách ngồi đến khi nào cũng được
 
     return { start, end, duration };
   }
