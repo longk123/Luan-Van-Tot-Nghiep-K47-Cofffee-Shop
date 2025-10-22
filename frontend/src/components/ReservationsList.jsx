@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 
-export default function ReservationsList({ open, onClose, onCheckIn, onShowToast }) {
+export default function ReservationsList({ open, onClose, onCheckIn, onReservationUpdated, onShowToast }) {
   const [selectedDate, setSelectedDate] = useState('');
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -50,6 +50,7 @@ export default function ReservationsList({ open, onClose, onCheckIn, onShowToast
         message: 'Đặt bàn đã được xác nhận'
       });
       fetchReservations();
+      onReservationUpdated?.(); // Reload tables
     } catch (error) {
       onShowToast?.({
         show: true,
@@ -73,6 +74,7 @@ export default function ReservationsList({ open, onClose, onCheckIn, onShowToast
         message: 'Đặt bàn đã được hủy'
       });
       fetchReservations();
+      onReservationUpdated?.(); // Reload tables
     } catch (error) {
       onShowToast?.({
         show: true,
@@ -95,6 +97,7 @@ export default function ReservationsList({ open, onClose, onCheckIn, onShowToast
         message: 'Đã đánh dấu khách không đến'
       });
       fetchReservations();
+      onReservationUpdated?.(); // Reload tables
     } catch (error) {
       onShowToast?.({
         show: true,

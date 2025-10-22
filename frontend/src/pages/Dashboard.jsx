@@ -608,6 +608,9 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       <ReservationsList
         open={showReservationsList}
         onClose={() => setShowReservationsList(false)}
+        onReservationUpdated={async () => {
+          await loadTables(); // Reload tables khi confirm/cancel/no-show
+        }}
         onCheckIn={async (reservation) => {
           // Check-in: tạo order và mở drawer
           try {
