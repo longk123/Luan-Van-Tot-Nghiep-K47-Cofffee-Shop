@@ -7,6 +7,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockReason, setLockReason] = useState('');
   const [showReasonDialog, setShowReasonDialog] = useState(false);
+  const [showReservationInfo, setShowReservationInfo] = useState(false);
   // Backend trả về order_id hoặc current_order_id
   const orderId = table.order_id || table.current_order_id || table.don_hang_id;
   const isPaid = table.order_status === 'PAID';
@@ -142,41 +143,29 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           {/* Hiển thị thông tin đặt bàn nếu có */}
           {hasReservation && reservationData && reservationData.start_at ? (
             <>
-              <div className="p-2 bg-indigo-50 border-2 border-indigo-300 rounded-lg mb-2">
-                <div className="text-[10px] font-semibold text-indigo-900 mb-0.5 uppercase">
-                  📅 {reservationData.trang_thai === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : 'CHỜ XÁC NHẬN'}
-                </div>
-                <div className="text-xs text-indigo-700 mb-0.5">
-                  🕐 {new Date(reservationData.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                {table.reservation_guest && (
-                  <div className="text-xs text-indigo-800 font-semibold truncate" title={table.reservation_guest}>
-                    👤 {table.reservation_guest}
-                  </div>
-                )}
-                {table.reservation_phone && (
-                  <div className="text-xs text-indigo-700 font-medium" title={table.reservation_phone}>
-                    📞 {table.reservation_phone}
-                  </div>
-                )}
-              </div>
-              <div 
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (table.reservation_id) {
-                    try {
-                      await api.checkInReservation(table.reservation_id, table.id);
-                      onClick(table);
-                    } catch (error) {
-                      alert('Lỗi check-in: ' + error.message);
+              <div className="min-h-[40px]"></div>
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => setShowReservationInfo(true)}
+                  className="flex-1 px-2 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-300 rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
+                >
+                  Xem
+                </button>
+                <button
+                  onClick={async () => {
+                    if (table.reservation_id) {
+                      try {
+                        await api.checkInReservation(table.reservation_id, table.id);
+                        onClick(table);
+                      } catch (error) {
+                        alert('Lỗi check-in: ' + error.message);
+                      }
                     }
-                  } else {
-                    handleCardClick();
-                  }
-                }}
-                className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95"
-              >
-                Tạo đơn
+                  }}
+                  className="flex-1 px-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
+                >
+                  Tạo đơn
+                </button>
               </div>
             </>
           ) : (
@@ -347,6 +336,71 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               <button
                 onClick={() => setShowReasonDialog(false)}
                 className="py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )}
+    
+    {/* Dialog xem thông tin đặt bàn */}
+    {showReservationInfo && hasReservation && (
+      <>
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowReservationInfo(false)}
+        />
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto">
+            <div className="px-6 py-4 border-b border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+              <h3 className="text-xl font-bold text-indigo-900">Thông tin đặt bàn</h3>
+              <p className="text-sm text-indigo-700 mt-1">{table.ten_ban}</p>
+            </div>
+            
+            <div className="p-6 space-y-3">
+              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
+                <div className="mb-3">
+                  <div className="text-xs text-indigo-600 mb-1">Trạng thái</div>
+                  <div className="text-sm font-bold text-indigo-900">
+                    {table.trang_thai_dat_ban === 'CONFIRMED' ? '✅ ĐÃ XÁC NHẬN' : '⏳ CHỜ XÁC NHẬN'}
+                  </div>
+                </div>
+                
+                {table.reservation_time && (
+                  <div className="mb-3">
+                    <div className="text-xs text-indigo-600 mb-1">Thời gian</div>
+                    <div className="text-sm font-semibold text-indigo-900">
+                      🕐 {new Date(table.reservation_time).toLocaleString('vi-VN')}
+                    </div>
+                  </div>
+                )}
+                
+                {table.reservation_guest && (
+                  <div className="mb-3">
+                    <div className="text-xs text-indigo-600 mb-1">Khách hàng</div>
+                    <div className="text-sm font-semibold text-indigo-900">
+                      👤 {table.reservation_guest}
+                    </div>
+                  </div>
+                )}
+                
+                {table.reservation_phone && (
+                  <div>
+                    <div className="text-xs text-indigo-600 mb-1">Số điện thoại</div>
+                    <div className="text-sm font-semibold text-indigo-900">
+                      📞 {table.reservation_phone}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-indigo-200 bg-indigo-50 flex justify-end">
+              <button
+                onClick={() => setShowReservationInfo(false)}
+                className="py-3 px-6 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
               >
                 Đóng
               </button>
