@@ -9,6 +9,7 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('ALL'); // ALL, PENDING, CONFIRMED, SEATED
   const [noShowConfirm, setNoShowConfirm] = useState({ open: false, id: null });
+  const [cancelDialog, setCancelDialog] = useState({ open: false, id: null, reason: '' });
 
   useEffect(() => {
     if (open) {
@@ -71,10 +72,14 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
     }
   };
 
-  const handleCancel = async (id) => {
-    const reason = prompt('Lý do hủy (tùy chọn):');
-    if (reason === null) return;
+  const handleCancel = (id) => {
+    setCancelDialog({ open: true, id, reason: '' });
+  };
 
+  const confirmCancel = async () => {
+    const { id, reason } = cancelDialog;
+    setCancelDialog({ open: false, id: null, reason: '' });
+    
     try {
       await api.cancelReservation(id, reason || null);
       onShowToast?.({
@@ -357,6 +362,52 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
         onConfirm={confirmNoShow}
         onCancel={() => setNoShowConfirm({ open: false, id: null })}
       />
+      
+      {/* Dialog hủy với input lý do */}
+      {cancelDialog.open && (
+        <>
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm"
+            onClick={() => setCancelDialog({ open: false, id: null, reason: '' })}
+          />
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900">Hủy đặt bàn</h3>
+              </div>
+              
+              <div className="p-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Lý do hủy (tùy chọn)
+                </label>
+                <textarea
+                  value={cancelDialog.reason}
+                  onChange={(e) => setCancelDialog(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Khách thay đổi kế hoạch..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                  rows={3}
+                  autoFocus
+                />
+              </div>
+              
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={() => setCancelDialog({ open: false, id: null, reason: '' })}
+                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-semibold transition-colors outline-none focus:outline-none"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={confirmCancel}
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
+                >
+                  Xác nhận hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

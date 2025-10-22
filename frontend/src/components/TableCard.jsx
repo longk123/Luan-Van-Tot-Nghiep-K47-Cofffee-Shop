@@ -151,7 +151,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                       await api.checkInReservation(table.reservation_id, table.id);
                       onClick(table);
                     } catch (error) {
-                      alert('Lỗi check-in: ' + error.message);
+                      console.error('Lỗi check-in:', error);
                     }
                   }
                 }}
