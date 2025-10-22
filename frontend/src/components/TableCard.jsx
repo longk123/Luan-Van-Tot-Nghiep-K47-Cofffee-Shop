@@ -10,11 +10,21 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
   const isPaid = table.order_status === 'PAID';
   const hasOrder = orderId || table.trang_thai === 'DANG_DUNG';
   const isLocked = table.trang_thai === 'KHOA';
-  const hasReservation = upcomingReservation !== null && upcomingReservation !== undefined;
+  
+  // Kiểm tra reservation - ưu tiên từ table object
+  const hasReservation = table.reservation_id || (upcomingReservation !== null && upcomingReservation !== undefined);
+  const reservationData = table.reservation_id ? {
+    khach: table.reservation_guest,
+    so_nguoi: table.reservation_guests,
+    start_at: table.reservation_start,
+    end_at: table.reservation_end,
+    trang_thai: table.reservation_status
+  } : upcomingReservation;
   
   // Màu card theo trạng thái bàn
   const getStatusColor = () => {
     if (table.trang_thai === 'KHOA') return 'bg-red-50 border-red-200';
+    if (hasReservation && !hasOrder) return 'bg-indigo-50 border-indigo-300'; // Bàn đã đặt
     if (!hasOrder) return 'bg-green-50 border-green-200';
     if (isPaid) return 'bg-blue-50 border-blue-200';
     return 'bg-amber-50 border-amber-200';
@@ -23,6 +33,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
   // Badge trạng thái bàn
   const getTableStatusBadge = () => {
     if (table.trang_thai === 'KHOA') return { text: 'KHÓA', color: 'bg-red-100 text-red-700' };
+    if (hasReservation && !hasOrder) return { text: 'ĐÃ ĐẶT', color: 'bg-indigo-100 text-indigo-700 border border-indigo-300' };
     if (table.trang_thai === 'TRONG') return { text: 'TRỐNG', color: 'bg-green-100 text-green-700' };
     if (table.trang_thai === 'DANG_DUNG') return { text: 'ĐANG DÙNG', color: 'bg-purple-100 text-purple-700' };
     return { text: 'TRỐNG', color: 'bg-green-100 text-green-700' };
@@ -137,16 +148,18 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
       ) : !hasOrder ? (
         <div className="flex flex-col">
           {/* Hiển thị thông tin đặt bàn nếu có */}
-          {hasReservation ? (
-            <div className="mb-2 p-2 bg-indigo-50 border border-indigo-200 rounded-lg">
-              <div className="text-[10px] font-semibold text-indigo-900 mb-1">ĐẶT BÀN SẮP TỚI:</div>
-              <div className="text-xs text-indigo-700">
-                🕐 {new Date(upcomingReservation.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                {' • '}
-                👥 {upcomingReservation.so_nguoi} người
+          {hasReservation && reservationData ? (
+            <div className="mb-2 p-2 bg-indigo-50 border-2 border-indigo-300 rounded-lg">
+              <div className="text-[10px] font-semibold text-indigo-900 mb-1 uppercase">
+                📅 {reservationData.trang_thai === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : 'CHỜ XÁC NHẬN'}
               </div>
-              <div className="text-xs text-indigo-600 truncate" title={upcomingReservation.khach}>
-                {upcomingReservation.khach}
+              <div className="text-xs text-indigo-700">
+                🕐 {new Date(reservationData.start_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                {' • '}
+                👥 {reservationData.so_nguoi} người
+              </div>
+              <div className="text-xs text-indigo-800 font-medium truncate" title={reservationData.khach}>
+                {reservationData.khach}
               </div>
             </div>
           ) : (
@@ -154,13 +167,17 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           )}
           <div 
             onClick={(e) => {
-              console.log('Button "Tạo đơn" clicked');
+              console.log('Button clicked');
               e.stopPropagation();
               handleCardClick();
             }}
-            className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95"
+            className={`w-full px-3 py-2.5 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95 ${
+              hasReservation 
+                ? 'bg-indigo-600 hover:bg-indigo-700' 
+                : 'bg-emerald-600 hover:bg-emerald-700'
+            }`}
           >
-            Tạo đơn
+            {hasReservation ? '🔔 Bàn đã đặt' : 'Tạo đơn'}
           </div>
         </div>
       ) : (
