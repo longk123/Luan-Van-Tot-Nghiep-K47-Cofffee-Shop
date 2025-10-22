@@ -143,29 +143,29 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           {/* Hiển thị thông tin đặt bàn nếu có */}
           {hasReservation && reservationData && reservationData.start_at ? (
             <>
-              <div className="min-h-[40px]"></div>
-              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+              <div className="min-h-[40px] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setShowReservationInfo(true)}
-                  className="flex-1 px-2 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-300 rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
+                  className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-300 rounded-lg text-xs font-semibold transition-colors outline-none focus:outline-none"
                 >
-                  Xem
+                  ℹ️ Xem thông tin đặt bàn
                 </button>
-                <button
-                  onClick={async () => {
-                    if (table.reservation_id) {
-                      try {
-                        await api.checkInReservation(table.reservation_id, table.id);
-                        onClick(table);
-                      } catch (error) {
-                        alert('Lỗi check-in: ' + error.message);
-                      }
+              </div>
+              <div 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (table.reservation_id) {
+                    try {
+                      await api.checkInReservation(table.reservation_id, table.id);
+                      onClick(table);
+                    } catch (error) {
+                      alert('Lỗi check-in: ' + error.message);
                     }
-                  }}
-                  className="flex-1 px-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
-                >
-                  Tạo đơn
-                </button>
+                  }
+                }}
+                className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95"
+              >
+                Tạo đơn
               </div>
             </>
           ) : (
