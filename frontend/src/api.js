@@ -162,4 +162,12 @@ export const api = {
   refundPayment: (orderId, paymentId, data) => request('POST', `/pos/orders/${orderId}/payments/${paymentId}/refund`, data),
   // Settlement (tổng tiền + còn phải trả)
   getOrderSettlement: (orderId) => request('GET', `/pos/orders/${orderId}/settlement`),
+  
+  // ===== INVOICE / IN HÓA ĐƠN =====
+  // Lấy dữ liệu hóa đơn (JSON)
+  getInvoiceData: (orderId) => request('GET', `/hoa-don/${orderId}`),
+  // URL để xuất PDF (sử dụng trực tiếp trong window.open hoặc iframe)
+  getInvoicePdfUrl: (orderId) => `/api/v1/hoa-don/${orderId}/pdf`,
+  // Ghi log in hóa đơn
+  logInvoicePrint: (orderId, data) => request('POST', `/hoa-don/${orderId}/print-log`, data),
 };

@@ -234,27 +234,20 @@ async function migrate() {
     // 10. Trigger: tự cập nhật trạng thái đơn sau thanh toán
     console.log('🔄 Tạo trigger auto-update order status...');
     await client.query(`
-      CREATE OR REPLACE FUNCTION fn_sync_order_paid()
+      CREATE OR REPLACE FUNCTION fn_sync_order_paid(p_order_id INT)
       RETURNS VOID AS $$
       DECLARE
-        v_order_id INT;
         v_due INT;
       BEGIN
-        IF TG_TABLE_NAME = 'order_payment' THEN
-          v_order_id := COALESCE(NEW.order_id, OLD.order_id);
-        ELSIF TG_TABLE_NAME = 'order_payment_refund' THEN
-          SELECT order_id INTO v_order_id FROM order_payment WHERE id = COALESCE(NEW.payment_id, OLD.payment_id);
-        END IF;
+        IF p_order_id IS NULL THEN RETURN; END IF;
 
-        IF v_order_id IS NULL THEN RETURN; END IF;
-
-        v_due := fn_order_amount_due(v_order_id);
+        v_due := fn_order_amount_due(p_order_id);
         IF v_due = 0 THEN
           UPDATE don_hang SET trang_thai='PAID', closed_at=COALESCE(closed_at, now()) 
-          WHERE id=v_order_id AND trang_thai <> 'PAID';
+          WHERE id=p_order_id AND trang_thai <> 'PAID';
         ELSE
           UPDATE don_hang SET trang_thai='OPEN', closed_at=NULL 
-          WHERE id=v_order_id AND trang_thai='PAID';
+          WHERE id=p_order_id AND trang_thai='PAID';
         END IF;
       END;
       $$ LANGUAGE plpgsql;
@@ -263,8 +256,18 @@ async function migrate() {
     await client.query(`
       CREATE OR REPLACE FUNCTION trg_after_payment_change()
       RETURNS TRIGGER AS $$
+      DECLARE
+        v_order_id INT;
       BEGIN
-        PERFORM fn_sync_order_paid();
+        -- Lấy order_id từ NEW hoặc OLD
+        IF TG_OP = 'DELETE' THEN
+          v_order_id := OLD.order_id;
+        ELSE
+          v_order_id := NEW.order_id;
+        END IF;
+        
+        -- Gọi function sync với order_id
+        PERFORM fn_sync_order_paid(v_order_id);
         RETURN COALESCE(NEW, OLD);
       END;
       $$ LANGUAGE plpgsql;
@@ -278,10 +281,37 @@ async function migrate() {
     `);
     
     await client.query(`
+      CREATE OR REPLACE FUNCTION trg_after_refund_change()
+      RETURNS TRIGGER AS $$
+      DECLARE
+        v_order_id INT;
+        v_payment_id INT;
+      BEGIN
+        -- Lấy payment_id từ NEW hoặc OLD
+        IF TG_OP = 'DELETE' THEN
+          v_payment_id := OLD.payment_id;
+        ELSE
+          v_payment_id := NEW.payment_id;
+        END IF;
+        
+        -- Lấy order_id từ payment_id
+        SELECT order_id INTO v_order_id FROM order_payment WHERE id = v_payment_id;
+        
+        -- Gọi function sync với order_id
+        IF v_order_id IS NOT NULL THEN
+          PERFORM fn_sync_order_paid(v_order_id);
+        END IF;
+        
+        RETURN COALESCE(NEW, OLD);
+      END;
+      $$ LANGUAGE plpgsql;
+    `);
+    
+    await client.query(`
       DROP TRIGGER IF EXISTS t_after_refund_iud ON order_payment_refund;
       CREATE TRIGGER t_after_refund_iud
       AFTER INSERT OR UPDATE OR DELETE ON order_payment_refund
-      FOR EACH ROW EXECUTE FUNCTION trg_after_payment_change();
+      FOR EACH ROW EXECUTE FUNCTION trg_after_refund_change();
     `);
     
     // 11. Indexes

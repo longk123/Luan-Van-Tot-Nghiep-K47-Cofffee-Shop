@@ -462,7 +462,10 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         open={drawer.open}
         order={drawer.order}
         onClose={() => setDrawer({ open: false, order: null })}
-        onPaid={() => loadTables()}
+        onPaid={async (data) => {
+          console.log('onPaid callback received:', data);
+          await loadTables();
+        }}
         refreshTick={refreshTick}
         width={posMode ? 680 : 640}
         docked

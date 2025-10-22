@@ -420,7 +420,14 @@ export async function deleteOrderItem(req, res, next) {
   const orderId = parseInt(req.params.orderId, 10);
   const lineId = parseInt(req.params.lineId, 10);
   
-  console.log(`🗑️ DELETE request: orderId=${orderId}, lineId=${lineId}`);
+  console.log(`🗑️ DELETE request:`, {
+    orderId_raw: req.params.orderId,
+    lineId_raw: req.params.lineId,
+    orderId_parsed: orderId,
+    lineId_parsed: lineId,
+    orderId_isNaN: isNaN(orderId),
+    lineId_isNaN: isNaN(lineId)
+  });
   
   const client = await pool.connect();
   try {

@@ -347,11 +347,27 @@ export default function OrderDrawer({
       full_line: line 
     });
     
+    if (!orderId) {
+      console.error('orderId is undefined!');
+      onShowToast?.({
+        show: true,
+        type: 'error',
+        title: 'Lỗi',
+        message: 'Không tìm thấy ID đơn hàng.'
+      });
+      return;
+    }
+    
     if (!confirm(`Xóa ${line.ten_mon}?`)) return;
     
     try {
       const actualLineId = line.line_id || line.id;
-      console.log('Calling API with lineId:', actualLineId);
+      console.log('Calling API with orderId:', orderId, 'lineId:', actualLineId);
+      
+      if (!actualLineId) {
+        throw new Error('Không tìm thấy ID món trong đơn');
+      }
+      
       await api.removeOrderItem(orderId, actualLineId);
       
       onShowToast?.({
@@ -540,7 +556,7 @@ export default function OrderDrawer({
   if (!open) return null;
 
   const panel = (
-    <div className="h-full bg-white shadow-2xl p-4 flex flex-col" style={{ width }}>
+    <div className="h-full bg-white shadow-2xl p-4 flex flex-col overflow-auto" style={{ width }}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3">
@@ -577,7 +593,7 @@ export default function OrderDrawer({
         </div>
       )}
 
-      <div className="mt-4 flex-1 overflow-auto">
+      <div className="mt-4">
         {loading ? (
           <div className="p-4 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
@@ -608,7 +624,7 @@ export default function OrderDrawer({
         )}
       </div>
 
-      <div className="mt-3 border-t pt-2.5 shrink-0 overflow-y-auto" style={{ maxHeight: '40vh' }}>
+        <div className="mt-3 border-t pt-2.5">
         {/* Trạng thái tổng quan */}
         {items.length > 0 && (
           <div className="mb-3 flex items-center gap-2 text-xs">
@@ -843,9 +859,22 @@ export default function OrderDrawer({
               orderId={orderId}
               grandTotal={moneySummary?.grand_total || summary?.subtotal || 0}
               onPaymentComplete={async () => {
+                // Fetch lại thông tin đơn để lấy trạng thái mới
                 await fetchOrderInfo();
                 await fetchMoneySummary();
+                
+                // Gọi onPaid để cập nhật table card
+                if (onPaid) {
+                  await onPaid({
+                    order_id: orderId,
+                    table_id: localOrder?.ban_id,
+                    status: 'PAID'
+                  });
+                }
+                
+                // Fallback: reload tables
                 await reloadTables?.();
+                
                 onShowToast?.({
                   show: true,
                   type: 'success',
@@ -875,11 +904,32 @@ export default function OrderDrawer({
 
         {/* Paid status */}
         {isPaid && (
-          <div className="mt-3 bg-green-100 border-2 border-green-300 rounded-xl p-4 flex items-center justify-center gap-2">
-            <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="text-lg font-bold text-green-700">Đã thanh toán</span>
+          <div className="mt-3 space-y-2">
+            <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 flex items-center justify-center gap-2">
+              <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-lg font-bold text-green-700">Đã thanh toán</span>
+            </div>
+            
+            {/* Nút In hóa đơn */}
+            <button
+              onClick={() => {
+                const url = api.getInvoicePdfUrl(orderId);
+                window.open(url, '_blank');
+                // Optional: Log in hóa đơn
+                api.logInvoicePrint(orderId, { 
+                  printed_by: null, // TODO: Thêm user_id nếu cần
+                  note: 'In từ POS'
+                }).catch(err => console.error('Log print error:', err));
+              }}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-3 rounded-xl border border-blue-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              🧾 In hóa đơn
+            </button>
           </div>
         )}
       </div>

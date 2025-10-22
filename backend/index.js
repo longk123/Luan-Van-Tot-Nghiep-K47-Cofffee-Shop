@@ -73,6 +73,9 @@ app.use('/api/v1', reservationsRouter);
 import paymentsRouter from './src/routes/payments.js'; // <— router thanh toán
 app.use('/api/v1', paymentsRouter);
 
+import invoiceRouter from './src/routes/invoice.js'; // <— router in hóa đơn
+app.use('/api/v1', invoiceRouter);
+
 // Error handling middleware (phải ở cuối)
 app.use(errorHandler);
 

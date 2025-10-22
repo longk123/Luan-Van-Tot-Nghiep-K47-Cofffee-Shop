@@ -504,6 +504,7 @@ async function setupDatabase() {
     // - Trigger DELETE gây race condition (line đã bị xóa trước khi check)
     // - Chỉ cần guard INSERT/UPDATE là đủ
     await pool.query(`DROP TRIGGER IF EXISTS t_dhctopt_before_del ON don_hang_chi_tiet_tuy_chon`);
+    // Note: Không tạo lại trigger DELETE vì nó gây conflict với CASCADE delete từ don_hang_chi_tiet
 
     // =========================================================
     // 14. BẢNG DAT_BAN (RESERVATIONS)

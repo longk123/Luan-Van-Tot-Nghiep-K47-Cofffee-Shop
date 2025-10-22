@@ -106,11 +106,32 @@ export default function PaymentSection({ orderId, onPaymentComplete, onShowToast
       setAmountTendered('');
       setTxRef('');
       
-      // Reload
+      // Reload settlement
       await loadSettlement();
       
+      // Fetch settlement mới để check amount_due
+      const [summaryRes, paymentsRes] = await Promise.all([
+        api.getOrderMoneySummary(orderId),
+        api.getOrderPayments(orderId)
+      ]);
+      
+      const moneySummary = summaryRes?.data?.summary || summaryRes?.summary || {};
+      const paymentsData = paymentsRes?.data || [];
+      
+      // Tính payments captured & net
+      const paymentsCaptured = paymentsData
+        .filter(p => p.status === 'CAPTURED')
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      const paymentsRefunded = 0;
+      const paymentsNet = paymentsCaptured - paymentsRefunded;
+      
+      // Tính amount_due
+      const grandTotal = moneySummary.grand_total || 0;
+      const newAmountDue = Math.max(0, grandTotal - paymentsNet);
+      
       // Callback nếu đã thanh toán đủ
-      if (settlement?.amount_due === 0) {
+      if (newAmountDue === 0) {
         onPaymentComplete?.();
       }
     } catch (error) {
