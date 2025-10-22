@@ -147,7 +147,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
       ) : !hasOrder ? (
         <div className="flex flex-col">
           {/* Hiển thị thông tin đặt bàn nếu có */}
-          {hasReservation && reservationData ? (
+          {hasReservation && reservationData && reservationData.start_at ? (
             <div className="mb-2 p-2 bg-indigo-50 border-2 border-indigo-300 rounded-lg">
               <div className="text-[10px] font-semibold text-indigo-900 mb-1 uppercase">
                 📅 {reservationData.trang_thai === 'CONFIRMED' ? 'ĐÃ XÁC NHẬN' : 'CHỜ XÁC NHẬN'}
