@@ -143,12 +143,12 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           {/* Hiển thị thông tin đặt bàn nếu có */}
           {hasReservation && reservationData && reservationData.start_at ? (
             <>
-              <div className="min-h-[40px] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <div className="min-h-[40px] flex items-start pt-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setShowReservationInfo(true)}
-                  className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-300 rounded-lg text-xs font-semibold transition-colors outline-none focus:outline-none"
+                  className="px-2 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-300 rounded text-[10px] font-semibold transition-colors outline-none focus:outline-none"
                 >
-                  ℹ️ Xem thông tin đặt bàn
+                  ℹ️ Info
                 </button>
               </div>
               <div 
