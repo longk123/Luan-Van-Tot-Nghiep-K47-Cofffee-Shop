@@ -61,6 +61,53 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     api.getCurrentShift()
       .then(res => setShift(res?.data || res || null))
       .catch(err => console.error('Error loading shift:', err));
+
+    // Detect payment redirect từ PayOS (kiểm tra localStorage)
+    const paymentResult = localStorage.getItem('payos_payment_result');
+    
+    if (paymentResult) {
+      try {
+        const result = JSON.parse(paymentResult);
+        const age = Date.now() - result.timestamp;
+        
+        // Chỉ hiển thị nếu < 30 giây (tránh hiển thị lại khi refresh)
+        if (age < 30000) {
+          if (result.status === 'success') {
+            setToast({
+              show: true,
+              type: 'success',
+              title: 'Thanh toán thành công!',
+              message: `Đã nhận ${result.orderCode ? 'đơn #' + result.orderCode : 'thanh toán'} qua PayOS - Status: ${result.paymentStatus || 'PAID'}`
+            });
+            
+            // Refresh tables để cập nhật order status
+            setTimeout(() => loadTables(), 500);
+          } else if (result.status === 'cancel') {
+            setToast({
+              show: true,
+              type: 'warning',
+              title: 'Đã hủy thanh toán',
+              message: `Đơn ${result.orderCode || ''} đã bị hủy - Status: ${result.paymentStatus || 'CANCELLED'}`
+            });
+          } else if (result.status === 'pending') {
+            setToast({
+              show: true,
+              type: 'info',
+              title: 'Đang xử lý thanh toán',
+              message: 'Thanh toán đang được xử lý, vui lòng đợi'
+            });
+          }
+        }
+        
+        // Xóa payment result khỏi localStorage
+        localStorage.removeItem('payos_payment_result');
+      } catch (err) {
+        console.error('Error parsing payment result:', err);
+      }
+      
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   // SSE for real-time updates
@@ -461,7 +508,11 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         key={drawer.order?.id || 'empty'}
         open={drawer.open}
         order={drawer.order}
-        onClose={() => setDrawer({ open: false, order: null })}
+        onClose={() => {
+          setDrawer({ open: false, order: null });
+          // Refresh tables để cập nhật giá có topping
+          loadTables();
+        }}
         onPaid={async (data) => {
           console.log('onPaid callback received:', data);
           await loadTables();

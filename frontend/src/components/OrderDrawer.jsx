@@ -304,6 +304,7 @@ export default function OrderDrawer({
     if (order?.order_type === 'TAKEAWAY' && !isPaid) {
       setShowCancelDialog(true);
     } else {
+      // Đóng drawer
       onClose();
     }
   };
@@ -578,7 +579,13 @@ export default function OrderDrawer({
     }
   }, [orderId, onShowToast, fetchMoneySummary]);
 
+  // Safety checks
   if (!open) return null;
+  
+  if (!order) {
+    console.warn('⚠️ No order provided to drawer');
+    return null;
+  }
 
   const panel = (
     <div className="h-full bg-white shadow-2xl p-4 flex flex-col overflow-auto" style={{ width }}>
@@ -586,7 +593,7 @@ export default function OrderDrawer({
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold">
-              {localOrder?.order_type === 'TAKEAWAY' ? 'Mang đi' : `Bàn ${localOrder?.ban_id}`} – Đơn #{orderId}
+              {!localOrder ? 'Đơn hàng' : (localOrder.order_type === 'TAKEAWAY' ? 'Mang đi' : `Bàn ${localOrder.ban_id || ''}`)} {orderId ? `– Đơn #${orderId}` : ''}
             </h2>
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
               isPaid 
@@ -1291,6 +1298,17 @@ export default function OrderDrawer({
           line={editDialog.line}
           onClose={() => setEditDialog({ open: false, line: null })}
           onConfirm={handleConfirmEdit}
+        />
+        
+        <ConfirmDialog
+          open={deleteConfirm.open}
+          title="Xóa món khỏi đơn"
+          message={`Bạn có chắc muốn xóa "${deleteConfirm.line?.ten_mon}" khỏi đơn hàng?`}
+          confirmText="Xóa"
+          cancelText="Hủy"
+          type="danger"
+          onConfirm={confirmDeleteLine}
+          onCancel={() => setDeleteConfirm({ open: false, line: null })}
         />
       </>
     );

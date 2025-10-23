@@ -100,9 +100,9 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
             </span>
           )}
         </div>
-        {hasOrder && table.subtotal > 0 && (
+        {hasOrder && (table.grand_total > 0 || table.subtotal > 0) && (
           <span className="font-bold text-gray-900">
-            {table.subtotal.toLocaleString()}₫
+            {(table.grand_total || table.subtotal || 0).toLocaleString()}₫
           </span>
         )}
       </div>

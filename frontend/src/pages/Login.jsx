@@ -50,7 +50,43 @@ export default function Login() {
       }
 
       saveToken(data.token);
-      navigate("/dashboard");
+      
+      // Kiểm tra xem có payment result pending không
+      const paymentResult = localStorage.getItem('payos_payment_result');
+      if (paymentResult) {
+        try {
+          const result = JSON.parse(paymentResult);
+          
+          // Nếu là success, cần gọi API để update DB
+          if (result.status === 'success' && result.orderCode) {
+            // Gọi API process payment (sau khi đã có token)
+            fetch(`/api/v1/payments/payos/process-return/${result.orderCode}`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.token}`
+              },
+              body: JSON.stringify({
+                code: result.code,
+                status: result.paymentStatus,
+                paymentLinkId: result.paymentLinkId,
+                orderCode: result.orderCode
+              })
+            }).then(() => {
+              console.log('✅ Payment updated after login');
+            }).catch(err => {
+              console.error('Error updating payment:', err);
+            });
+          }
+        } catch (err) {
+          console.error('Error processing payment result:', err);
+        }
+        
+        // Redirect về dashboard để hiển thị toast
+        navigate("/dashboard?from=payment");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       console.error("Login error:", err);
       setError(err.message);

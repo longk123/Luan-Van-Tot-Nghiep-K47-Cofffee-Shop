@@ -6,12 +6,16 @@ import './index.css'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import POS from './pages/POS.jsx'
+import PaymentSuccess from './pages/PaymentSuccess.jsx'
+import PaymentCancel from './pages/PaymentCancel.jsx'
 
 const router = createBrowserRouter([
   { path: '/', element: <Login /> },
   { path: '/login', element: <Login /> },
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/pos', element: <POS /> },
+  { path: '/payment-success', element: <PaymentSuccess /> },
+  { path: '/payment-cancel', element: <PaymentCancel /> },
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(

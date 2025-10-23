@@ -170,4 +170,10 @@ export const api = {
   getInvoicePdfUrl: (orderId) => `/api/v1/hoa-don/${orderId}/pdf`,
   // Ghi log in hóa đơn
   logInvoicePrint: (orderId, data) => request('POST', `/hoa-don/${orderId}/print-log`, data),
+  
+  // ===== PAYOS PAYMENT GATEWAY =====
+  // Tạo payment request với PayOS
+  createPayOSPayment: (orderId, amount) => request('POST', '/payments/payos/create', { orderId, amount }),
+  // Kiểm tra trạng thái payment
+  checkPayOSStatus: (refCode) => request('GET', `/payments/payos/status/${refCode}`),
 };

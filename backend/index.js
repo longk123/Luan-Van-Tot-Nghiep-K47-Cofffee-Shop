@@ -21,6 +21,21 @@ const app = express();
 
 // Middleware setup
 app.use(cors());
+
+// Raw body parser cho webhook signature verification
+// Phải đặt TRƯỚC express.json() để capture raw body
+app.use('/api/v1/payments/payos/webhook', (req, res, next) => {
+  let data = '';
+  req.setEncoding('utf8');
+  req.on('data', chunk => {
+    data += chunk;
+  });
+  req.on('end', () => {
+    req.rawBody = data;
+    next();
+  });
+});
+
 app.use(express.json());
 app.use(requestId); // Gắn request ID
 // app.use('/api', generalRateLimit); // Tắt rate limit để dễ test
@@ -75,6 +90,9 @@ app.use('/api/v1', paymentsRouter);
 
 import invoiceRouter from './src/routes/invoice.js'; // <— router in hóa đơn
 app.use('/api/v1', invoiceRouter);
+
+import paymentSuccessRouter from './src/routes/paymentSuccess.js'; // <— router payment redirect
+app.use('/', paymentSuccessRouter);
 
 // Error handling middleware (phải ở cuối)
 app.use(errorHandler);

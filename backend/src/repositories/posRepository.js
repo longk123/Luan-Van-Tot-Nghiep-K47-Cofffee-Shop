@@ -46,14 +46,14 @@ export default {
       ),
       summary AS (
         SELECT lo.ban_id,
-               COUNT(don_hang_chi_tiet.id) AS item_count,
-               COALESCE(SUM(don_hang_chi_tiet.so_luong * don_hang_chi_tiet.don_gia), 0) AS subtotal,
-               COUNT(*) FILTER (WHERE don_hang_chi_tiet.trang_thai_che_bien='QUEUED') AS q_count,
-               COUNT(*) FILTER (WHERE don_hang_chi_tiet.trang_thai_che_bien='MAKING') AS m_count,
-               COUNT(*) FILTER (WHERE don_hang_chi_tiet.trang_thai_che_bien='DONE') AS done_count
+               COUNT(items.line_id) AS item_count,
+               COALESCE(SUM(items.line_total_with_addons), 0) AS subtotal,
+               COUNT(*) FILTER (WHERE items.trang_thai_che_bien='QUEUED') AS q_count,
+               COUNT(*) FILTER (WHERE items.trang_thai_che_bien='MAKING') AS m_count,
+               COUNT(*) FILTER (WHERE items.trang_thai_che_bien='DONE') AS done_count
         FROM latest_order_for_using_table lo
         INNER JOIN don_hang ON don_hang.id = lo.latest_order_id
-        LEFT JOIN don_hang_chi_tiet ON don_hang.id = don_hang_chi_tiet.don_hang_id
+        LEFT JOIN v_all_order_items_with_addons items ON don_hang.id = items.order_id
         GROUP BY lo.ban_id
       )
       SELECT
@@ -76,6 +76,7 @@ export default {
         o.trang_thai AS order_status,
         COALESCE(s.item_count,0)::int AS item_count,
         COALESCE(s.subtotal,0)::int AS subtotal,
+        COALESCE(settlement.grand_total, s.subtotal, 0)::int AS grand_total,
         COALESCE(s.q_count,0)::int AS q_count,
         COALESCE(s.m_count,0)::int AS m_count,
         COALESCE(s.done_count,0)::int AS done_count,
@@ -100,6 +101,7 @@ export default {
           AND b2.trang_thai = 'DANG_DUNG'
       ) o ON o.ban_id = b.id AND o.rn = 1
       LEFT JOIN summary s ON s.ban_id = b.id
+      LEFT JOIN v_order_settlement settlement ON settlement.order_id = o.id
       LEFT JOIN open_order oo ON oo.ban_id = b.id
       LEFT JOIN last_paid lp ON lp.ban_id = b.id
       WHERE ${where}

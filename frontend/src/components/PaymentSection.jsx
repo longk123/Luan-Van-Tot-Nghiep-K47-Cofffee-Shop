@@ -1,6 +1,7 @@
 // src/components/PaymentSection.jsx
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
+import PaymentQRPanel from './PaymentQRPanel.jsx';
 
 export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaymentComplete, onShowToast }) {
   const [paymentMethods, setPaymentMethods] = useState([]);
@@ -17,6 +18,9 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
   const [refundPayment, setRefundPayment] = useState(null);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  
+  // PayOS QR Panel state
+  const [showPayOSPanel, setShowPayOSPanel] = useState(false);
 
   useEffect(() => {
     loadPaymentMethods();
@@ -34,7 +38,18 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
   const loadPaymentMethods = async () => {
     try {
       const res = await api.getPaymentMethods();
-      setPaymentMethods(res?.data || []);
+      const methods = res?.data || [];
+      
+      // Override tên tiếng Việt có dấu (fix encoding issue)
+      const methodsWithProperNames = methods.map(m => ({
+        ...m,
+        name: m.code === 'CASH' ? 'Tiền mặt' 
+            : m.code === 'ONLINE' ? 'Thanh toán online'
+            : m.code === 'CARD' ? 'Thẻ ATM/Visa'
+            : m.name
+      }));
+      
+      setPaymentMethods(methodsWithProperNames);
     } catch (error) {
       console.error('Error loading payment methods:', error);
     }
@@ -296,11 +311,17 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
           {/* Payment methods */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Phương thức</label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {paymentMethods.map(method => (
                 <button
                   key={method.code}
-                  onClick={() => setSelectedMethod(method.code)}
+                  onClick={() => {
+                    setSelectedMethod(method.code);
+                    // Ẩn PayOS panel khi chọn method khác
+                    if (method.code !== 'ONLINE') {
+                      setShowPayOSPanel(false);
+                    }
+                  }}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all outline-none focus:outline-none ${
                     selectedMethod === method.code
                       ? 'bg-emerald-600 text-white shadow-md'
@@ -312,21 +333,47 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
               ))}
             </div>
           </div>
-
-          {/* Amount input */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Số tiền còn phải trả</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Nhập số tiền..."
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          
+          {/* PayOS QR Panel cho "Thanh toan online" */}
+          {selectedMethod === 'ONLINE' && !showPayOSPanel && (
+            <button
+              onClick={() => setShowPayOSPanel(true)}
+              className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+            >
+              🌐 Tạo mã thanh toán online
+            </button>
+          )}
+          
+          {showPayOSPanel && selectedMethod === 'ONLINE' && (
+            <PaymentQRPanel
+              orderId={orderId}
+              amount={amountDue}
+              onPaymentSuccess={async () => {
+                setShowPayOSPanel(false);
+                await loadSettlement();
+                onPaymentComplete?.();
+              }}
+              onShowToast={onShowToast}
+              onClose={() => setShowPayOSPanel(false)}
             />
-          </div>
+          )}
 
-          {/* Cash specific */}
-          {selectedMethod === 'CASH' && (
+          {/* Amount input - ẩn khi đang hiển thị PayOS panel */}
+          {!showPayOSPanel && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Số tiền còn phải trả</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Nhập số tiền..."
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          )}
+
+          {/* Cash specific - ẩn khi đang hiển thị PayOS panel */}
+          {!showPayOSPanel && selectedMethod === 'CASH' && (
             <>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Khách đưa</label>
@@ -364,8 +411,8 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
             </>
           )}
 
-          {/* Non-cash reference */}
-          {selectedMethod !== 'CASH' && (
+          {/* Non-cash reference - chỉ hiển thị cho CARD */}
+          {!showPayOSPanel && selectedMethod === 'CARD' && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Mã tham chiếu
@@ -380,14 +427,16 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
             </div>
           )}
 
-          {/* Pay button */}
-          <button
-            onClick={handlePay}
-            disabled={loading || !amount}
-            className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
-          >
-            {loading ? 'Đang xử lý...' : '💵 Thu tiền'}
-          </button>
+          {/* Pay button - ẩn khi đang hiển thị PayOS panel */}
+          {!showPayOSPanel && (
+            <button
+              onClick={handlePay}
+              disabled={loading || !amount}
+              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+            >
+              {loading ? 'Đang xử lý...' : '💵 Thu tiền'}
+            </button>
+          )}
         </>
       )}
 
