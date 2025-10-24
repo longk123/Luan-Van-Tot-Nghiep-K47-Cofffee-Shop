@@ -51,6 +51,12 @@ export default function Login() {
 
       saveToken(data.token);
       
+      // Auto-redirect theo role
+      const originalUserRoles = data?.user?.roles || [];
+      const isKitchenStaff = originalUserRoles.some(role => 
+        ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
+      );
+      
       // Kiểm tra xem có payment result pending không
       const paymentResult = localStorage.getItem('payos_payment_result');
       if (paymentResult) {
@@ -82,10 +88,21 @@ export default function Login() {
           console.error('Error processing payment result:', err);
         }
         
-        // Redirect về dashboard để hiển thị toast
-        navigate("/dashboard?from=payment");
+        // Redirect về dashboard để hiển thị toast (chỉ cho cashier/manager)
+        if (!isKitchenStaff) {
+          navigate("/dashboard?from=payment");
+        } else {
+          navigate("/kitchen?from=payment");
+        }
       } else {
-        navigate("/dashboard");
+        // Auto-redirect theo role
+        if (isKitchenStaff) {
+          console.log('🍳 Kitchen staff → redirect to /kitchen');
+          navigate("/kitchen");
+        } else {
+          console.log('💰 Cashier/Manager → redirect to /dashboard');
+          navigate("/dashboard");
+        }
       }
     } catch (err) {
       console.error("Login error:", err);

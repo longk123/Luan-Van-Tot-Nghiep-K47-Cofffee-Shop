@@ -1,6 +1,7 @@
 // src/components/CloseShiftModal.jsx
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
+import OpenOrdersDialog from './OpenOrdersDialog.jsx';
 
 export default function CloseShiftModal({ open, shift, onClose, onSuccess, onShowToast }) {
   const [step, setStep] = useState(1); // 1: Summary, 2: Input cash, 3: Confirm
@@ -8,7 +9,11 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
   const [summary, setSummary] = useState(null);
   const [actualCash, setActualCash] = useState('');
   const [note, setNote] = useState('');
-  const [openOrdersError, setOpenOrdersError] = useState(null);
+  const [showOpenOrdersDialog, setShowOpenOrdersDialog] = useState(false);
+  const [openOrders, setOpenOrders] = useState([]);
+  
+  // Check if this is a kitchen shift
+  const isKitchenShift = shift?.shift_type === 'KITCHEN';
 
   // Fetch summary when modal opens
   useEffect(() => {
@@ -27,6 +32,8 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
       setActualCash('');
       setNote('');
       setStep(1);
+      setShowOpenOrdersDialog(false);
+      setOpenOrders([]);
     }
   }, [open, shift?.id]);
 
@@ -49,7 +56,7 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
   };
 
   const handleClose = async () => {
-    if (actualCash === '' || actualCash === null || actualCash === undefined) {
+    if (!isKitchenShift && (actualCash === '' || actualCash === null || actualCash === undefined)) {
       onShowToast?.({
         show: true,
         type: 'error',
@@ -60,11 +67,10 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
     }
 
     setLoading(true);
-    setOpenOrdersError(null);
     
     try {
-      const res = await api.closeShiftEnhanced(shift.id, {
-        actual_cash: parseInt(actualCash) || 0,
+      await api.closeShiftEnhanced(shift.id, {
+        actual_cash: isKitchenShift ? 0 : (parseInt(actualCash) || 0),
         note: note || null
       });
 
@@ -72,22 +78,19 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
         show: true,
         type: 'success',
         title: 'Đóng ca thành công!',
-        message: `Ca #${shift.id} đã được đóng`
+        message: `Ca #${shift.id} đã được đóng. Đang tải lại trang...`
       });
 
-      // Close modal first
-      onClose();
-      
-      // Then trigger success callback (reload shift)
+      // Wait a bit for toast to show, then reload
       setTimeout(() => {
-        onSuccess?.();
-      }, 100);
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error closing shift:', error);
       
-      // Nếu lỗi do còn đơn OPEN
-      if (error.code === 'OPEN_ORDERS_EXIST' || error.message?.includes('đơn hàng chưa thanh toán')) {
-        setOpenOrdersError(error.message);
+      if (error.code === 'OPEN_ORDERS_EXIST' && error.openOrders) {
+        setOpenOrders(error.openOrders);
+        setShowOpenOrdersDialog(true);
         setLoading(false);
         return;
       }
@@ -99,14 +102,14 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
         message: error.message || 'Không thể đóng ca'
       });
     } finally {
-      setLoading(false);
+      setLoading(false); // ✅ Luôn reset loading state
     }
   };
   
   const handleForceClose = async () => {
     setLoading(true);
     try {
-      const res = await api.forceCloseShift(shift.id, {
+      await api.forceCloseShift(shift.id, {
         actual_cash: parseInt(actualCash) || 0,
         note: note || null,
         transfer_orders: true
@@ -116,13 +119,13 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
         show: true,
         type: 'success',
         title: 'Đã đóng ca và chuyển đơn!',
-        message: `Ca #${shift.id} đã đóng. Đơn chưa thanh toán sẽ chuyển sang ca tiếp theo.`
+        message: `Ca #${shift.id} đã đóng. Đang tải lại trang...`
       });
 
-      onClose();
+      // Wait a bit for toast to show, then reload
       setTimeout(() => {
-        onSuccess?.();
-      }, 100);
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error force closing shift:', error);
       onShowToast?.({
@@ -131,9 +134,7 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
         title: 'Lỗi đóng ca',
         message: error.message || 'Không thể đóng ca'
       });
-    } finally {
       setLoading(false);
-      setOpenOrdersError(null);
     }
   };
 
@@ -155,9 +156,12 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
         <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-1">📊 Đóng ca làm việc</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                {isKitchenShift ? '🎯 Kết thúc ca làm việc' : '📊 Đóng ca làm việc'}
+              </h3>
               <p className="text-sm text-gray-600">
                 Ca #{shift?.id} • {shift?.nhan_vien?.full_name || 'N/A'}
+                {isKitchenShift && <span className="ml-2 text-blue-600">(Pha chế/Bếp)</span>}
               </p>
             </div>
             <button
@@ -180,81 +184,73 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Error: Còn đơn OPEN */}
-              {openOrdersError && (
-                <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="font-semibold text-red-900 mb-2">{openOrdersError}</p>
-                      <p className="text-sm text-red-700 mb-3">Bạn có thể:</p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleForceClose}
-                          disabled={loading}
-                          className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 outline-none focus:outline-none text-sm"
-                        >
-                          ➡️ Chuyển đơn sang ca sau
-                        </button>
-                        <button
-                          onClick={() => {
-                            setOpenOrdersError(null);
-                            onClose();
-                          }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors outline-none focus:outline-none text-sm"
-                        >
-                          🔙 Quay lại xử lý
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Warning nếu doanh thu = 0 */}
-              {!openOrdersError && (summary?.summary?.totals?.total_orders || 0) === 0 && (
-                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <div>
-                      <p className="font-semibold text-yellow-900">Ca chưa có đơn hàng nào</p>
-                      <p className="text-sm text-yellow-700 mt-1">Bạn vẫn có thể đóng ca, nhưng doanh thu sẽ là 0đ.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Thống kê tổng quan */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-5 border-2 border-purple-200">
-                <h4 className="font-bold text-purple-900 mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Tổng quan ca làm
-                </h4>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/70 rounded-xl p-3 border border-purple-200">
-                    <p className="text-sm text-gray-600 mb-1">Tổng đơn hàng</p>
-                    <p className="text-2xl font-bold text-purple-900">
-                      {summary?.summary?.totals?.total_orders || 0}
-                    </p>
+              {!isKitchenShift ? (
+                /* Thu ngân - Hiển thị doanh thu */
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-5 border-2 border-purple-200">
+                  <h4 className="font-bold text-purple-900 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Tổng quan ca làm
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/70 rounded-xl p-3 border border-purple-200">
+                      <p className="text-sm text-gray-600 mb-1">Tổng đơn hàng</p>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {summary?.summary?.totals?.total_orders || 0}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white/70 rounded-xl p-3 border border-purple-200">
+                      <p className="text-sm text-gray-600 mb-1">Doanh thu</p>
+                      <p className="text-2xl font-bold text-green-700">
+                        {formatMoney(summary?.summary?.totals?.net)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Pha chế/Bếp - Hiển thị hiệu suất */
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-5 border-2 border-blue-200">
+                  <h4 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Hiệu suất ca làm
+                  </h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/70 rounded-xl p-3 border border-blue-200">
+                      <p className="text-sm text-gray-600 mb-1">Món đã làm</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        {summary?.kitchenStats?.total_items_made || 0}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white/70 rounded-xl p-3 border border-blue-200">
+                      <p className="text-sm text-gray-600 mb-1">Thời gian TB/món</p>
+                      <p className="text-2xl font-bold text-cyan-700">
+                        {summary?.kitchenStats?.avg_prep_time_seconds ? `${Math.round(summary.kitchenStats.avg_prep_time_seconds / 60)}m` : '--'}
+                      </p>
+                    </div>
                   </div>
                   
-                  <div className="bg-white/70 rounded-xl p-3 border border-purple-200">
-                    <p className="text-sm text-gray-600 mb-1">Doanh thu</p>
-                    <p className="text-2xl font-bold text-green-700">
-                      {formatMoney(summary?.summary?.totals?.net)}
+                  <div className="mt-3 bg-white rounded-xl p-3 border border-blue-200">
+                    <p className="text-sm text-gray-600 mb-1">Thời gian làm việc</p>
+                    <p className="text-lg font-bold text-blue-900">
+                      {shift?.started_at ? (
+                        Math.round((new Date() - new Date(shift.started_at)) / 1000 / 60 / 60 * 10) / 10
+                      ) : 0}h
                     </p>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Phân loại thanh toán */}
+              {/* Phân loại thanh toán - CHỈ cho Thu ngân */}
+              {!isKitchenShift && (
               <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
                 <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,8 +289,10 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                   </div>
                 </div>
               </div>
+              )}
 
-              {/* Form nhập tiền đếm thực tế */}
+              {/* Form nhập tiền đếm thực tế - CHỈ cho Thu ngân */}
+              {!isKitchenShift && (
               <div className="bg-amber-50 rounded-2xl p-5 border-2 border-amber-300">
                 <h4 className="font-bold text-amber-900 mb-4 flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,6 +373,7 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                   </div>
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -389,13 +388,26 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
           </button>
           <button
             onClick={handleClose}
-            disabled={loading || actualCash === ''}
+            disabled={loading || (!isKitchenShift && actualCash === '')}
             className="flex-[2] py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
           >
-            {loading ? 'Đang đóng ca...' : '✓ Xác nhận đóng ca'}
+            {loading ? (isKitchenShift ? 'Đang kết thúc ca...' : 'Đang đóng ca...') : (isKitchenShift ? '✓ Kết thúc ca' : '✓ Xác nhận đóng ca')}
           </button>
         </div>
       </div>
+
+      {/* Open Orders Dialog */}
+      <OpenOrdersDialog
+        open={showOpenOrdersDialog}
+        orders={openOrders}
+        onClose={() => setShowOpenOrdersDialog(false)}
+        onForceClose={handleForceClose}
+        onGoBack={() => {
+          setShowOpenOrdersDialog(false);
+          onClose();
+        }}
+        loading={loading}
+      />
     </div>
   );
 }

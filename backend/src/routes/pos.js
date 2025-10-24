@@ -5,6 +5,7 @@ import Joi from 'joi';
 import * as service from '../services/posService.js';
 import repo from '../repositories/posRepository.js';
 import { authRequired as auth } from '../middleware/auth.js';
+import { cashierOnly } from '../middleware/authorize.js';
 import { emitChange } from '../utils/eventBus.js';
 
 // Import controllers mới cho per-cup items & options
@@ -76,8 +77,10 @@ router.post('/orders', auth, async (req, res, next) => {
       ca_lam_id: Joi.number().integer().allow(null),
     });
     const { order_type, nhan_vien_id, ca_lam_id } = await schema.validateAsync(req.body || {});
+    // Sử dụng user_id từ token thay vì từ request body
+    console.log(`🔍 Route /orders - Using user_id from token: ${req.user?.user_id} (ignoring nhan_vien_id: ${nhan_vien_id})`);
     const order = await service.default.createOrderNoTable({
-      nhanVienId: nhan_vien_id ?? req.user?.user_id, 
+      nhanVienId: req.user?.user_id, 
       caLamId: ca_lam_id ?? null
     });
     res.status(201).json({ ok: true, data: order });
@@ -94,8 +97,10 @@ router.post('/orders/:banId', auth, async (req, res, next) => {
       ca_lam_id: Joi.number().integer().allow(null),
     });
     const { nhan_vien_id, ca_lam_id } = await schema.validateAsync(req.body || {});
+    // Sử dụng user_id từ token thay vì từ request body
+    console.log(`🔍 Route /orders/:banId - Using user_id from token: ${req.user?.user_id} (ignoring nhan_vien_id: ${nhan_vien_id})`);
     const order = await service.default.openOrGetOrder({
-      banId, nhanVienId: nhan_vien_id ?? req.user?.user_id, caLamId: ca_lam_id ?? null
+      banId, nhanVienId: req.user?.user_id, caLamId: ca_lam_id ?? null
     });
     res.status(201).json({ ok: true, data: order });
   } catch (e) { next(e); }
@@ -141,6 +146,9 @@ router.get('/takeaway-orders', auth, async (req, res, next) => {
     res.json({ success: true, data });
   } catch (e) { next(e); }
 });
+
+// GET /api/v1/pos/orders/current-shift - Lấy đơn hàng của ca hiện tại (cho cashier)
+router.get('/orders/current-shift', auth, cashierOnly, posItemsCtrl.getCurrentShiftOrders);
 
 // POST /api/v1/pos/orders/:orderId/deliver - Giao hàng (đánh dấu hoàn tất)
 router.post('/orders/:orderId/deliver', auth, async (req, res, next) => {

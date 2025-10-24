@@ -1,19 +1,59 @@
 // src/pages/TakeawayOrders.jsx
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import useSSE from '../hooks/useSSE.js';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import OrderDrawer from '../components/OrderDrawer.jsx';
 import MenuPanel from '../components/MenuPanel.jsx';
 import Toast from '../components/Toast.jsx';
+import { getUser } from '../auth.js';
 
 export default function TakeawayOrders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, order: null });
   const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
   const [showOrdersList, setShowOrdersList] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  
+  // Shift management - sử dụng ca của thu ngân
+  const [shift, setShift] = useState(null);
+
+  // Role-based access control - Takeaway chỉ dành cho thu ngân
+  useEffect(() => {
+    const user = getUser();
+    const userRoles = user?.roles || [];
+    const isKitchenStaff = userRoles.some(role => 
+      ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
+    );
+    
+    if (isKitchenStaff) {
+      // Redirect pha chế về trang kitchen
+      console.log('🍳 Kitchen staff detected, redirecting to /kitchen');
+      navigate('/kitchen', { replace: true });
+    }
+  }, [navigate]);
+
+  // Load shift information
+  async function loadShift() {
+    try {
+      const res = await api.getCurrentShift();
+      const shiftData = res?.data || res;
+      
+      // Kiểm tra shift có hợp lệ không
+      if (shiftData && shiftData.id && shiftData.status === 'OPEN') {
+        setShift(shiftData);
+      } else {
+        console.log('No valid shift found:', shiftData);
+        setShift(null);
+      }
+    } catch (err) {
+      console.error('Error loading shift:', err);
+      setShift(null);
+    }
+  }
 
   async function loadOrders() {
     setLoading(true);
@@ -28,7 +68,10 @@ export default function TakeawayOrders() {
     }
   }
 
-  useEffect(() => { loadOrders(); }, []);
+  useEffect(() => { 
+    loadOrders(); 
+    loadShift();
+  }, []);
 
   // SSE auto refresh
   useSSE('/api/v1/pos/events', (evt) => {
@@ -37,6 +80,11 @@ export default function TakeawayOrders() {
         evt.type === 'order.confirmed' ||
         evt.type === 'order.completed') {
       loadOrders();
+    }
+    
+    // Reload shift when shift changes
+    if (evt.type === 'shift.opened' || evt.type === 'shift.closed') {
+      loadShift();
     }
   });
 
@@ -153,7 +201,7 @@ export default function TakeawayOrders() {
               /* Đã thanh toán → Chỉ cần giao */
               <button
                 onClick={() => handleDeliver(order)}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 outline-none focus:outline-none"
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-4 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 outline-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -167,7 +215,7 @@ export default function TakeawayOrders() {
                   // Mở drawer để thanh toán
                   handleOpenOrder(order);
                 }}
-                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-3 px-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 outline-none focus:outline-none"
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-3 px-4 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 outline-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -200,8 +248,49 @@ export default function TakeawayOrders() {
           <div className="mb-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">📦 Đơn mang đi</h2>
+                <div className="flex items-center gap-3 mb-2">
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-xl transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Trở lại Dashboard
+                  </button>
+                  <h2 className="text-2xl font-bold text-gray-900">📦 Đơn mang đi</h2>
+                </div>
                 <p className="text-sm text-gray-600">Quản lý đơn takeaway</p>
+                {shift && shift.id && (
+                  <div className="mt-2 flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
+                    </span>
+                    <span className="text-gray-500">
+                      Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {!shift && (
+                  <div className="px-4 py-2 bg-amber-100 text-amber-800 rounded-lg border border-amber-300 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <span className="font-medium">⚠️ Chưa mở ca</span>
+                  </div>
+                )}
+                {shift && shift.status !== 'OPEN' && (
+                  <div className="px-4 py-2 bg-red-100 text-red-800 rounded-lg border border-red-300 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="font-medium">❌ Ca đã đóng</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -231,20 +320,22 @@ export default function TakeawayOrders() {
         <>
           {/* Nút quay lại */}
           <div className="mb-4" style={{ paddingRight: rightPad, transition: 'padding-right 0.3s' }}>
-            <button
-              onClick={() => {
-                setDrawer({ open: false, order: null });
-                loadOrders();
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-xl transition-colors outline-none focus:outline-none"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Quay lại danh sách
-            </button>
-            <div className="text-sm text-gray-500 mt-2">
-              Mang đi • Đơn #{drawer.order?.id}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setDrawer({ open: false, order: null });
+                  loadOrders();
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-xl transition-colors outline-none focus:outline-none"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Quay lại danh sách
+              </button>
+              <div className="text-sm text-gray-500">
+                Mang đi • Đơn #{drawer.order?.id}
+              </div>
             </div>
           </div>
 

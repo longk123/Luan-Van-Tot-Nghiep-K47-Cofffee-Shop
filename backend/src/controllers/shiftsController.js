@@ -1,6 +1,7 @@
 // src/controllers/shiftsController.js
 import * as shiftsService from '../services/shiftsService.js';
 import { asyncHandler } from '../middleware/error.js';
+import { emitEvent } from '../utils/sse.js';
 
 /**
  * GET /api/v1/shifts/current
@@ -23,15 +24,35 @@ export const getShiftSummary = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/v1/shifts/open
- * Mở ca mới
+ * Mở ca mới (tự động detect shift_type từ user role)
  */
 export const openShift = asyncHandler(async (req, res) => {
-  const { opening_cash = 0 } = req.body || {};
+  const { opening_cash = 0, shift_type } = req.body || {};
+  
+  // Tự động detect shift_type dựa vào role của user
+  let detectedShiftType = shift_type || 'CASHIER';
+  
+  // Nếu user có role kitchen/barista → shift_type = KITCHEN
+  if (req.user.roles && req.user.roles.some(role => 
+    ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
+  )) {
+    detectedShiftType = 'KITCHEN';
+  }
+  
   const data = await shiftsService.open({
     nhanVienId: req.user.user_id,
-    openingCash: parseInt(opening_cash) || 0,
-    openedBy: req.user.user_id
+    openingCash: detectedShiftType === 'CASHIER' ? (parseInt(opening_cash) || 0) : 0,
+    openedBy: req.user.user_id,
+    shiftType: detectedShiftType
   });
+  
+  // Emit SSE event
+  emitEvent('shift.opened', {
+    shiftId: data.id,
+    shiftType: data.shift_type,
+    userId: req.user.user_id
+  });
+  
   return res.status(201).json({ success: true, data });
 });
 
@@ -48,6 +69,12 @@ export const closeShift = asyncHandler(async (req, res) => {
     userId: req.user.user_id,
     actualCash: parseInt(actual_cash) ?? 0,
     note: note || null,
+  });
+  
+  // Emit SSE event
+  emitEvent('shift.closed', {
+    shiftId: id,
+    userId: req.user.user_id
   });
   
   return res.json({ success: true, data });
@@ -98,6 +125,16 @@ export const forceCloseShift = asyncHandler(async (req, res) => {
     transferOrders: transfer_orders !== false,
   });
   
+  return res.json({ success: true, data });
+});
+
+/**
+ * GET /api/v1/shifts/:id/transferred-orders
+ * Lấy danh sách đơn được chuyển từ ca trước
+ */
+export const getTransferredOrders = asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id);
+  const data = await shiftsService.getTransferredOrders(id);
   return res.json({ success: true, data });
 });
 

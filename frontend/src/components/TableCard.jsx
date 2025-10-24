@@ -17,6 +17,19 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
   const hasOrder = orderId || table.trang_thai === 'DANG_DUNG';
   const isLocked = table.trang_thai === 'KHOA';
   
+  // Debug logging
+  console.log('TableCard debug:', {
+    tableId: table.id,
+    tableName: table.ten_ban,
+    isPaid,
+    all_items_done: table.all_items_done,
+    item_count: table.item_count,
+    done_count: table.done_count,
+    pending_count: table.pending_count,
+    q_count: table.q_count,
+    m_count: table.m_count
+  });
+  
   // Kiểm tra reservation từ cột mới trong bảng ban
   const hasReservation = table.trang_thai_dat_ban || table.reservation_id;
   const reservationData = (table.trang_thai_dat_ban || table.reservation_id) ? {
@@ -81,20 +94,6 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
             <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${paymentStatusBadge.color}`}>
               {paymentStatusBadge.text}
             </span>
-          )}
-          {/* Badge xác nhận đơn */}
-          {hasOrder && (
-            table.pending_count > 0 ? (
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-amber-200 text-amber-800 animate-pulse">
-                CXN
-              </span>
-            ) : (
-              table.item_count > 0 && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-green-200 text-green-700">
-                  XN
-                </span>
-              )
-            )
           )}
         </div>
       </div>
@@ -227,12 +226,21 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               >
                 Xem
               </button>
-              <button
-                onClick={() => setCleanConfirm(true)}
-                className="flex-1 px-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
-              >
-                Dọn
-              </button>
+              {/* Chỉ hiển thị nút "Dọn" khi tất cả món đã hoàn thành */}
+              {table.all_items_done && (
+                <button
+                  onClick={() => setCleanConfirm(true)}
+                  className="flex-1 px-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
+                >
+                  Dọn
+                </button>
+              )}
+              {/* Hiển thị thông báo khi chưa thể dọn bàn */}
+              {!table.all_items_done && table.item_count > 0 && (
+                <div className="flex-1 px-2 py-2.5 bg-gray-400 text-white rounded-lg text-sm font-semibold text-center cursor-not-allowed">
+                  Chờ
+                </div>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();

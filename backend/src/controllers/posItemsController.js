@@ -2,6 +2,8 @@
 import { pool } from "../db.js";
 import { BadRequest } from "../utils/httpErrors.js";
 import { emitChange } from "../utils/eventBus.js";
+import posRepository from "../repositories/posRepository.js";
+import * as shiftsService from "../services/shiftsService.js";
 
 /**
  * Helper: kiểm tra đơn chưa PAID
@@ -135,8 +137,9 @@ export async function addOrderItems(req, res, next) {
 
     await client.query("COMMIT");
     
-    // Emit event for realtime update
-    emitChange('order.items.added', { orderId, lineIds: createdLines });
+    // Emit events for realtime update
+    emitChange('order.items.changed', { orderId, lineIds: createdLines });
+    emitChange('order.items.added', { orderId, lineIds: createdLines }); // For kitchen display
     
     res.status(201).json({ ok: true, data: { orderId, created_line_ids: createdLines } });
   } catch (err) {
@@ -221,8 +224,9 @@ export async function updateOrderItem(req, res, next) {
 
     await client.query("COMMIT");
     
-    // Emit event
-    emitChange('order.item.updated', { orderId, lineId });
+    // Emit events
+    emitChange('order.items.changed', { orderId, lineId }); // For dashboard
+    emitChange('order.item.updated', { orderId, lineId }); // For other components
     
     res.json({ ok: true, data: { updated: q.rows[0].id } });
   } catch (err) {
@@ -330,8 +334,9 @@ export async function upsertOrderItemOptions(req, res, next) {
 
     await client.query("COMMIT");
     
-    // Emit event
-    emitChange('order.item.options.updated', { orderId, lineId });
+    // Emit events
+    emitChange('order.items.changed', { orderId, lineId }); // For dashboard
+    emitChange('order.item.options.updated', { orderId, lineId }); // For other components
     
     res.json({ ok: true, data: { updated } });
   } catch (err) {
@@ -400,8 +405,9 @@ export async function updateOrderItemStatus(req, res, next) {
 
     await client.query("COMMIT");
     
-    // Emit event
-    emitChange('order.item.status.updated', { orderId, lineId, trang_thai_che_bien });
+    // Emit events
+    emitChange('order.items.changed', { orderId, lineId, trang_thai_che_bien }); // For dashboard
+    emitChange('order.item.status.updated', { orderId, lineId, trang_thai_che_bien }); // For kitchen
     
     res.json({ ok: true, data: q.rows[0] });
   } catch (err) {
@@ -442,8 +448,9 @@ export async function deleteOrderItem(req, res, next) {
 
     await client.query("COMMIT");
     
-    // Emit event
-    emitChange('order.item.deleted', { orderId, lineId });
+    // Emit events
+    emitChange('order.items.changed', { orderId, lineId }); // For dashboard
+    emitChange('order.item.deleted', { orderId, lineId }); // For other components
     
     res.json({ ok: true, data: { deleted: del.rows[0].id } });
   } catch (err) {
@@ -451,6 +458,51 @@ export async function deleteOrderItem(req, res, next) {
     next(err);
   } finally {
     client.release();
+  }
+}
+
+/**
+ * GET /api/v1/pos/orders/current-shift
+ * Lấy đơn hàng của ca hiện tại (cho cashier)
+ */
+export async function getCurrentShiftOrders(req, res, next) {
+  try {
+    const userId = req.user.user_id;
+    
+    // Lấy ca hiện tại của user
+    const currentShift = await shiftsService.getCurrentShiftService(userId);
+    if (!currentShift) {
+      return res.json({ 
+        success: true, 
+        data: [], 
+        message: "Không có ca làm việc đang mở" 
+      });
+    }
+    
+    // Lấy đơn hàng của ca hiện tại
+    const orders = await posRepository.getCurrentShiftOrders(currentShift.id);
+    
+    // Thống kê tổng quan
+    const stats = {
+      total_orders: orders.length,
+      paid_orders: orders.filter(o => o.trang_thai === 'PAID').length,
+      open_orders: orders.filter(o => o.trang_thai === 'OPEN').length,
+      cancelled_orders: orders.filter(o => o.trang_thai === 'CANCELLED').length,
+      total_revenue: orders
+        .filter(o => o.trang_thai === 'PAID')
+        .reduce((sum, o) => sum + (o.tong_tien || 0), 0)
+    };
+    
+    res.json({ 
+      success: true, 
+      data: {
+        shift: currentShift,
+        orders,
+        stats
+      }
+    });
+  } catch (err) {
+    next(err);
   }
 }
 

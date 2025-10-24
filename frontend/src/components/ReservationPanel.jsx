@@ -1,6 +1,7 @@
 // src/components/ReservationPanel.jsx
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
+import CustomSelect from './CustomSelect.jsx';
 
 export default function ReservationPanel({ open, onClose, onSuccess, onShowToast, areas }) {
   const [step, setStep] = useState(1); // 1: Info, 2: Select Tables, 3: Confirm
@@ -390,10 +391,9 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Khu vực
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.khu_vuc_id || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
+                    onChange={(val) => {
                       if (val === '' || val === 'null' || !val) {
                         handleInputChange('khu_vuc_id', null);
                       } else {
@@ -401,13 +401,16 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
                         handleInputChange('khu_vuc_id', isNaN(parsed) ? null : parsed);
                       }
                     }}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Tất cả</option>
-                    {areas && areas.map(area => (
-                      <option key={area.id} value={area.id}>{area.ten}</option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: 'Tất cả' },
+                      ...(areas || []).map(area => ({
+                        value: area.id,
+                        label: area.ten
+                      }))
+                    ]}
+                    placeholder="Tất cả"
+                    className="w-full"
+                  />
                 </div>
               </div>
 
@@ -430,15 +433,17 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Nguồn
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.nguon}
-                    onChange={(e) => handleInputChange('nguon', e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="PHONE">Điện thoại</option>
-                    <option value="WALKIN">Tại quán</option>
-                    <option value="ONLINE">Online</option>
-                  </select>
+                    onChange={(val) => handleInputChange('nguon', val)}
+                    options={[
+                      { value: 'PHONE', label: 'Điện thoại' },
+                      { value: 'WALKIN', label: 'Tại quán' },
+                      { value: 'ONLINE', label: 'Online' }
+                    ]}
+                    placeholder="Chọn nguồn"
+                    className="w-full"
+                  />
                 </div>
               </div>
 

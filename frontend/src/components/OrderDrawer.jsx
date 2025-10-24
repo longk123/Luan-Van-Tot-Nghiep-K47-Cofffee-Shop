@@ -3,10 +3,12 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import useOrderDrawer from '../hooks/useOrderDrawer.js';
 import { api } from '../api.js';
+import { getUser } from '../auth.js';
 import LineItemWithOptions from './pos/LineItemWithOptions.jsx';
 import EditOptionsDialog from './pos/EditOptionsDialog.jsx';
 import PaymentSection from './PaymentSection.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
+import CustomSelect from './CustomSelect.jsx';
 
 // Helper để nhóm bàn theo khu vực
 function groupTablesByArea(tables) {
@@ -35,22 +37,11 @@ export default function OrderDrawer({
   triggerCancelDialog,
   onTriggerCancelDialog,
   onTableChanged,
-  onItemsChange
+  onItemsChange,
+  onPendingItemsChange
 }) {
   const orderId = order?.id;
   const [localOrder, setLocalOrder] = useState(order);
-  
-  // Handle close drawer với check items (chỉ cho TAKEAWAY)
-  const handleCloseDrawer = () => {
-    // Nếu là đơn mang đi, truyền info để parent quyết định
-    if (order?.order_type === 'TAKEAWAY') {
-      onClose?.({ hasItems: items.length > 0, orderType: 'TAKEAWAY' });
-    } else {
-      // Đơn bàn: gọi onClose như cũ (backward compatible)
-      onClose?.();
-    }
-  };
-  
   console.log('OrderDrawer render:', { open, orderId, order });
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -115,10 +106,27 @@ export default function OrderDrawer({
     return items.some(item => item.trang_thai_che_bien === 'PENDING');
   }, [items]);
 
+  // Check nếu có bất kỳ món nào đã được xác nhận (QUEUED/MAKING/DONE)
+  const hasAnyConfirmedItems = useMemo(() => {
+    return items.some(item => 
+      ['QUEUED', 'MAKING', 'DONE'].includes(item.trang_thai_che_bien)
+    );
+  }, [items]);
+
+  // Check nếu TẤT CẢ món đều PENDING (chưa xác nhận món nào)
+  const allItemsPending = useMemo(() => {
+    return items.length > 0 && items.every(item => item.trang_thai_che_bien === 'PENDING');
+  }, [items]);
+
   // Notify parent về số lượng món
   useEffect(() => {
     onItemsChange?.(items.length > 0);
   }, [items.length, onItemsChange]);
+
+  // Notify parent về món PENDING
+  useEffect(() => {
+    onPendingItemsChange?.(hasPendingItems);
+  }, [hasPendingItems, onPendingItemsChange]);
 
   // Xác nhận đơn
   const handleConfirmOrder = async () => {
@@ -139,6 +147,28 @@ export default function OrderDrawer({
         title: 'Lỗi xác nhận',
         message: error.message || 'Không thể xác nhận đơn'
       });
+    }
+  };
+
+  // Handle close drawer với check món PENDING
+  const handleCloseDrawer = () => {
+    // Nếu còn món PENDING, hiển thị cảnh báo (không nên xảy ra vì nút đã disabled)
+    if (hasPendingItems) {
+      onShowToast?.({
+        show: true,
+        type: 'warning',
+        title: 'Vui lòng xác nhận đơn',
+        message: 'Có món chưa xác nhận. Vui lòng xác nhận đơn trước khi quay lại.'
+      });
+      return;
+    }
+    
+    // Nếu là đơn mang đi, truyền info để parent quyết định
+    if (order?.order_type === 'TAKEAWAY') {
+      onClose?.({ hasItems: items.length > 0, orderType: 'TAKEAWAY' });
+    } else {
+      // Đơn bàn: gọi onClose như cũ (backward compatible)
+      onClose?.();
     }
   };
 
@@ -351,14 +381,9 @@ export default function OrderDrawer({
     }
   };
 
+  // Không dùng nữa - giữ lại để tránh break code cũ
   const handleClose = () => {
-    // Nếu là đơn mang đi và chưa thanh toán, hiển thị dialog hủy đơn
-    if (order?.order_type === 'TAKEAWAY' && !isPaid) {
-      setShowCancelDialog(true);
-    } else {
-      // Đóng drawer
-      onClose();
-    }
+    handleCloseDrawer();
   };
 
   // Handlers cho LineItemWithOptions
@@ -670,8 +695,14 @@ export default function OrderDrawer({
         </div>
         {!docked && (
           <button 
-            onClick={handleCloseDrawer} 
-            className="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-full transition-colors text-amber-700 hover:text-amber-800 ml-2 outline-none focus:outline-none"
+            onClick={handleCloseDrawer}
+            disabled={hasPendingItems}
+            title={hasPendingItems ? 'Vui lòng xác nhận đơn trước khi quay lại' : 'Quay lại'}
+            className={`p-2 border rounded-full transition-colors ml-2 outline-none focus:outline-none ${
+              hasPendingItems 
+                ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                : 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-700 hover:text-amber-800'
+            }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -683,6 +714,15 @@ export default function OrderDrawer({
       {isPaid && (
         <div className="mx-0 mb-2 rounded-xl bg-green-50 text-green-700 px-3 py-2 text-sm">
           Đơn đã thanh toán. Không thể thêm/sửa món.
+        </div>
+      )}
+      
+      {hasPendingItems && !isPaid && (
+        <div className="mx-0 mb-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>Vui lòng xác nhận đơn trước khi quay lại</span>
         </div>
       )}
 
@@ -859,22 +899,21 @@ export default function OrderDrawer({
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <select
+                  <CustomSelect
                     value={moveTableId}
-                    onChange={(e) => setMoveTableId(e.target.value)}
-                    className="flex-1 px-2 py-1.5 border border-blue-200 bg-white rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">-- Chọn bàn --</option>
-                    {Object.entries(tablesByArea).map(([areaName, tables]) => (
-                      <optgroup key={areaName} label={areaName}>
-                        {(tables || []).map(table => (
-                          <option key={table.id} value={table.id}>
-                            {table.ten_ban} ({table.suc_chua} chỗ)
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
+                    onChange={setMoveTableId}
+                    options={[
+                      { value: '', label: '-- Chọn bàn --' },
+                      ...Object.entries(tablesByArea).flatMap(([areaName, tables]) => 
+                        (tables || []).map(table => ({
+                          value: table.id,
+                          label: `${areaName} - ${table.ten_ban} (${table.suc_chua} chỗ)`
+                        }))
+                      )
+                    ]}
+                    placeholder="-- Chọn bàn --"
+                    className="flex-1 text-xs"
+                  />
                   <button
                     onClick={handleMoveTable}
                     disabled={!moveTableId}
@@ -990,8 +1029,8 @@ export default function OrderDrawer({
         {/* Action buttons */}
         {!isPaid && (
           <div className="mt-3 space-y-2">
-            {hasPendingItems ? (
-              /* Chỉ hiện nút xác nhận khi có món PENDING */
+            {/* Luôn hiện nút xác nhận nếu có món PENDING */}
+            {hasPendingItems && (
               <>
                 <button
                   onClick={handleConfirmOrder}
@@ -1006,26 +1045,28 @@ export default function OrderDrawer({
                   ⚠️ Vui lòng xác nhận đơn trước khi thanh toán
                 </p>
               </>
-            ) : (
-              /* Sau khi xác nhận, hiện nút hủy */
-              <>
-                <button
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={hasItemsInProgress}
-                  className="w-full bg-gradient-to-r from-red-50 to-red-100 text-red-700 py-3 px-3 rounded-xl border border-red-200 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
-                  title={hasItemsInProgress ? 'Không thể hủy: Có món đang làm hoặc đã hoàn tất' : 'Hủy đơn hàng'}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  {hasItemsInProgress ? '🔒 Không thể hủy' : 'Hủy đơn'}
-                </button>
-                {hasItemsInProgress && (
-                  <p className="text-xs text-red-600 mt-1 text-center">
-                    Có món đang làm/đã hoàn tất. Liên hệ bếp để hủy.
-                  </p>
-                )}
-              </>
+            )}
+            
+            {/* Nút hủy đơn - chỉ enable nếu TẤT CẢ món đều PENDING hoặc không có món nào đang làm */}
+            <button
+              onClick={() => setShowCancelDialog(true)}
+              disabled={hasAnyConfirmedItems && hasItemsInProgress}
+              className="w-full bg-gradient-to-r from-red-50 to-red-100 text-red-700 py-3 px-3 rounded-xl border border-red-200 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+              title={
+                allItemsPending ? 'Hủy đơn hàng' :
+                hasAnyConfirmedItems && hasItemsInProgress ? 'Không thể hủy: Có món đang làm hoặc đã hoàn tất' : 
+                'Hủy đơn hàng'
+              }
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              {hasAnyConfirmedItems && hasItemsInProgress ? '🔒 Không thể hủy' : 'Hủy đơn'}
+            </button>
+            {hasAnyConfirmedItems && hasItemsInProgress && (
+              <p className="text-xs text-red-600 text-center">
+                Có món đã xác nhận và đang làm/đã hoàn tất. Liên hệ bếp để hủy.
+              </p>
             )}
           </div>
         )}
@@ -1073,14 +1114,47 @@ export default function OrderDrawer({
 
             {/* Nút In hóa đơn */}
             <button
-              onClick={() => {
-                const url = api.getInvoicePdfUrl(orderId);
-                window.open(url, '_blank');
-                // Optional: Log in hóa đơn
-                api.logInvoicePrint(orderId, { 
-                  printed_by: null, // TODO: Thêm user_id nếu cần
-                  note: 'In từ POS'
-                }).catch(err => console.error('Log print error:', err));
+              onClick={async () => {
+                try {
+                  // Ghi log in hóa đơn
+                  const user = getUser();
+                  await api.logInvoicePrint(orderId, { 
+                    printed_by: user?.user_id,
+                    note: 'In từ POS'
+                  });
+                  
+                  // Lấy PDF với token
+                  const response = await api.getInvoicePdf(orderId);
+                  const blob = await response.blob();
+                  
+                  // Tạo URL cho blob và mở trong tab mới
+                  const pdfUrl = URL.createObjectURL(blob);
+                  const newWindow = window.open(pdfUrl, '_blank');
+                  
+                  // Cleanup URL sau khi mở
+                  if (newWindow) {
+                    newWindow.addEventListener('beforeunload', () => {
+                      URL.revokeObjectURL(pdfUrl);
+                    });
+                  } else {
+                    // Fallback nếu popup bị chặn
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.download = `hoa_don_${orderId}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(pdfUrl);
+                  }
+                } catch (err) {
+                  console.error('Error printing invoice:', err);
+                  onShowToast?.({
+                    show: true,
+                    type: 'error',
+                    title: 'Lỗi in hóa đơn',
+                    message: 'Không thể in hóa đơn: ' + err.message
+                  });
+                }
               }}
               className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-3 rounded-xl border border-blue-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
             >
@@ -1442,7 +1516,11 @@ export default function OrderDrawer({
   return (
     <>
       <div className="fixed inset-0 z-40 flex">
-        <div className="flex-1 bg-black/30" onClick={docked ? undefined : handleCloseDrawer} />
+        <div 
+          className="flex-1 bg-black/30" 
+          onClick={docked || hasPendingItems ? undefined : handleCloseDrawer}
+          style={hasPendingItems ? { cursor: 'not-allowed' } : undefined}
+        />
         {panel}
       </div>
       {cancelDialog}

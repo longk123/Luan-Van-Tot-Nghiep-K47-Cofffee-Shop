@@ -22,6 +22,7 @@ export async function getCurrentShiftService(userId) {
     business_day: row.business_day,
     started_at: row.started_at,
     status: row.status,
+    shift_type: row.shift_type,
     opening_cash: row.opening_cash,
     nhan_vien: {
       user_id: row.nv_id,
@@ -32,7 +33,7 @@ export async function getCurrentShiftService(userId) {
   };
 }
 
-export async function open({ nhanVienId, openingCash, openedBy }) {
+export async function open({ nhanVienId, openingCash, openedBy, shiftType = 'CASHIER' }) {
   // Không cho mở nếu đã có ca OPEN
   const exists = await getMyOpenShift(nhanVienId);
   if (exists) {
@@ -43,7 +44,7 @@ export async function open({ nhanVienId, openingCash, openedBy }) {
   }
 
   try {
-    const shift = await openShift({ nhanVienId, openingCash, openedBy });
+    const shift = await openShift({ nhanVienId, openingCash, openedBy, shiftType });
     return shift;
   } catch (e) {
     // Nếu DB bắn lỗi do constraint no_overlap_per_user (chồng ca)
@@ -91,9 +92,32 @@ export async function getShiftSummary(shiftId) {
   // Aggregate statistics
   const summary = await aggregateShift(shiftId);
   
+  // Thêm kitchen stats nếu là ca KITCHEN
+  let kitchenStats = null;
+  if (shift.shift_type === 'KITCHEN') {
+    const { pool } = await import('../db.js');
+    const statsResult = await pool.query(
+      `SELECT 
+         COUNT(*) as total_items,
+         AVG(EXTRACT(EPOCH FROM (finished_at - started_at))) as avg_seconds
+       FROM don_hang_chi_tiet
+       WHERE maker_id = $1
+         AND trang_thai_che_bien = 'DONE'
+         AND started_at >= $2
+         AND finished_at IS NOT NULL`,
+      [shift.nhan_vien_id, shift.started_at]
+    );
+    
+    kitchenStats = {
+      total_items_made: Number(statsResult.rows[0]?.total_items || 0),
+      avg_prep_time_seconds: Math.round(Number(statsResult.rows[0]?.avg_seconds || 0))
+    };
+  }
+  
   return {
     shift,
-    summary
+    summary,
+    kitchenStats
   };
 }
 
@@ -115,11 +139,27 @@ export async function closeShiftEnhanced({ shiftId, userId, actualCash, note }) 
     err.status = 400;
     throw err;
   }
+  
+  const isKitchenShift = current.shift_type === 'KITCHEN';
 
   // 2) Kiểm tra còn đơn OPEN không
   const { pool } = await import('../db.js');
   const openOrders = await pool.query(
-    `SELECT id, ban_id, order_type FROM don_hang WHERE ca_lam_id = $1 AND trang_thai = 'OPEN'`,
+    `SELECT 
+       dh.id, 
+       dh.ban_id, 
+       dh.order_type,
+       b.ten_ban,
+       b.khu_vuc_id,
+       kv.ten AS ten_khu_vuc,
+       COALESCE(SUM(ct.so_luong * ct.don_gia - COALESCE(ct.giam_gia, 0)), 0) AS tong_tien
+     FROM don_hang dh
+     LEFT JOIN ban b ON b.id = dh.ban_id
+     LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
+     LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+     WHERE dh.ca_lam_id = $1 AND dh.trang_thai = 'OPEN'
+     GROUP BY dh.id, dh.ban_id, dh.order_type, b.ten_ban, b.khu_vuc_id, kv.ten
+     ORDER BY dh.id`,
     [shiftId]
   );
   
@@ -134,24 +174,44 @@ export async function closeShiftEnhanced({ shiftId, userId, actualCash, note }) 
   // 3) Aggregate số liệu chốt ca
   const summary = await aggregateShift(shiftId);
 
-  // 4) Tính tiền mặt:
-  // expected_cash = tiền thu trong ca (CASH)
-  // total_expected = opening_cash (đầu ca) + expected_cash (thu trong ca)
-  // cash_diff = actual_cash (đếm thực tế) - total_expected
+  // 4) Tính toán dựa trên loại ca
+  let kitchenStats = null;
+  if (isKitchenShift) {
+    // Tính số món đã làm và thời gian trung bình
+    const statsResult = await pool.query(
+      `SELECT 
+         COUNT(*) as total_items,
+         AVG(EXTRACT(EPOCH FROM (finished_at - started_at))) as avg_seconds
+       FROM don_hang_chi_tiet
+       WHERE maker_id = $1
+         AND trang_thai_che_bien = 'DONE'
+         AND started_at >= $2
+         AND finished_at IS NOT NULL`,
+      [userId, current.started_at]
+    );
+    
+    kitchenStats = {
+      total_items_made: Number(statsResult.rows[0]?.total_items || 0),
+      avg_prep_time_seconds: Math.round(Number(statsResult.rows[0]?.avg_seconds || 0))
+    };
+  }
+
+  // Tính tiền mặt (chỉ cho ca CASHIER):
   const openingCash = current.opening_cash || 0;
-  const expectedCash = summary.payments.cash || 0; // Tiền thu trong ca
-  const totalExpected = openingCash + expectedCash; // Tổng tiền phải có
-  const cashDiff = (actualCash ?? 0) - totalExpected;
+  const expectedCash = summary.payments.cash || 0;
+  const totalExpected = openingCash + expectedCash;
+  const cashDiff = isKitchenShift ? 0 : ((actualCash ?? 0) - totalExpected);
 
   // 5) Ghi nhận đóng ca trong transaction (có FOR UPDATE hàng ca)
   const closed = await closeShiftTx({
     shiftId,
     closedBy: userId,
-    expectedCash: totalExpected, // Lưu tổng tiền phải có
-    actualCash: actualCash ?? 0,
+    expectedCash: totalExpected,
+    actualCash: isKitchenShift ? 0 : (actualCash ?? 0),
     cashDiff,
     summary,
     note,
+    kitchenStats
   });
 
   return {
@@ -179,6 +239,50 @@ export async function getShiftReport(shiftId) {
   }
   
   return shift;
+}
+
+/**
+ * Get orders transferred from previous shift
+ * Lấy danh sách đơn được chuyển từ ca trước
+ */
+export async function getTransferredOrders(shiftId) {
+  const shift = await getById(shiftId);
+  if (!shift) {
+    const err = new Error('Không tìm thấy ca làm.');
+    err.status = 404;
+    throw err;
+  }
+
+  const { pool } = await import('../db.js');
+  
+  // Lấy các đơn OPEN của ca này mà được tạo TRƯỚC khi ca bắt đầu
+  const result = await pool.query(
+    `SELECT 
+       dh.id, 
+       dh.ban_id, 
+       dh.order_type,
+       dh.opened_at,
+       b.ten_ban,
+       b.khu_vuc_id,
+       kv.ten AS ten_khu_vuc,
+       COALESCE(SUM(ct.so_luong * ct.don_gia - COALESCE(ct.giam_gia, 0)), 0) AS tong_tien,
+       (SELECT COUNT(*) FROM don_hang_chi_tiet WHERE don_hang_id = dh.id) as item_count
+     FROM don_hang dh
+     LEFT JOIN ban b ON b.id = dh.ban_id
+     LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
+     LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+     WHERE dh.ca_lam_id = $1 
+       AND dh.trang_thai = 'OPEN'
+       AND dh.opened_at < $2
+     GROUP BY dh.id, dh.ban_id, dh.order_type, dh.opened_at, b.ten_ban, b.khu_vuc_id, kv.ten
+     ORDER BY dh.id`,
+    [shiftId, shift.started_at]
+  );
+  
+  return {
+    count: result.rows.length,
+    orders: result.rows
+  };
 }
 
 /**

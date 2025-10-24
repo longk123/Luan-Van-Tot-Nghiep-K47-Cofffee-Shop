@@ -4,12 +4,14 @@ import { pool } from '../db.js';
 const query = (text, params) => pool.query(text, params);
 
 export async function getMyOpenShift(nhanVienId) {
+  console.log(`🔍 getMyOpenShift called with nhanVienId: ${nhanVienId}`);
   const { rows } = await query(
     `SELECT * FROM ca_lam
      WHERE nhan_vien_id = $1 AND status = 'OPEN'
      ORDER BY id DESC LIMIT 1`,
     [nhanVienId]
   );
+  console.log(`🔍 getMyOpenShift query result:`, rows);
   return rows[0] || null;
 }
 
@@ -30,22 +32,52 @@ export async function getMyOpenShiftWithUser(userId) {
   return rows[0] || null;
 }
 
-export async function openShift({ nhanVienId, openingCash = null, openedBy = null }) {
-  const sql = `
-    INSERT INTO ca_lam (
-      nhan_vien_id, started_at, status, opening_cash, opened_by
-    )
-    VALUES (
-      $1::int,
-      NOW(),
-      'OPEN',
-      $2::int,
-      COALESCE($3::int, $1::int)
-    )
-    RETURNING *;
-  `;
-  const { rows } = await query(sql, [nhanVienId, openingCash, openedBy]);
-  return rows[0];
+export async function openShift({ nhanVienId, openingCash = null, openedBy = null, shiftType = 'CASHIER' }) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // 1) Tạo ca mới
+    const sql = `
+      INSERT INTO ca_lam (
+        nhan_vien_id, started_at, status, opening_cash, opened_by, shift_type
+      )
+      VALUES (
+        $1::int,
+        NOW(),
+        'OPEN',
+        $2::int,
+        COALESCE($3::int, $1::int),
+        $4::text
+      )
+      RETURNING *;
+    `;
+    const { rows } = await client.query(sql, [nhanVienId, openingCash, openedBy, shiftType]);
+    const newShift = rows[0];
+    
+    // 2) Tự động gán các đơn OPEN chưa có ca (ca_lam_id = NULL) vào ca mới
+    // Điều này xảy ra khi ca trước force close và chuyển đơn
+    const assignResult = await client.query(
+      `UPDATE don_hang 
+       SET ca_lam_id = $1 
+       WHERE trang_thai = 'OPEN' AND ca_lam_id IS NULL
+       RETURNING id`,
+      [newShift.id]
+    );
+    
+    if (assignResult.rowCount > 0) {
+      console.log(`✅ Đã gán ${assignResult.rowCount} đơn chuyển từ ca trước vào ca #${newShift.id}`);
+      console.log(`   Danh sách đơn: ${assignResult.rows.map(r => `#${r.id}`).join(', ')}`);
+    }
+    
+    await client.query('COMMIT');
+    return newShift;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function closeShift(id, { closingCash = null, note = null, closedBy = null }) {
@@ -123,7 +155,8 @@ export async function closeShiftTx({
   actualCash, 
   cashDiff, 
   summary, 
-  note 
+  note,
+  kitchenStats = null
 }) {
   const client = await pool.connect();
   try {
@@ -145,36 +178,55 @@ export async function closeShiftTx({
 
     // Cập nhật các chỉ số tổng hợp xuống ca_lam
     const { totals, payments } = summary;
-    await client.query(
-      `UPDATE ca_lam
-       SET status='CLOSED',
-           ended_at = NOW(),
-           closed_at = NOW(),
-           closed_by = $2,
-           expected_cash   = $3,
-           actual_cash     = $4,
-           cash_diff       = $5,
-           total_orders    = $6,
-           total_refunds   = $7,
-           gross_amount    = $8,
-           discount_amount = $9,
-           tax_amount      = $10,
-           net_amount      = $11,
-           cash_amount     = $12,
-           card_amount     = $13,
-           transfer_amount = $14,
-           online_amount   = $15,
-           note            = COALESCE($16, note),
-           updated_at      = NOW()
-       WHERE id = $1`,
-      [
-        shiftId, closedBy, expectedCash, actualCash, cashDiff,
-        totals.total_orders, totals.total_refunds,
-        totals.gross, totals.discount, totals.tax, totals.net,
-        payments.cash, payments.card, payments.transfer, payments.online,
-        note || null
-      ]
-    );
+    
+    if (kitchenStats) {
+      // Ca KITCHEN - cập nhật stats pha chế
+      await client.query(
+        `UPDATE ca_lam
+         SET status='CLOSED',
+             ended_at = NOW(),
+             closed_at = NOW(),
+             closed_by = $2,
+             total_items_made = $3,
+             avg_prep_time_seconds = $4,
+             note = COALESCE($5, note),
+             updated_at = NOW()
+         WHERE id = $1`,
+        [shiftId, closedBy, kitchenStats.total_items_made, kitchenStats.avg_prep_time_seconds, note || null]
+      );
+    } else {
+      // Ca CASHIER - cập nhật stats tiền
+      await client.query(
+        `UPDATE ca_lam
+         SET status='CLOSED',
+             ended_at = NOW(),
+             closed_at = NOW(),
+             closed_by = $2,
+             expected_cash   = $3,
+             actual_cash     = $4,
+             cash_diff       = $5,
+             total_orders    = $6,
+             total_refunds   = $7,
+             gross_amount    = $8,
+             discount_amount = $9,
+             tax_amount      = $10,
+             net_amount      = $11,
+             cash_amount     = $12,
+             card_amount     = $13,
+             transfer_amount = $14,
+             online_amount   = $15,
+             note            = COALESCE($16, note),
+             updated_at      = NOW()
+         WHERE id = $1`,
+        [
+          shiftId, closedBy, expectedCash, actualCash, cashDiff,
+          totals.total_orders, totals.total_refunds,
+          totals.gross, totals.discount, totals.tax, totals.net,
+          payments.cash, payments.card, payments.transfer, payments.online,
+          note || null
+        ]
+      );
+    }
 
     await client.query('COMMIT');
 

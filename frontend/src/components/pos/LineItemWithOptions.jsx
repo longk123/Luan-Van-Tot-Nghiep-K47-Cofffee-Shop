@@ -11,11 +11,19 @@ export default function LineItemWithOptions({
   onChangeStatus,
   userRole = 'cashier' // 'cashier' | 'kitchen'
 }) {
-  const canEdit = line.trang_thai_che_bien === 'QUEUED' && orderStatus !== 'PAID';
+  // Cho phép edit/delete khi món PENDING hoặc QUEUED (chưa bắt đầu làm) và đơn chưa thanh toán
+  const canEdit = (line.trang_thai_che_bien === 'PENDING' || line.trang_thai_che_bien === 'QUEUED') && orderStatus !== 'PAID';
   const canChangeStatus = userRole === 'kitchen' || userRole === 'admin';
 
   // Trạng thái mapping
   const statusConfig = {
+    'PENDING': {
+      label: 'Chưa xác nhận',
+      color: 'bg-amber-500',
+      textColor: 'text-amber-700',
+      bgColor: 'bg-amber-50',
+      borderColor: 'border-amber-300'
+    },
     'QUEUED': {
       label: 'Chờ làm',
       color: 'bg-gray-500',
@@ -46,7 +54,7 @@ export default function LineItemWithOptions({
     }
   };
 
-  const status = statusConfig[line.trang_thai_che_bien] || statusConfig['QUEUED'];
+  const status = statusConfig[line.trang_thai_che_bien] || statusConfig['PENDING'];
 
   return (
     <div className={`flex items-start justify-between rounded-lg border-2 ${status.borderColor} ${status.bgColor} p-2.5 transition-all`}>

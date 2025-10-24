@@ -62,4 +62,7 @@ router.get('/:id/report.pdf', authMiddleware, shiftsController.exportShiftReport
 // POST /api/v1/shifts/:id/force-close - Force đóng ca (chuyển đơn OPEN sang ca sau)
 router.post('/:id/force-close', authMiddleware, shiftsController.forceCloseShift);
 
+// GET /api/v1/shifts/:id/transferred-orders - Lấy danh sách đơn từ ca trước
+router.get('/:id/transferred-orders', authMiddleware, shiftsController.getTransferredOrders);
+
 export default router;

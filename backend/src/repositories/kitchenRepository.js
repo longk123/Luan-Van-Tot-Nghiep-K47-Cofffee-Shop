@@ -99,8 +99,10 @@ export async function updateLineTx({ lineId, action, userId }) {
     const sets = [`trang_thai_che_bien='${rule.to}'`];
     if (rule.setTime === 'started_at') {
       sets.push(`started_at = NOW()`);
+      sets.push(`maker_id = ${userId}`); // Set maker_id khi bắt đầu làm
     } else if (rule.setTime === 'finished_at') {
       sets.push(`finished_at = NOW()`);
+      sets.push(`maker_id = ${userId}`); // Set maker_id khi hoàn thành
     }
 
     const { rows: [updated] } = await client.query(

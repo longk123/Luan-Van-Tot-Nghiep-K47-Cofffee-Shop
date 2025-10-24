@@ -31,7 +31,11 @@ async function request(method, path, body) {
   if (!res.ok) {
     console.error('❌ API Error response:', data);
     const msg = data?.error || data?.message || `HTTP ${res.status}`;
-    throw new Error(msg);
+    const error = new Error(msg);
+    // Attach additional error data
+    error.code = data?.code;
+    error.openOrders = data?.openOrders;
+    throw error;
   }
   
   console.log('✅ API Success response:', data);
@@ -103,6 +107,7 @@ export const api = {
   getMyOpenShift: () => request('GET', '/shifts/current'),
   getCurrentShift: () => request('GET', '/shifts/current'),
   getShiftSummary: (shiftId) => request('GET', `/shifts/${shiftId}/summary`),
+  getTransferredOrders: (shiftId) => request('GET', `/shifts/${shiftId}/transferred-orders`),
   closeShiftEnhanced: (shiftId, data) => request('POST', `/shifts/${shiftId}/close-enhanced`, data),
   forceCloseShift: (shiftId, data) => request('POST', `/shifts/${shiftId}/force-close`, data),
   getShiftReport: (shiftId) => request('GET', `/shifts/${shiftId}/report`),
@@ -172,8 +177,26 @@ export const api = {
   // ===== INVOICE / IN HÓA ĐƠN =====
   // Lấy dữ liệu hóa đơn (JSON)
   getInvoiceData: (orderId) => request('GET', `/hoa-don/${orderId}`),
-  // URL để xuất PDF (sử dụng trực tiếp trong window.open hoặc iframe)
-  getInvoicePdfUrl: (orderId) => `/api/v1/hoa-don/${orderId}/pdf`,
+  // Xuất PDF với token
+  async getInvoicePdf(orderId) {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+    
+    const url = `${API_BASE}/hoa-don/${orderId}/pdf`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to get PDF: ${response.status}`);
+    }
+    
+    return response;
+  },
   // Ghi log in hóa đơn
   logInvoicePrint: (orderId, data) => request('POST', `/hoa-don/${orderId}/print-log`, data),
   
@@ -185,6 +208,10 @@ export const api = {
   
   // Xác nhận đơn (PENDING → QUEUED)
   confirmOrder: (orderId) => request('POST', `/pos/orders/${orderId}/confirm`),
+  
+  // ===== LỊCH SỬ ĐƠN HÀNG =====
+  // Lấy đơn hàng của ca hiện tại (cho cashier)
+  getCurrentShiftOrders: () => request('GET', '/pos/orders/current-shift'),
   
   // ===== KITCHEN DISPLAY SYSTEM (KDS) =====
   // Lấy hàng đợi bếp/pha chế

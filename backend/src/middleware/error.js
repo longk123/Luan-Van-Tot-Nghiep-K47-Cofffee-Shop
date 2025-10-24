@@ -39,11 +39,13 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Lỗi mặc định
-  const statusCode = err.statusCode || 500;
+  const statusCode = err.statusCode || err.status || 500;
   const message = err.message || 'Lỗi máy chủ nội bộ';
 
   res.status(statusCode).json({
     error: message,
+    code: err.code,
+    ...(err.openOrders && { openOrders: err.openOrders }),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

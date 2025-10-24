@@ -1,4 +1,3 @@
-// src/repositories/posRepository.js
 import { pool } from '../db.js';
 
 const query = (text, params) => pool.query(text, params);
@@ -82,6 +81,12 @@ export default {
         COALESCE(s.q_count,0)::int AS q_count,
         COALESCE(s.m_count,0)::int AS m_count,
         COALESCE(s.done_count,0)::int AS done_count,
+        -- Kiểm tra tất cả món đã hoàn thành (DONE hoặc CANCELLED)
+        CASE 
+          WHEN s.item_count = 0 THEN true
+          WHEN s.item_count > 0 AND s.done_count = s.item_count THEN true
+          ELSE false
+        END AS all_items_done,
         CASE
           WHEN oo.order_id IS NOT NULL THEN 'CHUA_TT'
           WHEN lp.ban_id IS NOT NULL THEN 'DA_TT'
@@ -546,5 +551,52 @@ export default {
     `;
     const { rows } = await pool.query(sql, [banId, status, ghi_chu]);
     return rows[0] || null;
+  },
+
+  // Lấy đơn hàng của ca hiện tại (cho cashier)
+  async getCurrentShiftOrders(shiftId) {
+    const sql = `
+      SELECT 
+        dh.id,
+        dh.ban_id,
+        dh.order_type,
+        dh.trang_thai,
+        dh.opened_at,
+        dh.closed_at,
+        dh.ly_do_huy,
+        b.ten_ban,
+        kv.ten AS khu_vuc_ten,
+        u.full_name AS nhan_vien_ten,
+        -- Tổng tiền đơn hàng
+        COALESCE(SUM(ct.so_luong * ct.don_gia - COALESCE(ct.giam_gia, 0)), 0) AS tong_tien,
+        -- Số lượng món
+        COUNT(ct.id) AS so_mon,
+        -- Thông tin thanh toán
+        CASE 
+          WHEN dh.trang_thai = 'PAID' THEN 'Đã thanh toán'
+          WHEN dh.trang_thai = 'CANCELLED' THEN 'Đã hủy'
+          ELSE 'Chưa thanh toán'
+        END AS trang_thai_thanh_toan,
+        -- Thời gian xử lý
+        CASE 
+          WHEN dh.closed_at IS NOT NULL THEN 
+            EXTRACT(EPOCH FROM (dh.closed_at - dh.opened_at))::INT
+          ELSE NULL
+        END AS thoi_gian_xu_ly_giay
+      FROM don_hang dh
+      LEFT JOIN ban b ON b.id = dh.ban_id
+      LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
+      LEFT JOIN users u ON u.user_id = dh.nhan_vien_id
+      LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+      WHERE dh.ca_lam_id = $1
+         OR (dh.nhan_vien_id = (SELECT nhan_vien_id FROM ca_lam WHERE id = $1) 
+             AND dh.opened_at >= (SELECT started_at FROM ca_lam WHERE id = $1)
+             AND (dh.closed_at IS NULL OR dh.closed_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1)))
+      GROUP BY dh.id, dh.ban_id, dh.order_type, dh.trang_thai, dh.opened_at, 
+               dh.closed_at, dh.ly_do_huy, b.ten_ban, kv.ten, u.full_name
+      ORDER BY dh.opened_at DESC
+    `;
+    const { rows } = await pool.query(sql, [shiftId]);
+    return rows;
   }
 };

@@ -1,7 +1,9 @@
 // === src/pages/Dashboard.jsx ===
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { api } from '../api.js';
+import { getUser } from '../auth.js';
 import AreaTabs from '../components/AreaTabs.jsx';
 import TableCard from '../components/TableCard.jsx';
 import OrderDrawer from '../components/OrderDrawer.jsx';
@@ -12,8 +14,11 @@ import ReservationPanel from '../components/ReservationPanel.jsx';
 import ReservationsList from '../components/ReservationsList.jsx';
 import CloseShiftModal from '../components/CloseShiftModal.jsx';
 import OpenShiftModal from '../components/OpenShiftModal.jsx';
+import OpenOrdersDialog from '../components/OpenOrdersDialog.jsx';
+import CurrentShiftOrders from '../components/CurrentShiftOrders.jsx';
 
 export default function Dashboard({ defaultMode = 'dashboard' }) {
+  const navigate = useNavigate();
   const [areas, setAreas] = useState([]);
   const [activeArea, setActiveArea] = useState(null);
   const [tables, setTables] = useState([]);
@@ -24,6 +29,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
   const [triggerCancelDialog, setTriggerCancelDialog] = useState(false);
   const [drawerHasItems, setDrawerHasItems] = useState(false);
+  const [drawerHasPendingItems, setDrawerHasPendingItems] = useState(false);
   
   // POS mode states
   const [posMode, setPosMode] = useState(defaultMode === 'pos');
@@ -39,6 +45,37 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   // Shift management states
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  
+  // Transferred orders tracking
+  const [transferredOrders, setTransferredOrders] = useState([]);
+  const [showTransferredOrdersDialog, setShowTransferredOrdersDialog] = useState(false);
+  
+  // Current shift orders
+  const [showCurrentShiftOrders, setShowCurrentShiftOrders] = useState(false);
+
+  // Role-based access control
+  const [userRoles, setUserRoles] = useState([]);
+  
+  useEffect(() => {
+    const user = getUser();
+    const roles = user?.roles || [];
+    setUserRoles(roles);
+    
+    const isKitchenStaff = roles.some(role => 
+      ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
+    );
+    
+    if (isKitchenStaff) {
+      // Redirect pha chế về trang kitchen
+      console.log('🍳 Kitchen staff detected, redirecting to /kitchen');
+      navigate('/kitchen', { replace: true });
+    }
+  }, [navigate]);
+  
+  // Check if user can view current shift orders (cashier, manager, admin)
+  const canViewCurrentShiftOrders = userRoles.some(role => 
+    ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
+  );
 
   // Debug: Log drawer state changes
   useEffect(() => {
@@ -66,9 +103,29 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       const shiftData = res?.data || res || null;
       console.log('📊 Loaded shift:', shiftData);
       setShift(shiftData);
+      
+      // Load transferred orders (orders from previous shift)
+      if (shiftData?.id) {
+        loadTransferredOrders(shiftData.id);
+      }
     } catch (err) {
       console.error('Error loading shift:', err);
       setShift(null);
+    }
+  }
+  
+  async function loadTransferredOrders(shiftId) {
+    try {
+      const res = await api.getTransferredOrders(shiftId);
+      const data = res?.data || res || { orders: [] };
+      setTransferredOrders(data.orders || []);
+      
+      if (data.count > 0) {
+        console.log(`📋 Loaded ${data.count} orders from previous shift`);
+      }
+    } catch (err) {
+      console.error('Error loading transferred orders:', err);
+      setTransferredOrders([]);
     }
   }
 
@@ -134,8 +191,12 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       if (drawer.open) {
         setRefreshTick((x) => x + 1);
       }
+      // Reload transferred orders khi có thay đổi
+      if (shift?.id) {
+        loadTransferredOrders(shift.id);
+      }
     }
-  }, []);
+  }, [shift?.id]);
 
   // Group tables by area
   const tablesByArea = useMemo(() => {
@@ -234,6 +295,16 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       setPendingOrderCreation(null);
     }
   }
+
+  const createTakeaway = async () => {
+    try {
+      const res = await api.createTakeawayOrder();
+      setDrawer({ open: true, order: { id: res.data.id, order_type: 'TAKEAWAY' } });
+    } catch (error) {
+      console.error('Error creating takeaway:', error);
+      alert('Lỗi khi tạo đơn mang đi: ' + error.message);
+    }
+  };
 
   async function handleCreateTakeaway() {
     // Hiển thị dialog xác nhận
@@ -371,6 +442,15 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               Khu vực <span className="text-sm text-gray-500 font-normal ml-2">{areas.length} khu vực</span>
             </h2>
             <div className="flex gap-2">
+              {/* Badge đơn từ ca trước */}
+              {transferredOrders.length > 0 && (
+                <button
+                  onClick={() => setShowTransferredOrdersDialog(true)}
+                  className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2 animate-pulse"
+                >
+                  ⚠️ {transferredOrders.length} đơn từ ca trước
+                </button>
+              )}
               <button
                 onClick={() => setShowReservationsList(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
@@ -395,6 +475,14 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               >
                 📦 DS Mang đi
               </button>
+              {canViewCurrentShiftOrders && (
+                <button
+                  onClick={() => setShowCurrentShiftOrders(true)}
+                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                >
+                  📊 Lịch sử đơn
+                </button>
+              )}
               {shift && shift.status === 'OPEN' ? (
                 <button
                   onClick={() => setShowCloseShiftModal(true)}
@@ -419,72 +507,21 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         </>
       )}
 
-      {/* POS mode header */}
-      {posMode && (
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                setPosMode(false);
-                setDrawer({ open: false, order: null });
-              }}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors outline-none focus:outline-none"
-            >
-              ← Dashboard
-            </button>
-            <h2 className="text-xl font-semibold">POS</h2>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowReservationsList(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium outline-none focus:outline-none"
-            >
-              📋 Đặt bàn
-            </button>
-            <button
-              onClick={() => setShowReservationPanel(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium outline-none focus:outline-none"
-            >
-              📅 Tạo mới
-            </button>
-            <button
-              onClick={handleCreateTakeaway}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
-            >
-              + Đơn mang đi
-            </button>
-            <button
-              onClick={() => window.location.href = '/takeaway'}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
-            >
-              📦 DS Mang đi
-            </button>
-            {shift && shift.status === 'OPEN' ? (
-              <button
-                onClick={() => setShowCloseShiftModal(true)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
-              >
-                📊 Đóng ca
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowOpenShiftModal(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
-              >
-                🚀 Mở ca
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Workpane (Menu + back button) - Hiển thị khi có đơn đang mở */}
       {showWorkpane && (
         <div className="mb-4" style={{ paddingRight: rightPad }}>
           <div className="flex items-center justify-between">
             <button 
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors outline-none focus:outline-none" 
+              disabled={drawerHasPendingItems}
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-xl transition-colors outline-none focus:outline-none ${
+                drawerHasPendingItems
+                  ? 'text-gray-400 bg-gray-100 border-gray-300 cursor-not-allowed'
+                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+              }`}
+              title={drawerHasPendingItems ? 'Vui lòng xác nhận đơn trước khi quay lại' : undefined}
               onClick={() => {
+                if (drawerHasPendingItems) return;
+                
                 // Nếu là đơn mang đi chưa có món → Hỏi có hủy không
                 if (drawer.order?.order_type === 'TAKEAWAY' && !drawerHasItems) {
                   setTriggerCancelDialog(true);
@@ -571,6 +608,9 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         open={drawer.open}
         order={drawer.order}
         onClose={(info) => {
+          // Reset pending state
+          setDrawerHasPendingItems(false);
+          
           // Nếu là object info từ TAKEAWAY
           if (typeof info === 'object' && info.orderType === 'TAKEAWAY') {
             if (!info.hasItems) {
@@ -585,6 +625,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             loadTables();
           }
         }}
+        onPendingItemsChange={(hasPending) => setDrawerHasPendingItems(hasPending)}
         onPaid={async (data) => {
           console.log('onPaid callback received:', data);
           await loadTables();
@@ -808,6 +849,39 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         }}
         onShowToast={setToast}
       />
+
+      {/* Transferred Orders Dialog */}
+      <OpenOrdersDialog
+        open={showTransferredOrdersDialog}
+        orders={transferredOrders}
+        mode="view-only"
+        onClose={() => setShowTransferredOrdersDialog(false)}
+        onForceClose={() => setShowTransferredOrdersDialog(false)}
+        onGoBack={() => setShowTransferredOrdersDialog(false)}
+        loading={false}
+      />
+
+      {/* Current Shift Orders Modal */}
+      {showCurrentShiftOrders && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Lịch sử đơn hàng ca hiện tại</h2>
+              <button
+                onClick={() => setShowCurrentShiftOrders(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <CurrentShiftOrders />
+            </div>
+          </div>
+        </div>
+      )}
     </AuthedLayout>
   );
 }

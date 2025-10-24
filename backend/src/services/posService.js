@@ -38,12 +38,16 @@ export default {
     // Nếu không truyền ca_lam_id thì tìm ca OPEN của nhân viên
     let caId = caLamId;
     if (!caId) {
+      console.log(`🔍 Checking open shift for user_id: ${nhanVienId}`);
       const ca = await getMyOpenShift(nhanVienId);
+      console.log(`🔍 getMyOpenShift result:`, ca);
       if (!ca) {
+        console.log(`❌ No open shift found for user_id: ${nhanVienId}`);
         const err = new Error('Nhân viên chưa có ca OPEN.');
         err.status = 400; err.code = 'SHIFT_REQUIRED';
         throw err;
       }
+      console.log(`✅ Found open shift: ${ca.id} for user_id: ${nhanVienId}`);
       caId = ca.id;
     }
 
