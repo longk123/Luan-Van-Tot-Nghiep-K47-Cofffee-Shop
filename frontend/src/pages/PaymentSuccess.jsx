@@ -88,8 +88,8 @@ export default function PaymentSuccess() {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2 text-orange-600">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-600 border-t-transparent"></div>
+              <div className="flex items-center gap-2 text-amber-700">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-amber-700 border-t-transparent"></div>
                 <span className="text-sm font-medium">Đang chuyển về trang đăng nhập...</span>
               </div>
               <p className="text-xs text-gray-500">Vui lòng đăng nhập lại để xem kết quả</p>

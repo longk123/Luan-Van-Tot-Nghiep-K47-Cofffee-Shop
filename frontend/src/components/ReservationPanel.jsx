@@ -12,7 +12,7 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
   const [formData, setFormData] = useState({
     ten_khach: '',
     so_dien_thoai: '',
-    so_nguoi: 2,
+    so_nguoi: 1,
     khu_vuc_id: null,
     date: '',
     time: '',
@@ -67,7 +67,17 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
     // Đảm bảo không có NaN trong state
     let cleanValue = value;
     
-    if (field === 'khu_vuc_id' || field === 'so_nguoi' || field === 'duration' || field === 'dat_coc') {
+    if (field === 'so_nguoi') {
+      // Đặc biệt xử lý số người - luôn phải >= 1
+      if (typeof value === 'string') {
+        const parsed = parseInt(value);
+        cleanValue = isNaN(parsed) || parsed < 1 ? 1 : parsed;
+      } else if (typeof value === 'number') {
+        cleanValue = isNaN(value) || value < 1 ? 1 : value;
+      } else {
+        cleanValue = 1;
+      }
+    } else if (field === 'khu_vuc_id' || field === 'duration' || field === 'dat_coc') {
       // Nếu là số, parse an toàn
       if (typeof value === 'string') {
         const parsed = parseInt(value);
@@ -339,25 +349,38 @@ export default function ReservationPanel({ open, onClose, onSuccess, onShowToast
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Số người
+                    Số người <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     <button
-                      onClick={() => handleInputChange('so_nguoi', Math.max(1, formData.so_nguoi - 1))}
-                      className="w-10 h-10 bg-blue-100 hover:bg-blue-200 rounded-lg font-bold text-blue-700 outline-none focus:outline-none"
+                      type="button"
+                      onClick={() => {
+                        const newValue = Math.max(1, (formData.so_nguoi || 1) - 1);
+                        handleInputChange('so_nguoi', newValue);
+                      }}
+                      disabled={formData.so_nguoi <= 1}
+                      className="flex items-center justify-center w-10 h-10 bg-blue-100 hover:bg-blue-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed rounded-lg font-bold text-xl text-blue-700 outline-none focus:outline-none transition-colors"
                     >
                       −
                     </button>
                     <input
                       type="number"
-                      value={formData.so_nguoi}
-                      onChange={(e) => handleInputChange('so_nguoi', Math.max(1, parseInt(e.target.value) || 1))}
-                      className="flex-1 text-center px-3 py-2 border-2 border-gray-300 rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.so_nguoi || 1}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        handleInputChange('so_nguoi', isNaN(val) ? 1 : Math.max(1, val));
+                      }}
+                      className="flex-1 text-center px-3 py-2 border-2 border-gray-300 rounded-lg font-bold text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-10"
                       min="1"
+                      max="50"
                     />
                     <button
-                      onClick={() => handleInputChange('so_nguoi', formData.so_nguoi + 1)}
-                      className="w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold text-white outline-none focus:outline-none"
+                      type="button"
+                      onClick={() => {
+                        const newValue = (formData.so_nguoi || 1) + 1;
+                        handleInputChange('so_nguoi', newValue);
+                      }}
+                      className="flex items-center justify-center w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-lg font-bold text-xl text-white outline-none focus:outline-none transition-colors"
                     >
                       +
                     </button>

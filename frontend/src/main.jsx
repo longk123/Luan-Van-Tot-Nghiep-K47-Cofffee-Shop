@@ -6,6 +6,8 @@ import './index.css'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import POS from './pages/POS.jsx'
+import Kitchen from './pages/Kitchen.jsx'
+import TakeawayOrders from './pages/TakeawayOrders.jsx'
 import PaymentSuccess from './pages/PaymentSuccess.jsx'
 import PaymentCancel from './pages/PaymentCancel.jsx'
 
@@ -14,6 +16,8 @@ const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/pos', element: <POS /> },
+  { path: '/kitchen', element: <Kitchen /> },
+  { path: '/takeaway', element: <TakeawayOrders /> },
   { path: '/payment-success', element: <PaymentSuccess /> },
   { path: '/payment-cancel', element: <PaymentCancel /> },
 ])

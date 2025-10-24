@@ -24,7 +24,7 @@ async function assertOrderOpen(client, orderId) {
  */
 export async function addOrderItems(req, res, next) {
   const orderId = parseInt(req.params.orderId, 10);
-  const { mon_id, bien_the_id, so_luong, cups, don_gia, giam_gia } = req.body;
+  const { mon_id, bien_the_id, so_luong, cups, don_gia, giam_gia, ghi_chu } = req.body;
 
   if (!orderId || !mon_id) return next(new BadRequest("Thiếu orderId/mon_id"));
   
@@ -58,8 +58,8 @@ export async function addOrderItems(req, res, next) {
       for (const cup of cups) {
         const ghi_chu = cup?.ghi_chu ?? null;
         const insLine = await client.query(
-          `INSERT INTO don_hang_chi_tiet(don_hang_id, mon_id, bien_the_id, so_luong, don_gia, giam_gia, ghi_chu, trang_thai_che_bien)
-           VALUES ($1,$2,$3,1,$4,$5,$6,'QUEUED')
+          `INSERT INTO don_hang_chi_tiet(don_hang_id, mon_id, bien_the_id, so_luong, don_gia, giam_gia, ghi_chu, trang_thai_che_bien, created_at)
+           VALUES ($1,$2,$3,1,$4,$5,$6,'PENDING', NOW())
            RETURNING id`,
           [orderId, mon_id, bien_the_id, price, giam_gia ?? 0, ghi_chu]
         );
@@ -124,10 +124,10 @@ export async function addOrderItems(req, res, next) {
       if (qty <= 0) return next(new BadRequest("so_luong phải > 0"));
       for (let i = 0; i < qty; i++) {
         const insLine = await client.query(
-          `INSERT INTO don_hang_chi_tiet(don_hang_id, mon_id, bien_the_id, so_luong, don_gia, giam_gia, trang_thai_che_bien)
-           VALUES ($1,$2,$3,1,$4,$5,'QUEUED')
+          `INSERT INTO don_hang_chi_tiet(don_hang_id, mon_id, bien_the_id, so_luong, don_gia, giam_gia, ghi_chu, trang_thai_che_bien, created_at)
+           VALUES ($1,$2,$3,1,$4,$5,$6,'PENDING', NOW())
            RETURNING id`,
-          [orderId, mon_id, bien_the_id, price, giam_gia ?? 0]
+          [orderId, mon_id, bien_the_id, price, giam_gia ?? 0, ghi_chu || null]
         );
         createdLines.push(insLine.rows[0].id);
       }

@@ -66,7 +66,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                             variantId === variant.id ? 'text-amber-900' : 'text-amber-700'
                           }`}>{variant.ten_bien_the}</span>
                           <span className={`text-lg font-bold ${
-                            variantId === variant.id ? 'text-orange-600' : 'text-amber-600'
+                            variantId === variant.id ? 'text-amber-700' : 'text-amber-600'
                           }`}>
                             {(variant.gia || 0).toLocaleString()}đ
                           </span>
@@ -97,7 +97,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                   />
                   <button
                     onClick={() => setQty(qty + 1)}
-                    className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl text-xl font-bold text-white transition-all shadow-md outline-none focus:outline-none"
+                    className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 rounded-xl text-xl font-bold text-white transition-all shadow-md outline-none focus:outline-none"
                   >
                     +
                   </button>
@@ -117,7 +117,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
           <button
             onClick={() => onConfirm({ qty, variantId })}
             disabled={variants.length > 0 && !variantId}
-            className="flex-[2] py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+            className="flex-[2] py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
           >
             Tiếp tục
           </button>
@@ -296,7 +296,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
             onClick={() => { setActiveCat(0); setSearching(false); setSearch(''); }}
             className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all outline-none focus:outline-none shadow-sm ${
               activeCat === 0 
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' 
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md' 
                 : 'bg-white text-amber-700 hover:bg-amber-100 border border-amber-200'
             }`}
           >
@@ -308,7 +308,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
               onClick={() => { setActiveCat(c.id); setSearching(false); setSearch(''); }}
               className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all outline-none focus:outline-none shadow-sm ${
                 activeCat === c.id 
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md' 
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md' 
                   : 'bg-white text-amber-700 hover:bg-amber-100 border border-amber-200'
               }`}
             >
@@ -342,7 +342,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
                     <div className="font-bold text-base truncate mb-1 text-amber-900" title={m.ten}>{m.ten}</div>
                     
                     {/* Hiển thị giá */}
-                    <div className="text-sm font-semibold text-orange-600 mb-2">
+                    <div className="text-sm font-semibold text-amber-700 mb-2">
                       {(() => {
                         // Check variants trước (nếu có nhiều size)
                         if (hasVariants && itemVariants.length > 0) {
@@ -385,7 +385,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
                       className={`w-full py-2.5 px-4 rounded-xl font-semibold text-base transition-all outline-none focus:outline-none text-center border-0 shadow-sm ${
                         disabled 
                           ? 'bg-amber-200 text-amber-600 cursor-not-allowed' 
-                          : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white hover:shadow-md'
+                          : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white hover:shadow-md'
                       } ${adding ? 'opacity-50' : ''}`}
                       style={{ overflow: 'visible', whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}
                     >

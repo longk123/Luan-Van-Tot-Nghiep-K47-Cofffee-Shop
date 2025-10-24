@@ -91,6 +91,9 @@ app.use('/api/v1', paymentsRouter);
 import invoiceRouter from './src/routes/invoice.js'; // <— router in hóa đơn
 app.use('/api/v1', invoiceRouter);
 
+import kitchenRouter from './src/routes/kitchen.js'; // <— router bếp/pha chế (KDS)
+app.use('/api/v1/kitchen', kitchenRouter);
+
 import paymentSuccessRouter from './src/routes/paymentSuccess.js'; // <— router payment redirect
 app.use('/', paymentSuccessRouter);
 

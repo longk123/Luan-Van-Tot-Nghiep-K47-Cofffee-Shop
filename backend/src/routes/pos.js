@@ -125,6 +125,32 @@ router.get('/orders/:orderId/summary', async (req, res, next) => {
 //   B) { mon_id, bien_the_id?, cups: [{tuy_chon:{SUGAR:0.7, ICE:0.5}, ghi_chu:"..."}, ...] }
 router.post('/orders/:orderId/items', posItemsCtrl.addOrderItems);
 
+// POST /api/v1/pos/orders/:orderId/confirm - Xác nhận đơn (PENDING → QUEUED)
+router.post('/orders/:orderId/confirm', auth, async (req, res, next) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const result = await service.default.confirmOrder(orderId);
+    res.json({ success: true, data: result });
+  } catch (e) { next(e); }
+});
+
+// GET /api/v1/pos/takeaway-orders - Danh sách đơn mang đi chưa hoàn tất
+router.get('/takeaway-orders', auth, async (req, res, next) => {
+  try {
+    const data = await service.default.getTakeawayOrders();
+    res.json({ success: true, data });
+  } catch (e) { next(e); }
+});
+
+// POST /api/v1/pos/orders/:orderId/deliver - Giao hàng (đánh dấu hoàn tất)
+router.post('/orders/:orderId/deliver', auth, async (req, res, next) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const result = await service.default.deliverOrder(orderId);
+    res.json({ success: true, data: result });
+  } catch (e) { next(e); }
+});
+
 // PATCH /api/v1/pos/orders/:orderId/items/:lineId
 // Cho phép sửa: bien_the_id?, so_luong?, don_gia?, giam_gia?, ghi_chu?
 // DB trigger chặn nếu line != QUEUED hoặc order = PAID

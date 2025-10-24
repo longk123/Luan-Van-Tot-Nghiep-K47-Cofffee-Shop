@@ -82,6 +82,20 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               {paymentStatusBadge.text}
             </span>
           )}
+          {/* Badge xác nhận đơn */}
+          {hasOrder && (
+            table.pending_count > 0 ? (
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-amber-200 text-amber-800 animate-pulse">
+                CXN
+              </span>
+            ) : (
+              table.item_count > 0 && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-green-200 text-green-700">
+                  XN
+                </span>
+              )
+            )
+          )}
         </div>
       </div>
 
@@ -94,11 +108,6 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           <span className="flex items-center gap-1">
             <span>📋</span> {table.item_count || 0} món
           </span>
-          {table.done_count > 0 && (
-            <span className="flex items-center gap-1">
-              <span className="text-green-600">🟢</span> {table.done_count}d
-            </span>
-          )}
         </div>
         {hasOrder && (table.grand_total > 0 || table.subtotal > 0) && (
           <span className="font-bold text-gray-900">
@@ -188,11 +197,6 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               {table.m_count > 0 && (
                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-200 text-blue-700 font-medium">
                   {table.m_count} làm
-                </span>
-              )}
-              {table.done_count > 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-200 text-green-700 font-medium">
-                  {table.done_count} xong
                 </span>
               )}
             </div>

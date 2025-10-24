@@ -338,7 +338,7 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
           {selectedMethod === 'ONLINE' && !showPayOSPanel && (
             <button
               onClick={() => setShowPayOSPanel(true)}
-              className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+              className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
             >
               🌐 Tạo mã thanh toán online
             </button>
@@ -520,7 +520,7 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
                             setRefundAmount((payment.amount - totalRefunded).toString());
                             setShowRefundDialog(true);
                           }}
-                          className="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-2 py-1 rounded transition-colors outline-none focus:outline-none"
+                          className="text-xs bg-amber-100 hover:bg-orange-200 text-amber-800 px-2 py-1 rounded transition-colors outline-none focus:outline-none"
                         >
                           Hoàn tiền
                         </button>
@@ -569,7 +569,7 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
                   placeholder="Nhập số tiền hoàn..."
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-600"
                   autoFocus
                 />
               </div>
@@ -584,7 +584,7 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
                   onChange={(e) => setRefundReason(e.target.value)}
                   placeholder="Nhập lý do hoàn tiền..."
                   rows={3}
-                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-600"
                 />
               </div>
               
@@ -605,7 +605,7 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
                 <button
                   onClick={handleRefund}
                   disabled={loading || !refundAmount}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-semibold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-amber-600 to-red-500 hover:from-amber-700 hover:to-red-600 text-white rounded-lg font-semibold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
                 >
                   {loading ? 'Đang xử lý...' : 'Hoàn tiền'}
                 </button>

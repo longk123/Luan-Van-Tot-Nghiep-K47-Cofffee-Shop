@@ -48,6 +48,7 @@ export default {
         SELECT lo.ban_id,
                COUNT(items.line_id) AS item_count,
                COALESCE(SUM(items.line_total_with_addons), 0) AS subtotal,
+               COUNT(*) FILTER (WHERE items.trang_thai_che_bien='PENDING') AS pending_count,
                COUNT(*) FILTER (WHERE items.trang_thai_che_bien='QUEUED') AS q_count,
                COUNT(*) FILTER (WHERE items.trang_thai_che_bien='MAKING') AS m_count,
                COUNT(*) FILTER (WHERE items.trang_thai_che_bien='DONE') AS done_count
@@ -77,6 +78,7 @@ export default {
         COALESCE(s.item_count,0)::int AS item_count,
         COALESCE(s.subtotal,0)::int AS subtotal,
         COALESCE(settlement.grand_total, s.subtotal, 0)::int AS grand_total,
+        COALESCE(s.pending_count,0)::int AS pending_count,
         COALESCE(s.q_count,0)::int AS q_count,
         COALESCE(s.m_count,0)::int AS m_count,
         COALESCE(s.done_count,0)::int AS done_count,
@@ -201,7 +203,7 @@ export default {
   },
 
   // Thêm item vào order
-  async addItemToOrder({ orderId, monId, bienTheId, soLuong, donGia, giamGia = 0 }) {
+  async addItemToOrder({ orderId, monId, bienTheId, soLuong, donGia, giamGia = 0, ghiChu = null }) {
     // Lấy thông tin món để snapshot
     const { rows: monRows } = await pool.query(
       `SELECT ten, gia_mac_dinh FROM mon WHERE id = $1`,
@@ -210,11 +212,11 @@ export default {
     const mon = monRows[0];
     
     const sql = `
-      INSERT INTO don_hang_chi_tiet (don_hang_id, mon_id, bien_the_id, so_luong, don_gia, giam_gia, ten_mon_snapshot, gia_niem_yet_snapshot)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO don_hang_chi_tiet (don_hang_id, mon_id, bien_the_id, so_luong, don_gia, giam_gia, ghi_chu, ten_mon_snapshot, gia_niem_yet_snapshot, trang_thai_che_bien, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'QUEUED', NOW())
       RETURNING *
     `;
-    const { rows } = await pool.query(sql, [orderId, monId, bienTheId, soLuong, donGia, giamGia, mon?.ten, mon?.gia_mac_dinh]);
+    const { rows } = await pool.query(sql, [orderId, monId, bienTheId, soLuong, donGia, giamGia, ghiChu, mon?.ten, mon?.gia_mac_dinh]);
     return rows[0];
   },
 
@@ -450,11 +452,30 @@ export default {
       );
       const total = Number(totalRows[0].total) || 0;
 
+      // Đơn bàn: Set PAID + closed_at
+      // Đơn mang đi: Chỉ set PAID (chờ giao hàng mới closed)
+      if (order.order_type === 'DINE_IN') {
+        await client.query(
+          `UPDATE don_hang
+             SET trang_thai='PAID', closed_at=NOW()
+           WHERE id=$1`,
+          [orderId]
+        );
+      } else {
+        await client.query(
+          `UPDATE don_hang
+             SET trang_thai='PAID'
+           WHERE id=$1`,
+          [orderId]
+        );
+      }
+
+      // Create payment transaction record
+      const refCode = `ORD${orderId}-${Date.now()}`;
       await client.query(
-        `UPDATE don_hang
-           SET trang_thai='PAID', closed_at=NOW()
-         WHERE id=$1`,
-        [orderId]
+        `INSERT INTO payment_transaction (order_id, payment_method_code, ref_code, amount, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'PAID', NOW(), NOW())`,
+        [orderId, payment_method || 'CASH', refCode, total]
       );
 
       await client.query('COMMIT');
@@ -482,8 +503,10 @@ export default {
   // Tạo đơn hàng với bàn
   async createOrderWithTable({ banId, nhanVienId }) {
     const sql = `
-      INSERT INTO don_hang (ban_id, nhan_vien_id, trang_thai, order_type)
-      VALUES ($1, $2, 'OPEN', 'DINE_IN')
+      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type)
+      VALUES ($1, $2, 
+        (SELECT id FROM ca_lam WHERE status='OPEN' AND nhan_vien_id=$2 ORDER BY started_at DESC LIMIT 1),
+        'OPEN', 'DINE_IN')
       RETURNING *;
     `;
     const { rows } = await pool.query(sql, [banId, nhanVienId]);

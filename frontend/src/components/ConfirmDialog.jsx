@@ -8,8 +8,8 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
       hover: 'from-red-600 to-red-700'
     },
     warning: {
-      bg: 'from-orange-500 to-orange-600',
-      hover: 'from-orange-600 to-orange-700'
+      bg: 'from-amber-600 to-amber-700',
+      hover: 'from-amber-700 to-amber-800'
     },
     info: {
       bg: 'from-blue-500 to-blue-600',

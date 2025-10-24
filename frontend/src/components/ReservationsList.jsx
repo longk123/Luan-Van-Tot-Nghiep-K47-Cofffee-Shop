@@ -137,7 +137,7 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
       SEATED: 'bg-blue-100 text-blue-700 border-blue-300',
       COMPLETED: 'bg-gray-100 text-gray-700 border-gray-300',
       CANCELLED: 'bg-red-100 text-red-700 border-red-300',
-      NO_SHOW: 'bg-orange-100 text-orange-700 border-orange-300'
+      NO_SHOW: 'bg-amber-100 text-amber-800 border-orange-300'
     };
     
     const labels = {
@@ -313,7 +313,7 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
                             </button>
                             <button
                               onClick={() => handleNoShow(reservation.id)}
-                              className="px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg text-sm font-medium transition-colors outline-none focus:outline-none"
+                              className="px-3 py-2 bg-amber-100 hover:bg-orange-200 text-amber-800 rounded-lg text-sm font-medium transition-colors outline-none focus:outline-none"
                               title="No-show"
                             >
                               👤✕

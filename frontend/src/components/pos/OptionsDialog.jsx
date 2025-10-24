@@ -160,7 +160,7 @@ export default function OptionsDialog({
               <span className="text-sm font-semibold text-amber-900">Đang chỉnh ly {activeCupIndex + 1}/{quantity}</span>
               <button
                 onClick={handleApplyToAll}
-                className="text-xs px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg transition-all shadow-sm font-semibold outline-none focus:outline-none"
+                className="text-xs px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg transition-all shadow-sm font-semibold outline-none focus:outline-none"
               >
                 Áp cho tất cả
               </button>
@@ -313,7 +313,7 @@ export default function OptionsDialog({
                             newToppings[topping.ma] = count + 1;
                             updateCurrentCup({ toppings: newToppings });
                           }}
-                          className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-orange-600 rounded-lg text-white hover:from-amber-600 hover:to-orange-600 transition-colors outline-none focus:outline-none"
+                          className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-amber-500 to-amber-600 border-2 border-amber-700 rounded-lg text-white hover:from-amber-600 hover:to-amber-700 transition-colors outline-none focus:outline-none"
                         >
                           +
                         </button>
@@ -336,7 +336,7 @@ export default function OptionsDialog({
           </button>
           <button
             onClick={handleConfirm}
-            className="flex-[2] py-3 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
+            className="flex-[2] py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
           >
             Xác nhận ({quantity} ly)
           </button>

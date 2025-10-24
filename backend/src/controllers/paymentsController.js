@@ -491,13 +491,23 @@ class PaymentsController {
 
           const settlement = settlementResult.rows[0];
           if (settlement && settlement.amount_due <= 0) {
-            // Đã thanh toán đủ -> đóng order
-            await client.query(
-              `UPDATE don_hang 
-               SET trang_thai = 'PAID', closed_at = now()
-               WHERE id = $1`,
+            // Check order type
+            const orderInfo = await client.query(
+              `SELECT order_type FROM don_hang WHERE id = $1`,
               [transaction.order_id]
             );
+            
+            if (orderInfo.rows[0]?.order_type === 'DINE_IN') {
+              await client.query(
+                `UPDATE don_hang SET trang_thai = 'PAID', closed_at = NOW() WHERE id = $1`,
+                [transaction.order_id]
+              );
+            } else {
+              await client.query(
+                `UPDATE don_hang SET trang_thai = 'PAID' WHERE id = $1`,
+                [transaction.order_id]
+              );
+            }
           }
         }
 
@@ -595,10 +605,25 @@ class PaymentsController {
 
             const settlement = settlementResult.rows[0];
             if (settlement && settlement.amount_due <= 0) {
-              await client.query(
-                `UPDATE don_hang SET trang_thai = 'PAID', closed_at = now() WHERE id = $1`,
+              // Lấy order_type để quyết định có set closed_at không
+              const orderInfo = await client.query(
+                `SELECT order_type FROM don_hang WHERE id = $1`,
                 [transaction.order_id]
               );
+              
+              if (orderInfo.rows[0]?.order_type === 'DINE_IN') {
+                // Đơn bàn: PAID + closed_at
+                await client.query(
+                  `UPDATE don_hang SET trang_thai = 'PAID', closed_at = NOW() WHERE id = $1`,
+                  [transaction.order_id]
+                );
+              } else {
+                // Đơn mang đi: Chỉ PAID (chờ giao hàng)
+                await client.query(
+                  `UPDATE don_hang SET trang_thai = 'PAID' WHERE id = $1`,
+                  [transaction.order_id]
+                );
+              }
             }
 
             await client.query('COMMIT');
@@ -736,13 +761,22 @@ class PaymentsController {
 
       const settlement = settlementResult.rows[0];
       if (settlement && settlement.amount_due <= 0) {
-        // Đã thanh toán đủ -> đóng order
-        await client.query(
-          `UPDATE don_hang 
-           SET trang_thai = 'PAID', closed_at = now()
-           WHERE id = $1`,
+        const orderInfo = await client.query(
+          `SELECT order_type FROM don_hang WHERE id = $1`,
           [transaction.order_id]
         );
+        
+        if (orderInfo.rows[0]?.order_type === 'DINE_IN') {
+          await client.query(
+            `UPDATE don_hang SET trang_thai = 'PAID', closed_at = NOW() WHERE id = $1`,
+            [transaction.order_id]
+          );
+        } else {
+          await client.query(
+            `UPDATE don_hang SET trang_thai = 'PAID' WHERE id = $1`,
+            [transaction.order_id]
+          );
+        }
       }
 
       await client.query('COMMIT');
@@ -827,13 +861,22 @@ class PaymentsController {
 
       const settlement = settlementResult.rows[0];
       if (settlement && settlement.amount_due <= 0) {
-        // Đã thanh toán đủ -> đóng order
-        await client.query(
-          `UPDATE don_hang 
-           SET trang_thai = 'PAID', closed_at = now()
-           WHERE id = $1`,
+        const orderInfo = await client.query(
+          `SELECT order_type FROM don_hang WHERE id = $1`,
           [transaction.order_id]
         );
+        
+        if (orderInfo.rows[0]?.order_type === 'DINE_IN') {
+          await client.query(
+            `UPDATE don_hang SET trang_thai = 'PAID', closed_at = NOW() WHERE id = $1`,
+            [transaction.order_id]
+          );
+        } else {
+          await client.query(
+            `UPDATE don_hang SET trang_thai = 'PAID' WHERE id = $1`,
+            [transaction.order_id]
+          );
+        }
       }
 
       await client.query('COMMIT');

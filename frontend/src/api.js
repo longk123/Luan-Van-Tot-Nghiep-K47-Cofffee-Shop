@@ -99,8 +99,14 @@ export const api = {
   unlockTable: (tableId) => request('PATCH', `/pos/tables/${tableId}/status`, { trang_thai: 'TRONG', ghi_chu: null }),
   closeTableAfterPaid: (tableId, toStatus = 'TRONG') => request('PATCH', `/pos/tables/${tableId}/close`, { to_status: toStatus }),
   // Shifts
+  // ===== SHIFTS / CA LÀM =====
   getMyOpenShift: () => request('GET', '/shifts/current'),
   getCurrentShift: () => request('GET', '/shifts/current'),
+  getShiftSummary: (shiftId) => request('GET', `/shifts/${shiftId}/summary`),
+  closeShiftEnhanced: (shiftId, data) => request('POST', `/shifts/${shiftId}/close-enhanced`, data),
+  forceCloseShift: (shiftId, data) => request('POST', `/shifts/${shiftId}/force-close`, data),
+  getShiftReport: (shiftId) => request('GET', `/shifts/${shiftId}/report`),
+  
   // Aliases for compatibility
   getMenuCategoryItems: (categoryId) => request('GET', `/pos/menu/categories/${categoryId}/items`),
   getMenuOptionLevels: (optionId) => request('GET', `/pos/menu/options/${optionId}/levels`),
@@ -176,4 +182,20 @@ export const api = {
   createPayOSPayment: (orderId, amount) => request('POST', '/payments/payos/create', { orderId, amount }),
   // Kiểm tra trạng thái payment
   checkPayOSStatus: (refCode) => request('GET', `/payments/payos/status/${refCode}`),
+  
+  // Xác nhận đơn (PENDING → QUEUED)
+  confirmOrder: (orderId) => request('POST', `/pos/orders/${orderId}/confirm`),
+  
+  // ===== KITCHEN DISPLAY SYSTEM (KDS) =====
+  // Lấy hàng đợi bếp/pha chế
+  getKitchenQueue: ({ areaId, tableId } = {}) => {
+    const params = new URLSearchParams();
+    if (areaId) params.set('area_id', areaId);
+    if (tableId) params.set('ban_id', tableId);
+    return request('GET', `/kitchen/queue?${params.toString()}`);
+  },
+  // Cập nhật trạng thái món
+  updateKitchenLine: (lineId, action) => request('PATCH', `/kitchen/lines/${lineId}`, { action }),
+  // Lấy danh sách món đã hoàn thành
+  getKitchenCompleted: (limit = 20) => request('GET', `/kitchen/completed?limit=${limit}`),
 };

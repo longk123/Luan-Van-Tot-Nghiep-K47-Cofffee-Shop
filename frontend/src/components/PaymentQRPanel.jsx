@@ -172,7 +172,7 @@ export default function PaymentQRPanel({
   // Loading state
   if (loading) {
     return (
-      <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200 p-8">
+      <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl border-2 border-amber-200 p-8">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-amber-200 border-t-amber-600 mb-4"></div>
           <p className="text-amber-900 font-medium">Đang tạo mã thanh toán...</p>
@@ -232,7 +232,7 @@ export default function PaymentQRPanel({
   return (
     <div className={`space-y-4 transition-opacity duration-500 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}>
       {/* Header - Tone Coffee */}
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border-2 border-amber-200">
+      <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl p-4 border-2 border-amber-200">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-bold text-amber-900 text-lg flex items-center gap-2">
@@ -243,7 +243,7 @@ export default function PaymentQRPanel({
           </div>
           <div className="text-right">
             <div className="text-xs text-amber-700">Số tiền</div>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-amber-700">
               {amount.toLocaleString()}đ
             </div>
           </div>

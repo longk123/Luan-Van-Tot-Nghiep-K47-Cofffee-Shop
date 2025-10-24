@@ -22,13 +22,13 @@ export default function AuthedLayout({ children, shift }) {
           
           {/* Shift info */}
           <div className="flex items-center gap-3">
-            {shift ? (
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm">
+            {shift && shift.status === 'OPEN' ? (
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium">
                 👤 {shift.nhan_vien?.full_name || 'Nhân viên'} •
-                🟢 Ca mở từ {new Date(shift.started_at).toLocaleTimeString()}
+                🟢 Ca #{shift.id} - {shift.started_at ? new Date(shift.started_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-sm">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-sm font-medium">
                 ⚠️ Chưa mở ca
               </span>
             )}

@@ -10,6 +10,8 @@ import MenuPanel from '../components/MenuPanel.jsx';
 import Toast from '../components/Toast.jsx';
 import ReservationPanel from '../components/ReservationPanel.jsx';
 import ReservationsList from '../components/ReservationsList.jsx';
+import CloseShiftModal from '../components/CloseShiftModal.jsx';
+import OpenShiftModal from '../components/OpenShiftModal.jsx';
 
 export default function Dashboard({ defaultMode = 'dashboard' }) {
   const [areas, setAreas] = useState([]);
@@ -21,6 +23,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   const [shift, setShift] = useState(null);
   const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
   const [triggerCancelDialog, setTriggerCancelDialog] = useState(false);
+  const [drawerHasItems, setDrawerHasItems] = useState(false);
   
   // POS mode states
   const [posMode, setPosMode] = useState(defaultMode === 'pos');
@@ -32,6 +35,10 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   // Reservation states
   const [showReservationPanel, setShowReservationPanel] = useState(false);
   const [showReservationsList, setShowReservationsList] = useState(false);
+  
+  // Shift management states
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   // Debug: Log drawer state changes
   useEffect(() => {
@@ -53,14 +60,24 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     } finally { setLoading(false); }
   }
 
+  async function loadShift() {
+    try {
+      const res = await api.getCurrentShift();
+      const shiftData = res?.data || res || null;
+      console.log('📊 Loaded shift:', shiftData);
+      setShift(shiftData);
+    } catch (err) {
+      console.error('Error loading shift:', err);
+      setShift(null);
+    }
+  }
+
   useEffect(() => { loadAreas(); }, []);
   useEffect(() => { loadTables(); }, []);
 
   // Load shift info
   useEffect(() => {
-    api.getCurrentShift()
-      .then(res => setShift(res?.data || res || null))
-      .catch(err => console.error('Error loading shift:', err));
+    loadShift();
 
     // Detect payment redirect từ PayOS (kiểm tra localStorage)
     const paymentResult = localStorage.getItem('payos_payment_result');
@@ -372,6 +389,27 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               >
                 + Đơn mang đi
               </button>
+              <button
+                onClick={() => window.location.href = '/takeaway'}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+              >
+                📦 DS Mang đi
+              </button>
+              {shift && shift.status === 'OPEN' ? (
+                <button
+                  onClick={() => setShowCloseShiftModal(true)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                >
+                  📊 Đóng ca
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowOpenShiftModal(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                >
+                  🚀 Mở ca
+                </button>
+              )}
             </div>
           </div>
           
@@ -415,6 +453,27 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             >
               + Đơn mang đi
             </button>
+            <button
+              onClick={() => window.location.href = '/takeaway'}
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+            >
+              📦 DS Mang đi
+            </button>
+            {shift && shift.status === 'OPEN' ? (
+              <button
+                onClick={() => setShowCloseShiftModal(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+              >
+                📊 Đóng ca
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowOpenShiftModal(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+              >
+                🚀 Mở ca
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -426,9 +485,12 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             <button 
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors outline-none focus:outline-none" 
               onClick={() => {
-                setDrawer({ open: false, order: null });
-                if (drawer.order?.order_type === 'TAKEAWAY' && !drawer.order?.id) {
+                // Nếu là đơn mang đi chưa có món → Hỏi có hủy không
+                if (drawer.order?.order_type === 'TAKEAWAY' && !drawerHasItems) {
                   setTriggerCancelDialog(true);
+                } else {
+                  // Đơn bàn hoặc đơn mang đi đã có món → Đóng luôn
+                  setDrawer({ open: false, order: null });
                 }
               }}
             >
@@ -508,10 +570,20 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         key={drawer.order?.id || 'empty'}
         open={drawer.open}
         order={drawer.order}
-        onClose={() => {
-          setDrawer({ open: false, order: null });
-          // Refresh tables để cập nhật giá có topping
-          loadTables();
+        onClose={(info) => {
+          // Nếu là object info từ TAKEAWAY
+          if (typeof info === 'object' && info.orderType === 'TAKEAWAY') {
+            if (!info.hasItems) {
+              setTriggerCancelDialog(true);
+            } else {
+              setDrawer({ open: false, order: null });
+              loadTables();
+            }
+          } else {
+            // Đơn bàn: Đóng luôn
+            setDrawer({ open: false, order: null });
+            loadTables();
+          }
         }}
         onPaid={async (data) => {
           console.log('onPaid callback received:', data);
@@ -526,6 +598,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         triggerCancelDialog={triggerCancelDialog}
         onTriggerCancelDialog={() => setTriggerCancelDialog(false)}
         onTableChanged={handleTableChanged}
+        onItemsChange={(hasItems) => setDrawerHasItems(hasItems)}
       />
 
       {/* Confirmation Dialog */}
@@ -707,6 +780,31 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               message: error.message || 'Không thể check-in'
             });
           }
+        }}
+        onShowToast={setToast}
+      />
+
+      {/* Open Shift Modal */}
+      <OpenShiftModal
+        open={showOpenShiftModal}
+        onClose={() => setShowOpenShiftModal(false)}
+        onSuccess={() => {
+          loadShift();
+          loadTables();
+        }}
+        onShowToast={setToast}
+      />
+
+      {/* Close Shift Modal */}
+      <CloseShiftModal
+        open={showCloseShiftModal}
+        shift={shift}
+        onClose={() => setShowCloseShiftModal(false)}
+        onSuccess={() => {
+          // Reload shift info after closing
+          loadShift();
+          // Optionally reload tables as shift status affects business logic
+          loadTables();
         }}
         onShowToast={setToast}
       />

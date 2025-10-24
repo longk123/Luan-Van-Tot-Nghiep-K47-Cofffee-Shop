@@ -268,7 +268,7 @@ export default function EditOptionsDialog({
                             newToppings[topping.ma] = count + 1;
                             setSelectedToppings(newToppings);
                           }}
-                          className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-orange-600 rounded-lg text-white hover:from-amber-600 hover:to-orange-600 transition-colors outline-none focus:outline-none"
+                          className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-amber-500 to-amber-600 border-2 border-amber-700 rounded-lg text-white hover:from-amber-600 hover:to-amber-700 transition-colors outline-none focus:outline-none"
                         >
                           +
                         </button>

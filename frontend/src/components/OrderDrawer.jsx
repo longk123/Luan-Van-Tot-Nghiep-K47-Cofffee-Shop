@@ -34,10 +34,22 @@ export default function OrderDrawer({
   onShowToast,
   triggerCancelDialog,
   onTriggerCancelDialog,
-  onTableChanged
+  onTableChanged,
+  onItemsChange
 }) {
   const orderId = order?.id;
   const [localOrder, setLocalOrder] = useState(order);
+  
+  // Handle close drawer với check items (chỉ cho TAKEAWAY)
+  const handleCloseDrawer = () => {
+    // Nếu là đơn mang đi, truyền info để parent quyết định
+    if (order?.order_type === 'TAKEAWAY') {
+      onClose?.({ hasItems: items.length > 0, orderType: 'TAKEAWAY' });
+    } else {
+      // Đơn bàn: gọi onClose như cũ (backward compatible)
+      onClose?.();
+    }
+  };
   
   console.log('OrderDrawer render:', { open, orderId, order });
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -89,6 +101,46 @@ export default function OrderDrawer({
     moveTable,
     checkout
   } = useOrderDrawer(orderId);
+
+  // Check nếu có món đang làm hoặc đã làm xong
+  const hasItemsInProgress = useMemo(() => {
+    return items.some(item => 
+      item.trang_thai_che_bien === 'MAKING' || 
+      item.trang_thai_che_bien === 'DONE'
+    );
+  }, [items]);
+
+  // Check nếu có món đang chờ xác nhận
+  const hasPendingItems = useMemo(() => {
+    return items.some(item => item.trang_thai_che_bien === 'PENDING');
+  }, [items]);
+
+  // Notify parent về số lượng món
+  useEffect(() => {
+    onItemsChange?.(items.length > 0);
+  }, [items.length, onItemsChange]);
+
+  // Xác nhận đơn
+  const handleConfirmOrder = async () => {
+    try {
+      await api.confirmOrder(orderId);
+      onShowToast?.({
+        show: true,
+        type: 'success',
+        title: 'Đã xác nhận đơn!',
+        message: 'Đơn hàng đã được gửi cho bếp/pha chế'
+      });
+      fetchData();
+    } catch (error) {
+      console.error('Error confirming order:', error);
+      onShowToast?.({
+        show: true,
+        type: 'error',
+        title: 'Lỗi xác nhận',
+        message: error.message || 'Không thể xác nhận đơn'
+      });
+    }
+  };
 
   // States cho khuyến mãi & giảm giá
   const [promoCode, setPromoCode] = useState('');
@@ -595,13 +647,20 @@ export default function OrderDrawer({
             <h2 className="text-lg font-semibold">
               {!localOrder ? 'Đơn hàng' : (localOrder.order_type === 'TAKEAWAY' ? 'Mang đi' : `Bàn ${localOrder.ban_id || ''}`)} {orderId ? `– Đơn #${orderId}` : ''}
             </h2>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              isPaid 
-                ? 'bg-green-100 text-green-700' 
-                : 'bg-amber-100 text-amber-700'
-            }`}>
-              {isPaid ? 'PAID' : (localOrder?.status || localOrder?.trang_thai || 'OPEN')}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                isPaid 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                {isPaid ? 'PAID' : (localOrder?.status || localOrder?.trang_thai || 'OPEN')}
+              </span>
+              {hasPendingItems && (
+                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-amber-200 text-amber-900 animate-pulse">
+                  ⏸️ CHƯA XÁC NHẬN
+                </span>
+              )}
+            </div>
           </div>
           {shift && (
             <div className="mt-1 text-xs text-gray-500">
@@ -609,14 +668,16 @@ export default function OrderDrawer({
             </div>
           )}
         </div>
-        <button 
-          onClick={handleClose} 
-          className="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-full transition-colors text-amber-700 hover:text-amber-800 ml-2 outline-none focus:outline-none"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        {!docked && (
+          <button 
+            onClick={handleCloseDrawer} 
+            className="p-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-full transition-colors text-amber-700 hover:text-amber-800 ml-2 outline-none focus:outline-none"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {isPaid && (
@@ -659,21 +720,26 @@ export default function OrderDrawer({
         <div className="mt-3 border-t pt-2.5">
         {/* Trạng thái tổng quan */}
         {items.length > 0 && (
-          <div className="mb-3 flex items-center gap-2 text-xs">
+          <div className="mb-3 flex items-center gap-2 text-xs flex-wrap">
             <span className="text-gray-500">{items.length} ly:</span>
+            {items.filter(i => i.trang_thai_che_bien === 'PENDING').length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
+                ⏸️ {items.filter(i => i.trang_thai_che_bien === 'PENDING').length} chưa xác nhận
+              </span>
+            )}
             {items.filter(i => i.trang_thai_che_bien === 'QUEUED').length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                {items.filter(i => i.trang_thai_che_bien === 'QUEUED').length} chờ
+                ⏳ {items.filter(i => i.trang_thai_che_bien === 'QUEUED').length} chờ
               </span>
             )}
             {items.filter(i => i.trang_thai_che_bien === 'MAKING').length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                {items.filter(i => i.trang_thai_che_bien === 'MAKING').length} làm
+                🔥 {items.filter(i => i.trang_thai_che_bien === 'MAKING').length} làm
               </span>
             )}
             {items.filter(i => i.trang_thai_che_bien === 'DONE').length > 0 && (
               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                {items.filter(i => i.trang_thai_che_bien === 'DONE').length} xong
+                ✅ {items.filter(i => i.trang_thai_che_bien === 'DONE').length} xong
               </span>
             )}
           </div>
@@ -885,7 +951,7 @@ export default function OrderDrawer({
         </div>
 
         {/* Payment Section - Multi-tender payments */}
-        {items.length > 0 && (
+        {items.length > 0 && !hasPendingItems && (
           <div className="mt-4">
             <PaymentSection
               orderId={orderId}
@@ -921,18 +987,46 @@ export default function OrderDrawer({
           </div>
         )}
 
-        {/* Action button - Chỉ nút Hủy đơn */}
+        {/* Action buttons */}
         {!isPaid && (
-          <div className="mt-3">
-            <button
-              onClick={() => setShowCancelDialog(true)}
-              className="w-full bg-gradient-to-r from-red-50 to-red-100 text-red-700 py-3 px-3 rounded-xl border border-red-200 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-md outline-none focus:outline-none"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Hủy đơn
-            </button>
+          <div className="mt-3 space-y-2">
+            {hasPendingItems ? (
+              /* Chỉ hiện nút xác nhận khi có món PENDING */
+              <>
+                <button
+                  onClick={handleConfirmOrder}
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-3 rounded-xl border border-green-600 transition-all duration-200 font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  ✓ Xác nhận đơn → Gửi bếp
+                </button>
+                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
+                  ⚠️ Vui lòng xác nhận đơn trước khi thanh toán
+                </p>
+              </>
+            ) : (
+              /* Sau khi xác nhận, hiện nút hủy */
+              <>
+                <button
+                  onClick={() => setShowCancelDialog(true)}
+                  disabled={hasItemsInProgress}
+                  className="w-full bg-gradient-to-r from-red-50 to-red-100 text-red-700 py-3 px-3 rounded-xl border border-red-200 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+                  title={hasItemsInProgress ? 'Không thể hủy: Có món đang làm hoặc đã hoàn tất' : 'Hủy đơn hàng'}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {hasItemsInProgress ? '🔒 Không thể hủy' : 'Hủy đơn'}
+                </button>
+                {hasItemsInProgress && (
+                  <p className="text-xs text-red-600 mt-1 text-center">
+                    Có món đang làm/đã hoàn tất. Liên hệ bếp để hủy.
+                  </p>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -946,6 +1040,37 @@ export default function OrderDrawer({
               <span className="text-lg font-bold text-green-700">Đã thanh toán</span>
             </div>
             
+            {/* Nút giao hàng cho đơn mang đi (món đã xong) */}
+            {order?.order_type === 'TAKEAWAY' && items.every(i => i.trang_thai_che_bien === 'DONE' || i.trang_thai_che_bien === 'CANCELLED') && items.some(i => i.trang_thai_che_bien === 'DONE') && (
+              <button
+                onClick={async () => {
+                  try {
+                    await api.post(`/pos/orders/${orderId}/deliver`);
+                    onShowToast?.({
+                      show: true,
+                      type: 'success',
+                      title: 'Giao hàng thành công!',
+                      message: `Đơn #${orderId} đã giao cho khách`
+                    });
+                    onClose?.();
+                  } catch (error) {
+                    onShowToast?.({
+                      show: true,
+                      type: 'error',
+                      title: 'Lỗi',
+                      message: error.message || 'Không thể giao hàng'
+                    });
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-3 rounded-xl border border-green-600 transition-all duration-200 font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                ✓ Giao hàng cho khách
+              </button>
+            )}
+
             {/* Nút In hóa đơn */}
             <button
               onClick={() => {
@@ -1127,7 +1252,7 @@ export default function OrderDrawer({
                           }`}>
                             {promo.ma}
                           </span>
-                          <span className="text-2xl font-bold text-orange-600">
+                          <span className="text-2xl font-bold text-amber-700">
                             -{promo.giam_gia?.toLocaleString()}đ
                           </span>
                         </div>
@@ -1317,7 +1442,7 @@ export default function OrderDrawer({
   return (
     <>
       <div className="fixed inset-0 z-40 flex">
-        <div className="flex-1 bg-black/30" onClick={handleClose} />
+        <div className="flex-1 bg-black/30" onClick={docked ? undefined : handleCloseDrawer} />
         {panel}
       </div>
       {cancelDialog}

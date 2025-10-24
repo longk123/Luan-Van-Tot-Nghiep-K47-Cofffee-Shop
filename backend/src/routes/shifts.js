@@ -3,6 +3,7 @@ import { Router } from 'express';
 import Joi from 'joi';
 import { authRequired as authMiddleware } from '../middleware/auth.js';
 import { myOpen, open, close, getCurrentShiftService } from '../services/shiftsService.js';
+import * as shiftsController from '../controllers/shiftsController.js';
 
 const router = Router();
 
@@ -24,19 +25,8 @@ router.get('/current', authMiddleware, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/v1/shifts/open
-// { nhan_vien_id, opening_cash? }
-router.post('/open', async (req, res, next) => {
-  try {
-    const schema = Joi.object({
-      nhan_vien_id: Joi.number().integer().required(),
-      opening_cash: Joi.number().integer().min(0).allow(null),
-    });
-    const { nhan_vien_id, opening_cash } = await schema.validateAsync(req.body);
-    const shift = await open({ nhanVienId: nhan_vien_id, openingCash: opening_cash });
-    res.status(201).json({ shift });
-  } catch (e) { next(e); }
-});
+// POST /api/v1/shifts/open - Sử dụng controller mới với auth
+router.post('/open', authMiddleware, shiftsController.openShift);
 
 // POST /api/v1/shifts/:id/close
 // { closing_cash?, note? }
@@ -52,5 +42,24 @@ router.post('/:id/close', async (req, res, next) => {
     res.json({ shift: closed });
   } catch (e) { next(e); }
 });
+
+// ============================================
+// NEW ENHANCED SHIFT ENDPOINTS
+// ============================================
+
+// GET /api/v1/shifts/:id/summary - Tóm tắt ca (live preview)
+router.get('/:id/summary', authMiddleware, shiftsController.getShiftSummary);
+
+// POST /api/v1/shifts/:id/close-enhanced - Đóng ca với thống kê đầy đủ
+router.post('/:id/close-enhanced', authMiddleware, shiftsController.closeShift);
+
+// GET /api/v1/shifts/:id/report - Báo cáo chi tiết
+router.get('/:id/report', authMiddleware, shiftsController.getShiftReport);
+
+// GET /api/v1/shifts/:id/report.pdf - Xuất PDF (TODO)
+router.get('/:id/report.pdf', authMiddleware, shiftsController.exportShiftReportPDF);
+
+// POST /api/v1/shifts/:id/force-close - Force đóng ca (chuyển đơn OPEN sang ca sau)
+router.post('/:id/force-close', authMiddleware, shiftsController.forceCloseShift);
 
 export default router;

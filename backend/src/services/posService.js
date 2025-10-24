@@ -77,6 +77,68 @@ export default {
     return line;
   },
 
+  // Xác nhận đơn - chuyển tất cả món PENDING → QUEUED
+  async confirmOrder(orderId) {
+    const { pool } = await import('../db.js');
+    const result = await pool.query(
+      `UPDATE don_hang_chi_tiet 
+       SET trang_thai_che_bien = 'QUEUED' 
+       WHERE don_hang_id = $1 
+         AND trang_thai_che_bien = 'PENDING'
+       RETURNING id`,
+      [orderId]
+    );
+    
+    emitChange('order.confirmed', { orderId, confirmedItems: result.rowCount });
+    emitChange('order.items.changed', { orderId });
+    
+    return { confirmed: result.rowCount };
+  },
+
+  // Lấy danh sách đơn mang đi chưa giao
+  async getTakeawayOrders() {
+    const { pool } = await import('../db.js');
+    const { rows } = await pool.query(`
+      SELECT * FROM v_takeaway_pending
+    `);
+    
+    return rows;
+  },
+
+  // Giao hàng (đánh dấu đơn hoàn tất)
+  async deliverOrder(orderId) {
+    const { pool } = await import('../db.js');
+    
+    // Kiểm tra tất cả món đã DONE chưa
+    const checkResult = await pool.query(
+      `SELECT COUNT(*) as count 
+       FROM don_hang_chi_tiet 
+       WHERE don_hang_id = $1 
+         AND trang_thai_che_bien NOT IN ('DONE', 'CANCELLED')`,
+      [orderId]
+    );
+    
+    if (parseInt(checkResult.rows[0].count) > 0) {
+      const err = new Error('Còn món chưa hoàn tất. Không thể giao hàng.');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Đánh dấu đã giao hàng
+    const result = await pool.query(
+      `UPDATE don_hang 
+       SET delivered_at = NOW(),
+           closed_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [orderId]
+    );
+    
+    emitChange('order.completed', { orderId });
+    
+    return result.rows[0];
+  },
+
   async updateItem(lineId, payload) {
     const updated = await repo.default.updateItemQuantity({ itemId: lineId, soLuong: payload.so_luong });
     if (!updated) {
@@ -203,6 +265,23 @@ export async function cancelOrderService({ orderId, userId, reason = null }) {
   if (['PAID', 'CANCELLED'].includes(order.trang_thai)) {
     const err = new Error('Không thể hủy đơn đã thanh toán hoặc đã hủy.');
     err.status = 400;
+    throw err;
+  }
+
+  // 3️⃣ Kiểm tra món đang làm hoặc đã làm xong
+  const { pool } = await import('../db.js');
+  const checkItems = await pool.query(
+    `SELECT COUNT(*) as count 
+     FROM don_hang_chi_tiet 
+     WHERE don_hang_id = $1 
+       AND trang_thai_che_bien IN ('MAKING', 'DONE')`,
+    [orderId]
+  );
+  
+  if (parseInt(checkItems.rows[0].count) > 0) {
+    const err = new Error(`Không thể hủy đơn: Có ${checkItems.rows[0].count} món đã bắt đầu làm hoặc hoàn tất. Vui lòng liên hệ bếp/pha chế.`);
+    err.status = 400;
+    err.code = 'ITEMS_IN_PROGRESS';
     throw err;
   }
 
