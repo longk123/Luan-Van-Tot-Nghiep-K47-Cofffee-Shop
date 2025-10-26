@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -282,6 +282,11 @@ export default function ManagerDashboard() {
       setLoading(false);
     }
   };
+
+  // Auto-load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []); // Empty dependency array = chỉ chạy 1 lần khi mount
 
   // Handler: Xem chi tiết hoá đơn
   const handleViewInvoice = async (invoice) => {
@@ -756,7 +761,7 @@ export default function ManagerDashboard() {
       )}
 
       {activeTab === 'invoices' && (
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '100px' }}>
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '150px' }}>
           <h3 style={{ margin: '0 0 20px 0', color: '#1f2937' }}>
             📄 Danh sách hóa đơn {timeRange === 'day' ? `ngày ${customDate}` : 
                                   timeRange === 'week' ? 'tuần này' :
