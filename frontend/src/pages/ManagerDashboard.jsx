@@ -751,49 +751,6 @@ export default function ManagerDashboard() {
                   📋 Chi tiết doanh thu theo ngày
                 </h4>
                 
-                {/* Search Bar for Revenue */}
-                <div style={{ marginBottom: '15px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      placeholder="🔍 Tìm kiếm theo ngày hoặc số tiền..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 40px 10px 14px',
-                        fontSize: '14px',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
-                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '18px',
-                          color: '#9ca3af',
-                          padding: '4px'
-                        }}
-                        title="Xóa tìm kiếm"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-                
                 <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead style={{ backgroundColor: '#f9fafb' }}>
@@ -813,21 +770,7 @@ export default function ManagerDashboard() {
                           takeaway: revenueChart.datasets?.[2]?.data?.[index] || 0
                         })) || [];
                         
-                        // Apply search filter
-                        let filteredData = revenueData;
-                        if (searchQuery.trim()) {
-                          const query = searchQuery.toLowerCase().trim();
-                          filteredData = revenueData.filter(item => {
-                            const dateMatch = item.date.toLowerCase().includes(query);
-                            const totalMatch = item.total.toString().includes(query);
-                            const dineInMatch = item.dineIn.toString().includes(query);
-                            const takeawayMatch = item.takeaway.toString().includes(query);
-                            
-                            return dateMatch || totalMatch || dineInMatch || takeawayMatch;
-                          });
-                        }
-                        
-                        return filteredData.map((item) => (
+                        return revenueData.map((item) => (
                           <tr key={item.date} style={{ borderBottom: '1px solid #f3f4f6' }}>
                             <td style={{ padding: '12px', fontSize: '14px' }}>{item.date}</td>
                             <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#059669', textAlign: 'right' }}>
