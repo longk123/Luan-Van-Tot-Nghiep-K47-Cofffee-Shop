@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api';
 
 export default function ProfitReport({ startDate: propStartDate, endDate: propEndDate }) {
@@ -7,10 +7,30 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
   const [showDetails, setShowDetails] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20; // Hiển thị 20 đơn mỗi trang
+  const [searchQuery, setSearchQuery] = useState(''); // State cho thanh tìm kiếm
 
   // Sử dụng props từ parent component
   const startDate = propStartDate;
   const endDate = propEndDate;
+  
+  // Memoize filtered details để tránh tính toán lại nhiều lần
+  const filteredDetails = useMemo(() => {
+    if (!reportData?.details) return [];
+    
+    const details = reportData.details;
+    if (!searchQuery.trim()) return details;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return details.filter(order => {
+      const idMatch = order.orderId?.toString().includes(query);
+      const tableMatch = order.table_name ? order.table_name.toLowerCase().includes(query) : false;
+      const revenueMatch = order.revenue?.toString().includes(query);
+      const costMatch = order.totalCost?.toString().includes(query);
+      const profitMatch = order.profit?.toString().includes(query);
+      
+      return idMatch || tableMatch || revenueMatch || costMatch || profitMatch;
+    });
+  }, [reportData, searchQuery]);
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -178,10 +198,43 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
       {/* Details Table */}
       {showDetails && details && details.length > 0 && (
         <div className="bg-white rounded-lg shadow overflow-hidden" style={{ marginBottom: '150px' }}>
+          {/* Search Bar */}
+          <div className="px-6 py-4 bg-white border-b border-gray-200">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="🔍 Tìm kiếm theo ID đơn, bàn, số tiền..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // Reset về trang 1 khi tìm kiếm
+                }}
+                className="w-full px-4 py-2 pr-10 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Xóa tìm kiếm"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Pagination info */}
           <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
             <div className="text-sm text-gray-700">
-              Hiển thị {Math.min((currentPage - 1) * itemsPerPage + 1, details.length)} - {Math.min(currentPage * itemsPerPage, details.length)} trong tổng số {details.length} đơn hàng
+              <span>
+                Hiển thị {Math.min((currentPage - 1) * itemsPerPage + 1, filteredDetails.length)} - {Math.min(currentPage * itemsPerPage, filteredDetails.length)} trong tổng số {filteredDetails.length} đơn hàng
+                {searchQuery && filteredDetails.length !== details.length && (
+                  <span className="text-blue-600 ml-2">(đã lọc từ {details.length})</span>
+                )}
+              </span>
             </div>
             <div className="flex gap-2">
               <button
@@ -192,11 +245,11 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                 ← Trước
               </button>
               <span className="px-3 py-1 text-sm">
-                Trang {currentPage} / {Math.ceil(details.length / itemsPerPage)}
+                Trang {currentPage} / {Math.ceil(filteredDetails.length / itemsPerPage)}
               </span>
               <button
-                onClick={() => setCurrentPage(p => Math.min(Math.ceil(details.length / itemsPerPage), p + 1))}
-                disabled={currentPage >= Math.ceil(details.length / itemsPerPage)}
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredDetails.length / itemsPerPage), p + 1))}
+                disabled={currentPage >= Math.ceil(filteredDetails.length / itemsPerPage)}
                 className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
               >
                 Sau →
@@ -238,7 +291,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {details
+                {filteredDetails
                   .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                   .map((order) => (
                   <tr key={order.orderId} className="hover:bg-gray-50">

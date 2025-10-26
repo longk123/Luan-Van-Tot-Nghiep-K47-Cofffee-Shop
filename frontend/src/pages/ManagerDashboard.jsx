@@ -13,10 +13,18 @@ export default function ManagerDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('day'); // day, week, month, quarter, year, custom
   const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
+  // Khởi tạo customStartDate và customEndDate với giá trị mặc định (7 ngày gần nhất)
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 6); // 7 ngày trước
+    return date.toISOString().split('T')[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [invoicePage, setInvoicePage] = useState(1);
   const invoicesPerPage = 20;
+  
+  // State cho thanh tìm kiếm
+  const [searchQuery, setSearchQuery] = useState('');
   
   // State cho modal xem/in lại hoá đơn
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
@@ -643,7 +651,7 @@ export default function ManagerDashboard() {
       )}
 
       {activeTab === 'revenue' && (
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+  <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '150px' }}>
           <h3 style={{ margin: '0 0 20px 0', color: '#1f2937' }}>
             📈 Biểu đồ doanh thu {timeRange === 'day' ? 'theo ngày' : 
                                   timeRange === 'week' ? '7 ngày gần nhất' :
@@ -736,6 +744,108 @@ export default function ManagerDashboard() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+              
+              {/* Revenue Details Table */}
+              <div style={{ marginTop: '30px' }}>
+                <h4 style={{ margin: '0 0 15px 0', color: '#374151', fontSize: '16px', fontWeight: '600' }}>
+                  📋 Chi tiết doanh thu theo ngày
+                </h4>
+                
+                {/* Search Bar for Revenue */}
+                <div style={{ marginBottom: '15px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="🔍 Tìm kiếm theo ngày hoặc số tiền..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 40px 10px 14px',
+                        fontSize: '14px',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '8px',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                      onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '18px',
+                          color: '#9ca3af',
+                          padding: '4px'
+                        }}
+                        title="Xóa tìm kiếm"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead style={{ backgroundColor: '#f9fafb' }}>
+                      <tr>
+                        <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Ngày</th>
+                        <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Tổng doanh thu</th>
+                        <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Tại bàn</th>
+                        <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Mang đi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const revenueData = revenueChart.labels?.map((label, index) => ({
+                          date: label,
+                          total: revenueChart.datasets?.[0]?.data?.[index] || 0,
+                          dineIn: revenueChart.datasets?.[1]?.data?.[index] || 0,
+                          takeaway: revenueChart.datasets?.[2]?.data?.[index] || 0
+                        })) || [];
+                        
+                        // Apply search filter
+                        let filteredData = revenueData;
+                        if (searchQuery.trim()) {
+                          const query = searchQuery.toLowerCase().trim();
+                          filteredData = revenueData.filter(item => {
+                            const dateMatch = item.date.toLowerCase().includes(query);
+                            const totalMatch = item.total.toString().includes(query);
+                            const dineInMatch = item.dineIn.toString().includes(query);
+                            const takeawayMatch = item.takeaway.toString().includes(query);
+                            
+                            return dateMatch || totalMatch || dineInMatch || takeawayMatch;
+                          });
+                        }
+                        
+                        return filteredData.map((item) => (
+                          <tr key={item.date} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <td style={{ padding: '12px', fontSize: '14px' }}>{item.date}</td>
+                            <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#059669', textAlign: 'right' }}>
+                              {item.total.toLocaleString('vi-VN')} VNĐ
+                            </td>
+                            <td style={{ padding: '12px', fontSize: '14px', color: '#3b82f6', textAlign: 'right' }}>
+                              {item.dineIn.toLocaleString('vi-VN')} VNĐ
+                            </td>
+                            <td style={{ padding: '12px', fontSize: '14px', color: '#f59e0b', textAlign: 'right' }}>
+                              {item.takeaway.toLocaleString('vi-VN')} VNĐ
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -774,6 +884,50 @@ export default function ManagerDashboard() {
                                   timeRange === 'month' ? 'tháng này' :
                                   timeRange === 'quarter' ? 'quý này' : 'năm nay'}
           </h3>
+          
+          {/* Search Bar */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="🔍 Tìm kiếm theo ID, bàn, trạng thái, hoặc số tiền..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 40px 12px 16px',
+                  fontSize: '14px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    color: '#9ca3af',
+                    padding: '4px'
+                  }}
+                  title="Xóa tìm kiếm"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+          
           {(() => {
             // Filter invoices theo khoảng thời gian
             const timeParams = getTimeRangeParams(timeRange, customDate);
@@ -782,10 +936,29 @@ export default function ManagerDashboard() {
             const startDate = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
             const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
             
-            const filteredInvoices = (invoices || []).filter(invoice => {
+            let filteredInvoices = (invoices || []).filter(invoice => {
               const invoiceDate = new Date(invoice.opened_at);
               return invoiceDate >= startDate && invoiceDate <= endDate;
             });
+            
+            // Apply search filter
+            if (searchQuery.trim()) {
+              const query = searchQuery.toLowerCase().trim();
+              filteredInvoices = filteredInvoices.filter(invoice => {
+                const idMatch = invoice.id.toString().includes(query);
+                const tableMatch = invoice.order_type === 'TAKEAWAY' 
+                  ? 'mang đi'.includes(query) || 'takeaway'.includes(query)
+                  : (invoice.table?.name || '').toLowerCase().includes(query);
+                const statusMatch = (
+                  (invoice.status === 'PAID' && ('đã thanh toán'.includes(query) || 'paid'.includes(query))) ||
+                  (invoice.status === 'CANCELLED' && ('đã hủy'.includes(query) || 'cancelled'.includes(query) || 'hủy'.includes(query))) ||
+                  (invoice.status === 'OPEN' && ('chờ thanh toán'.includes(query) || 'open'.includes(query)))
+                );
+                const amountMatch = invoice.total_amount.toString().includes(query);
+                
+                return idMatch || tableMatch || statusMatch || amountMatch;
+              });
+            }
             
             console.log('🔍 Filtered invoices:', {
               total: filteredInvoices.length,
