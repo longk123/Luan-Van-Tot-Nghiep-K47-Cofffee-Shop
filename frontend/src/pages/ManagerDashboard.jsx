@@ -756,7 +756,7 @@ export default function ManagerDashboard() {
       )}
 
       {activeTab === 'invoices' && (
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '100px' }}>
           <h3 style={{ margin: '0 0 20px 0', color: '#1f2937' }}>
             📄 Danh sách hóa đơn {timeRange === 'day' ? `ngày ${customDate}` : 
                                   timeRange === 'week' ? 'tuần này' :

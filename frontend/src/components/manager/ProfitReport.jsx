@@ -177,7 +177,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
       {/* Details Table */}
       {showDetails && details && details.length > 0 && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-24">
           {/* Pagination info */}
           <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
             <div className="text-sm text-gray-700">
