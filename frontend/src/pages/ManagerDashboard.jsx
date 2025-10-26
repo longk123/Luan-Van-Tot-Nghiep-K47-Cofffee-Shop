@@ -11,7 +11,7 @@ export default function ManagerDashboard() {
   const [revenueChart, setRevenueChart] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
-  const [timeRange, setTimeRange] = useState('week'); // day, week, month, quarter, year, custom
+  const [timeRange, setTimeRange] = useState('day'); // day, week, month, quarter, year, custom
   const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -288,6 +288,14 @@ export default function ManagerDashboard() {
     loadData();
   }, []); // Empty dependency array = chỉ chạy 1 lần khi mount
 
+  // Auto-reload when time range changes
+  useEffect(() => {
+    // Skip first render (already loaded by mount effect)
+    if (kpis !== null || revenueChart !== null) {
+      loadData();
+    }
+  }, [timeRange]); // Reload when timeRange changes
+
   // Handler: Xem chi tiết hoá đơn
   const handleViewInvoice = async (invoice) => {
     try {
@@ -443,7 +451,13 @@ export default function ManagerDashboard() {
               <input
                 type="date"
                 value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
+                onChange={(e) => {
+                  setCustomStartDate(e.target.value);
+                  // Auto reload if both dates are set
+                  if (e.target.value && customEndDate) {
+                    setTimeout(() => loadData(), 100);
+                  }
+                }}
                 style={{
                   padding: '8px 12px',
                   border: '1px solid #d1d5db',
@@ -458,7 +472,13 @@ export default function ManagerDashboard() {
               <input
                 type="date"
                 value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
+                onChange={(e) => {
+                  setCustomEndDate(e.target.value);
+                  // Auto reload if both dates are set
+                  if (customStartDate && e.target.value) {
+                    setTimeout(() => loadData(), 100);
+                  }
+                }}
                 style={{
                   padding: '8px 12px',
                   border: '1px solid #d1d5db',
@@ -470,8 +490,8 @@ export default function ManagerDashboard() {
             </div>
           )}
           
-          {/* Reference date for Quarter/Year */}
-          {(timeRange === 'quarter' || timeRange === 'year') && (
+          {/* Reference date for all time ranges except custom */}
+          {timeRange !== 'custom' && (
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <label style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>
                 Ngày tham chiếu:
@@ -479,7 +499,11 @@ export default function ManagerDashboard() {
               <input
                 type="date"
                 value={customDate}
-                onChange={(e) => setCustomDate(e.target.value)}
+                onChange={(e) => {
+                  setCustomDate(e.target.value);
+                  // Auto reload data when date changes
+                  setTimeout(() => loadData(), 100);
+                }}
                 style={{
                   padding: '8px 12px',
                   border: '1px solid #d1d5db',
@@ -490,24 +514,6 @@ export default function ManagerDashboard() {
               />
             </div>
           )}
-          
-          <button
-            onClick={loadData}
-            disabled={loading}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: loading ? '#9ca3af' : '#10b981',
-              color: 'white',
-              borderWidth: '0',
-              borderStyle: 'none',
-              borderRadius: '6px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            {loading ? '⏳ Đang tải...' : '🔄 Tải dữ liệu'}
-          </button>
         </div>
         
         <div style={{ marginTop: '10px', fontSize: '12px', color: '#6b7280' }}>
