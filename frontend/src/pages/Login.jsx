@@ -53,9 +53,17 @@ export default function Login() {
       
       // Auto-redirect theo role
       const originalUserRoles = data?.user?.roles || [];
+      console.log('🔍 Login - User roles from API:', originalUserRoles);
+      
       const isKitchenStaff = originalUserRoles.some(role => 
         ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
       );
+      const isManager = originalUserRoles.some(role => 
+        ['manager', 'admin'].includes(role.toLowerCase())
+      );
+      
+      console.log('🔍 Login - isKitchenStaff:', isKitchenStaff);
+      console.log('🔍 Login - isManager:', isManager);
       
       // Kiểm tra xem có payment result pending không
       const paymentResult = localStorage.getItem('payos_payment_result');
@@ -99,8 +107,11 @@ export default function Login() {
         if (isKitchenStaff) {
           console.log('🍳 Kitchen staff → redirect to /kitchen');
           navigate("/kitchen");
+        } else if (isManager) {
+          console.log('👔 Manager → redirect to /manager');
+          window.location.href = '/manager';
         } else {
-          console.log('💰 Cashier/Manager → redirect to /dashboard');
+          console.log('💰 Cashier → redirect to /dashboard');
           navigate("/dashboard");
         }
       }
@@ -206,11 +217,6 @@ export default function Login() {
                 <p className="text-center text-sm text-amber-700 bg-amber-50 rounded-xl py-2">
                   Vui lòng chọn <b>vai trò</b> để tiếp tục.
                 </p>
-                <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-                  <p className="font-medium mb-1">🔑 Thông tin đăng nhập mẫu:</p>
-                  <p>• <strong>Admin:</strong> admin / admin123 (tất cả quyền)</p>
-                  <p>• <strong>Thu ngân:</strong> cashier / cashier123</p>
-                </div>
               </div>
             ) : (
               <>

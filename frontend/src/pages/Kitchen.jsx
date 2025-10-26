@@ -33,16 +33,16 @@ export default function Kitchen() {
     const user = getUser();
     console.log('🔍 User data:', user);
     
-    // Kiểm tra roles array
+    // Kiểm tra roles array - cho phép kitchen staff, manager và admin
     const userRoles = user?.roles || [];
-    const isKitchenStaff = userRoles.some(role => 
-      ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
+    const hasAccess = userRoles.some(role => 
+      ['kitchen', 'barista', 'chef', 'cook', 'manager', 'admin'].includes(role.toLowerCase())
     );
     
-    console.log('🔍 Kitchen access check:', { userRoles, isKitchenStaff });
+    console.log('🔍 Kitchen access check:', { userRoles, hasAccess });
     
-    if (!isKitchenStaff) {
-      console.log('❌ User không có quyền pha chế, redirect về dashboard');
+    if (!hasAccess) {
+      console.log('❌ User không có quyền truy cập Kitchen, redirect về dashboard');
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
@@ -499,6 +499,52 @@ export default function Kitchen() {
         onGoBack={() => setShowTransferredOrdersDialog(false)}
         loading={false}
       />
+
+      {/* Floating Manager Dashboard Button - only for manager/admin */}
+      {(() => {
+        const user = getUser();
+        const roles = user?.roles || [];
+        const isManager = roles.some(role => ['manager', 'admin'].includes(role.toLowerCase()));
+        
+        if (!isManager) return null;
+        
+        return (
+          <button
+            onClick={() => navigate('/manager')}
+            style={{
+              position: 'fixed',
+              bottom: '24px',
+              right: '24px',
+              padding: '12px 24px',
+              backgroundColor: '#9333ea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(147, 51, 234, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              zIndex: 1000,
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#7e22ce';
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 16px rgba(147, 51, 234, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#9333ea';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(147, 51, 234, 0.4)';
+            }}
+          >
+            📊 Trang quản lý
+          </button>
+        );
+      })()}
     </AuthedLayout>
   );
 }

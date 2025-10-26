@@ -52,9 +52,18 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   
   // Current shift orders
   const [showCurrentShiftOrders, setShowCurrentShiftOrders] = useState(false);
+  const [shiftOrdersRefreshKey, setShiftOrdersRefreshKey] = useState(0);
+  const [user, setUser] = useState(null);
 
   // Role-based access control
   const [userRoles, setUserRoles] = useState([]);
+  
+  // Load user data
+  useEffect(() => {
+    const userData = getUser();
+    console.log('🔍 Dashboard - User data:', userData);
+    setUser(userData);
+  }, []);
   
   useEffect(() => {
     const user = getUser();
@@ -438,9 +447,22 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       {!posMode && !showWorkpane && (
         <>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold">
-              Khu vực <span className="text-sm text-gray-500 font-normal ml-2">{areas.length} khu vực</span>
-            </h2>
+            <div>
+              <h2 className="text-xl font-semibold">
+                Khu vực <span className="text-sm text-gray-500 font-normal ml-2">{areas.length} khu vực</span>
+              </h2>
+              {shift && shift.id && (
+                <div className="mt-2 flex items-center gap-4 text-sm">
+                  <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
+                  </span>
+                  <span className="text-gray-500">
+                    Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               {/* Badge đơn từ ca trước */}
               {transferredOrders.length > 0 && (
@@ -477,7 +499,10 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               </button>
               {canViewCurrentShiftOrders && (
                 <button
-                  onClick={() => setShowCurrentShiftOrders(true)}
+                  onClick={() => {
+                    setShiftOrdersRefreshKey(prev => prev + 1);
+                    setShowCurrentShiftOrders(true);
+                  }}
                   className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
                 >
                   📊 Lịch sử đơn
@@ -877,10 +902,48 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <CurrentShiftOrders />
+              <CurrentShiftOrders key={shiftOrdersRefreshKey} />
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Manager Dashboard Button - only for manager/admin */}
+      {(user?.roles?.includes('manager') || user?.roles?.includes('admin')) && (
+        <button
+          onClick={() => navigate('/manager')}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            padding: '12px 24px',
+            backgroundColor: '#9333ea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(147, 51, 234, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 1000,
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = '#7e22ce';
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 16px rgba(147, 51, 234, 0.5)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = '#9333ea';
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 12px rgba(147, 51, 234, 0.4)';
+          }}
+        >
+          📊 Trang quản lý
+        </button>
       )}
     </AuthedLayout>
   );

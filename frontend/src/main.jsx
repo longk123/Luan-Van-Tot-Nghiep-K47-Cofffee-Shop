@@ -10,14 +10,52 @@ import Kitchen from './pages/Kitchen.jsx'
 import TakeawayOrders from './pages/TakeawayOrders.jsx'
 import PaymentSuccess from './pages/PaymentSuccess.jsx'
 import PaymentCancel from './pages/PaymentCancel.jsx'
+import ManagerDashboard from './pages/ManagerDashboard.jsx'
+import RoleGuard from './components/RoleGuard.jsx'
 
 const router = createBrowserRouter([
   { path: '/', element: <Login /> },
   { path: '/login', element: <Login /> },
-  { path: '/dashboard', element: <Dashboard /> },
-  { path: '/pos', element: <POS /> },
-  { path: '/kitchen', element: <Kitchen /> },
-  { path: '/takeaway', element: <TakeawayOrders /> },
+  { 
+    path: '/dashboard', 
+    element: (
+      <RoleGuard allowedRoles={['cashier', 'manager', 'admin']}>
+        <Dashboard />
+      </RoleGuard>
+    )
+  },
+  { 
+    path: '/manager', 
+    element: (
+      <RoleGuard allowedRoles={['manager', 'admin']}>
+        <ManagerDashboard />
+      </RoleGuard>
+    )
+  },
+  { 
+    path: '/pos', 
+    element: (
+      <RoleGuard allowedRoles={['cashier', 'manager', 'admin']}>
+        <POS />
+      </RoleGuard>
+    )
+  },
+  { 
+    path: '/kitchen', 
+    element: (
+      <RoleGuard allowedRoles={['kitchen', 'manager', 'admin']}>
+        <Kitchen />
+      </RoleGuard>
+    )
+  },
+  { 
+    path: '/takeaway', 
+    element: (
+      <RoleGuard allowedRoles={['cashier', 'manager', 'admin']}>
+        <TakeawayOrders />
+      </RoleGuard>
+    )
+  },
   { path: '/payment-success', element: <PaymentSuccess /> },
   { path: '/payment-cancel', element: <PaymentCancel /> },
 ])

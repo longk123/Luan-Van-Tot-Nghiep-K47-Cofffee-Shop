@@ -490,7 +490,7 @@ export async function getCurrentShiftOrders(req, res, next) {
       cancelled_orders: orders.filter(o => o.trang_thai === 'CANCELLED').length,
       total_revenue: orders
         .filter(o => o.trang_thai === 'PAID')
-        .reduce((sum, o) => sum + (o.tong_tien || 0), 0)
+        .reduce((sum, o) => sum + parseFloat(o.tong_tien || 0), 0)
     };
     
     res.json({ 

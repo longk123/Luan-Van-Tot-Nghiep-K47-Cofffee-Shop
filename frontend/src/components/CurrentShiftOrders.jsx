@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { getUser } from '../auth.js';
+import useSSE from '../hooks/useSSE.js';
 
 export default function CurrentShiftOrders() {
   const [data, setData] = useState(null);
@@ -26,6 +27,14 @@ export default function CurrentShiftOrders() {
 
   useEffect(() => {
     fetchOrders();
+  }, []);
+
+  // Auto-refresh when orders are updated/closed (payment completed)
+  useSSE('/api/v1/pos/events', (evt) => {
+    if (['order.updated', 'order.closed', 'order.cancelled', 'order.items.changed'].includes(evt.type)) {
+      console.log('🔄 CurrentShiftOrders: SSE event received, refreshing...', evt.type);
+      fetchOrders();
+    }
   }, []);
 
   const formatCurrency = (amount) => {
@@ -59,17 +68,9 @@ export default function CurrentShiftOrders() {
     }
   };
 
-  const handlePrintInvoice = async (order) => {
+  const handleViewPdf = async (order) => {
     try {
-      const user = getUser();
-      
-      // Ghi log in hóa đơn
-      await api.logInvoicePrint(order.id, {
-        printed_by: user?.user_id,
-        note: 'In lại từ lịch sử đơn hàng'
-      });
-      
-      // Lấy PDF với token
+      // Lấy PDF với token (không ghi log)
       const response = await api.getInvoicePdf(order.id);
       const blob = await response.blob();
       
@@ -92,6 +93,46 @@ export default function CurrentShiftOrders() {
         document.body.removeChild(link);
         URL.revokeObjectURL(pdfUrl);
       }
+    } catch (err) {
+      console.error('Error viewing PDF:', err);
+      setError('Không thể xem PDF: ' + err.message);
+    }
+  };
+
+  const handlePrintInvoice = async (order) => {
+    try {
+      const user = getUser();
+      
+      // Lấy PDF với token
+      const response = await api.getInvoicePdf(order.id);
+      const blob = await response.blob();
+      
+      // Tạo URL cho blob và mở trong tab mới với print dialog
+      const pdfUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(pdfUrl, '_blank');
+      
+      if (printWindow) {
+        // Tự động mở print dialog khi PDF load xong
+        printWindow.addEventListener('load', () => {
+          printWindow.print();
+        });
+        
+        // Cleanup URL sau khi đóng cửa sổ
+        printWindow.addEventListener('beforeunload', () => {
+          URL.revokeObjectURL(pdfUrl);
+        });
+      } else {
+        // Fallback nếu popup bị chặn
+        alert('Popup bị chặn. Vui lòng cho phép popup để in hóa đơn.');
+        URL.revokeObjectURL(pdfUrl);
+      }
+      
+      // Ghi log in hóa đơn
+      await api.logInvoicePrint(order.id, {
+        printed_by: user?.user_id,
+        note: 'In lại từ lịch sử đơn hàng'
+      });
+      
     } catch (err) {
       console.error('Error printing invoice:', err);
       setError('Không thể in hóa đơn: ' + err.message);
@@ -328,7 +369,19 @@ export default function CurrentShiftOrders() {
                           <span className="text-xs text-gray-400">Chưa thanh toán</span>
                         )}
                         {order.trang_thai === 'CANCELLED' && (
-                          <span className="text-xs text-red-400">Đã hủy</span>
+                          <>
+                            <button
+                              onClick={() => handleViewInvoice(order)}
+                              className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                            >
+                              👁️ Xem chi tiết
+                            </button>
+                            {order.ly_do_huy && (
+                              <span className="text-xs text-red-500" title={order.ly_do_huy}>
+                                📝 {order.ly_do_huy.substring(0, 20)}{order.ly_do_huy.length > 20 ? '...' : ''}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -366,6 +419,32 @@ export default function CurrentShiftOrders() {
                 </div>
               ) : invoiceData ? (
                 <div className="space-y-6">
+                  {/* Status Banner for Cancelled Orders */}
+                  {selectedOrder.trang_thai === 'CANCELLED' && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-red-800">Đơn hàng đã bị hủy</h3>
+                          {selectedOrder.ly_do_huy && (
+                            <div className="mt-2 text-sm text-red-700">
+                              <p><strong>Lý do:</strong> {selectedOrder.ly_do_huy}</p>
+                            </div>
+                          )}
+                          {selectedOrder.closed_at && (
+                            <div className="mt-1 text-xs text-red-600">
+                              Thời gian hủy: {formatDateTime(selectedOrder.closed_at)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Header Info */}
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="grid grid-cols-2 gap-4">
@@ -489,20 +568,33 @@ export default function CurrentShiftOrders() {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t">
-                    <button
-                      onClick={() => handlePrintInvoice(selectedOrder)}
-                      className="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                    >
-                      🖨️ In hóa đơn
-                    </button>
-                    <button
-                      onClick={closeInvoiceModal}
-                      className="flex-1 py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-                    >
-                      Đóng
-                    </button>
-                  </div>
+                  {selectedOrder.trang_thai === 'PAID' && (
+                    <div className="flex gap-3 pt-4 border-t">
+                      <button
+                        onClick={() => handleViewPdf(selectedOrder)}
+                        className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        📄 Xem PDF
+                      </button>
+                      <button
+                        onClick={() => handlePrintInvoice(selectedOrder)}
+                        className="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                      >
+                        🖨️ In lại hóa đơn
+                      </button>
+                    </div>
+                  )}
+                  
+                  {selectedOrder.trang_thai !== 'PAID' && (
+                    <div className="flex gap-3 pt-4 border-t">
+                      <button
+                        onClick={closeInvoiceModal}
+                        className="w-full py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center text-red-600">

@@ -225,4 +225,22 @@ export const api = {
   updateKitchenLine: (lineId, action) => request('PATCH', `/kitchen/lines/${lineId}`, { action }),
   // Lấy danh sách món đã hoàn thành
   getKitchenCompleted: (limit = 20) => request('GET', `/kitchen/completed?limit=${limit}`),
+  
+  // ===== ANALYTICS & MANAGER DASHBOARD =====
+  // KPI tổng quan
+  getOverviewKPIs: (date) => request('GET', `/analytics/overview${date ? `?date=${date}` : ''}`),
+  // Biểu đồ doanh thu
+  getRevenueChart: (days = 7) => request('GET', `/analytics/revenue-chart?days=${days}`),
+  // Danh sách hóa đơn toàn thời gian
+  getAllInvoices: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    return request('GET', `/analytics/invoices?${params.toString()}`);
+  },
+  // Top món bán chạy
+  getTopMenuItems: (days = 7, limit = 10) => request('GET', `/analytics/top-menu-items?days=${days}&limit=${limit}`),
+  // Thống kê ca làm việc
+  getShiftStats: (days = 7) => request('GET', `/analytics/shift-stats?days=${days}`),
 };

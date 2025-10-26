@@ -18,6 +18,8 @@ export function getUser() {
   try {
     // Decode JWT payload (base64)
     const payload = JSON.parse(atob(token.split('.')[1]));
+    console.log('🔍 Auth - Decoded token payload:', payload);
+    console.log('🔍 Auth - Token roles:', payload.roles);
     return payload;
   } catch (error) {
     console.error('Error decoding token:', error);

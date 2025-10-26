@@ -1,0 +1,312 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../api.js';
+
+export default function ManagerDashboard() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [kpis, setKpis] = useState(null);
+  const [revenueChart, setRevenueChart] = useState(null);
+  const [invoices, setInvoices] = useState([]);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if user is still logged in
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('❌ No token found, redirecting to login');
+        navigate('/login');
+        return;
+      }
+      
+      console.log('🔍 Loading data...');
+      
+      // Load KPI data
+      const kpiResponse = await api.getOverviewKPIs();
+      console.log('✅ KPI data loaded:', kpiResponse);
+      setKpis(kpiResponse.data);
+      
+      // Load Revenue Chart
+      const revenueResponse = await api.getRevenueChart(7);
+      console.log('✅ Revenue data loaded:', revenueResponse);
+      setRevenueChart(revenueResponse.data);
+      
+      // Load Invoices
+      const invoicesResponse = await api.getAllInvoices({ limit: 10 });
+      console.log('✅ Invoices data loaded:', invoicesResponse);
+      setInvoices(invoicesResponse.data?.invoices || []);
+      
+    } catch (error) {
+      console.error('❌ Error loading data:', error);
+      
+      // If 401 error, redirect to login
+      if (error.response?.status === 401 || error.message?.includes('401')) {
+        console.log('❌ Unauthorized, redirecting to login');
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+      
+      // Show error message
+      alert('Không thể tải dữ liệu. Vui lòng thử lại sau.');
+      
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px', backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>Manager Dashboard</h1>
+          <p style={{ color: '#666', margin: '5px 0 0 0' }}>Tổng quan và phân tích hiệu suất quán</p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            style={{ padding: '10px 15px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '5px' }}
+          >
+            🏠 Dashboard
+          </button>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{ padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px' }}
+          >
+            🔄 Làm mới
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '20px' }}>
+          {[
+            { id: 'overview', name: '📊 Tổng quan', icon: '📊' },
+            { id: 'revenue', name: '💰 Doanh thu', icon: '💰' },
+            { id: 'invoices', name: '📄 Hóa đơn', icon: '📄' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '10px 15px',
+                borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: activeTab === tab.id ? '#3b82f6' : '#6b7280',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              {tab.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <div>
+          {/* KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#059669' }}>💰 Doanh thu hôm nay</h3>
+          <p style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
+            {kpis ? `${kpis.today_revenue?.toLocaleString('vi-VN')} VNĐ` : '1,250,000 VNĐ'}
+          </p>
+          <p style={{ color: '#666', margin: '5px 0 0 0', fontSize: '0.9rem' }}>
+            {kpis ? `${kpis.revenue_change > 0 ? '↗️' : '↘️'} ${Math.abs(kpis.revenue_change)}% so với hôm qua` : '↗️ 15% so với hôm qua'}
+          </p>
+        </div>
+        
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#3b82f6' }}>🛒 Đơn hàng đã thanh toán</h3>
+          <p style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
+            {kpis ? kpis.paid_orders : '45'}
+          </p>
+          <p style={{ color: '#666', margin: '5px 0 0 0', fontSize: '0.9rem' }}>
+            {kpis ? `${kpis.orders_change > 0 ? '↗️' : '↘️'} ${Math.abs(kpis.orders_change)}% so với hôm qua` : '↗️ 8% so với hôm qua'}
+          </p>
+        </div>
+        
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#f59e0b' }}>🪑 Bàn đang phục vụ</h3>
+          <p style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
+            {kpis ? `${kpis.active_tables} / ${kpis.total_tables}` : '8 / 20'}
+          </p>
+          <p style={{ color: '#666', margin: '5px 0 0 0', fontSize: '0.9rem' }}>
+            {kpis ? `${Math.round((kpis.active_tables / kpis.total_tables) * 100)}% sử dụng` : '40% sử dụng'}
+          </p>
+        </div>
+        
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#dc2626' }}>🍳 Món chờ bếp</h3>
+          <p style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
+            {kpis ? kpis.pending_items : '12'}
+          </p>
+          <p style={{ color: '#666', margin: '5px 0 0 0', fontSize: '0.9rem' }}>
+            Đang chờ xử lý
+          </p>
+        </div>
+      </div>
+      
+          {/* Load Data Button */}
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <button 
+              onClick={loadData}
+              disabled={loading}
+              style={{ 
+                padding: '10px 20px', 
+                backgroundColor: loading ? '#9ca3af' : '#10b981', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '5px',
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loading ? 'Đang tải...' : '📊 Tải dữ liệu thực'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'revenue' && (
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 20px 0', color: '#1f2937' }}>📈 Biểu đồ doanh thu 7 ngày gần nhất</h3>
+          {revenueChart ? (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+                  <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Tổng doanh thu</p>
+                  <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: '#059669' }}>
+                    {revenueChart.total_revenue?.toLocaleString('vi-VN')} VNĐ
+                  </p>
+                </div>
+                <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+                  <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Tại bàn</p>
+                  <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                    {revenueChart.dine_in_revenue?.toLocaleString('vi-VN')} VNĐ
+                  </p>
+                </div>
+                <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+                  <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Mang đi</p>
+                  <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: '#f59e0b' }}>
+                    {revenueChart.takeaway_revenue?.toLocaleString('vi-VN')} VNĐ
+                  </p>
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                <p style={{ color: '#6b7280' }}>📊 Biểu đồ sẽ được hiển thị ở đây</p>
+                <p style={{ color: '#9ca3af', fontSize: '14px' }}>Dữ liệu: {revenueChart.days?.length || 0} ngày</p>
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <p style={{ color: '#6b7280' }}>Chưa có dữ liệu doanh thu</p>
+              <button 
+                onClick={loadData}
+                style={{ 
+                  padding: '8px 16px', 
+                  backgroundColor: '#3b82f6', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Tải dữ liệu
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'invoices' && (
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ margin: '0 0 20px 0', color: '#1f2937' }}>📄 Danh sách hóa đơn gần nhất</h3>
+          {invoices.length > 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f9fafb' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>ID</th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Bàn</th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Tổng tiền</th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Trạng thái</th>
+                    <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Thời gian</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.slice(0, 10).map((invoice) => (
+                    <tr key={invoice.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '12px', fontSize: '14px' }}>#{invoice.id}</td>
+                      <td style={{ padding: '12px', fontSize: '14px' }}>
+                        {invoice.table_name || 'Mang đi'}
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#059669' }}>
+                        {invoice.total_amount?.toLocaleString('vi-VN')} VNĐ
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '14px' }}>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          backgroundColor: invoice.status === 'PAID' ? '#dcfce7' : '#fef3c7',
+                          color: invoice.status === 'PAID' ? '#166534' : '#92400e'
+                        }}>
+                          {invoice.status === 'PAID' ? '✅ Đã thanh toán' : '⏳ Chờ thanh toán'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '14px', color: '#6b7280' }}>
+                        {new Date(invoice.created_at).toLocaleString('vi-VN')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <p style={{ color: '#6b7280' }}>Chưa có dữ liệu hóa đơn</p>
+              <button 
+                onClick={loadData}
+                style={{ 
+                  padding: '8px 16px', 
+                  backgroundColor: '#3b82f6', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Tải dữ liệu
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Navigation buttons */}
+      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+        <button 
+          onClick={() => navigate('/dashboard')}
+          style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px' }}
+        >
+          💰 Đi tới trang Thu ngân
+        </button>
+        <button 
+          onClick={() => navigate('/kitchen')}
+          style={{ padding: '10px 20px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '5px' }}
+        >
+          🍳 Đi tới trang Bếp
+        </button>
+      </div>
+    </div>
+  );
+}

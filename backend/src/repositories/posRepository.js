@@ -199,7 +199,14 @@ export default {
   async setOrderStatus(orderId, status, reason = null) {
     const sql = `
       UPDATE don_hang
-      SET trang_thai = $2, ly_do_huy = $3
+      SET 
+        trang_thai = $2, 
+        ly_do_huy = $3,
+        closed_at = CASE 
+          WHEN $2 IN ('PAID', 'CANCELLED') AND closed_at IS NULL 
+          THEN NOW() 
+          ELSE closed_at 
+        END
       WHERE id = $1
       RETURNING *;
     `;
@@ -588,13 +595,29 @@ export default {
       LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
       LEFT JOIN users u ON u.user_id = dh.nhan_vien_id
       LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
-      WHERE dh.ca_lam_id = $1
-         OR (dh.nhan_vien_id = (SELECT nhan_vien_id FROM ca_lam WHERE id = $1) 
-             AND dh.opened_at >= (SELECT started_at FROM ca_lam WHERE id = $1)
-             AND (dh.closed_at IS NULL OR dh.closed_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1)))
+      WHERE 
+        -- Đơn đã thanh toán (PAID): lọc theo thời gian thanh toán (closed_at) trong khoảng ca
+        (dh.trang_thai = 'PAID' 
+         AND dh.closed_at >= (SELECT started_at FROM ca_lam WHERE id = $1)
+         AND dh.closed_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1))
+        OR
+        -- Đơn chưa thanh toán (OPEN): hiển thị tất cả đơn mở trước hoặc trong ca hiện tại
+        -- (đơn được tạo trước khi ca kết thúc và chưa bị đóng/hủy)
+        (dh.trang_thai = 'OPEN'
+         AND dh.opened_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1))
+        OR
+        -- Đơn đã hủy (CANCELLED): lọc theo thời gian hủy (closed_at) trong khoảng ca
+        (dh.trang_thai = 'CANCELLED'
+         AND dh.closed_at >= (SELECT started_at FROM ca_lam WHERE id = $1)
+         AND dh.closed_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1))
       GROUP BY dh.id, dh.ban_id, dh.order_type, dh.trang_thai, dh.opened_at, 
                dh.closed_at, dh.ly_do_huy, b.ten_ban, kv.ten, u.full_name
-      ORDER BY dh.opened_at DESC
+      ORDER BY 
+        CASE 
+          WHEN dh.trang_thai = 'PAID' THEN dh.closed_at
+          WHEN dh.trang_thai = 'CANCELLED' THEN dh.closed_at
+          ELSE dh.opened_at
+        END DESC
     `;
     const { rows } = await pool.query(sql, [shiftId]);
     return rows;

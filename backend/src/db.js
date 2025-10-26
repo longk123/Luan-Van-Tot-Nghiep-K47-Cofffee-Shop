@@ -25,6 +25,8 @@ const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '123456',
   database: process.env.DB_NAME || 'coffee_shop',
+  // Cấu hình timezone cho Việt Nam
+  options: '-c timezone=Asia/Ho_Chi_Minh'
 });
 
 export { pool };

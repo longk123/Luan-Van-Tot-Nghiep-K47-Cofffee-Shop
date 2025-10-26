@@ -6,7 +6,12 @@ import ShiftBadge from '../components/ShiftBadge.jsx';
 
 export default function AuthedLayout({ children, shift }) {
   const token = getToken();
-  if (!token) return <Navigate to="/login" replace />;
+  console.log('🔍 AuthedLayout - Token:', token ? 'exists' : 'missing');
+  
+  if (!token) {
+    console.log('❌ AuthedLayout - No token, redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
   
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-gray-900">

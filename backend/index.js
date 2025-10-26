@@ -9,6 +9,9 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: join(__dirname, '.env') });
 
+// Set timezone to Vietnam
+process.env.TZ = 'Asia/Ho_Chi_Minh';
+
 import express from 'express';
 import cors from 'cors';
 
@@ -93,6 +96,12 @@ app.use('/api/v1', invoiceRouter);
 
 import kitchenRouter from './src/routes/kitchen.js'; // <— router bếp/pha chế (KDS)
 app.use('/api/v1/kitchen', kitchenRouter);
+
+import analyticsRouter from './src/routes/analytics.js'; // <— router analytics cho Manager
+app.use('/api/v1/analytics', analyticsRouter);
+
+import inventoryRouter from './src/routes/inventory.js'; // <— router quản lý tồn kho
+app.use('/api/v1/inventory', inventoryRouter);
 
 import paymentSuccessRouter from './src/routes/paymentSuccess.js'; // <— router payment redirect
 app.use('/', paymentSuccessRouter);
