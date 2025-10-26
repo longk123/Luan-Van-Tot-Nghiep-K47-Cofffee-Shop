@@ -744,51 +744,6 @@ export default function ManagerDashboard() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              
-              {/* Revenue Details Table */}
-              <div style={{ marginTop: '30px' }}>
-                <h4 style={{ margin: '0 0 15px 0', color: '#374151', fontSize: '16px', fontWeight: '600' }}>
-                  📋 Chi tiết doanh thu theo ngày
-                </h4>
-                
-                <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead style={{ backgroundColor: '#f9fafb' }}>
-                      <tr>
-                        <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Ngày</th>
-                        <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Tổng doanh thu</th>
-                        <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Tại bàn</th>
-                        <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Mang đi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const revenueData = revenueChart.labels?.map((label, index) => ({
-                          date: label,
-                          total: revenueChart.datasets?.[0]?.data?.[index] || 0,
-                          dineIn: revenueChart.datasets?.[1]?.data?.[index] || 0,
-                          takeaway: revenueChart.datasets?.[2]?.data?.[index] || 0
-                        })) || [];
-                        
-                        return revenueData.map((item) => (
-                          <tr key={item.date} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '12px', fontSize: '14px' }}>{item.date}</td>
-                            <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#059669', textAlign: 'right' }}>
-                              {item.total.toLocaleString('vi-VN')} VNĐ
-                            </td>
-                            <td style={{ padding: '12px', fontSize: '14px', color: '#3b82f6', textAlign: 'right' }}>
-                              {item.dineIn.toLocaleString('vi-VN')} VNĐ
-                            </td>
-                            <td style={{ padding: '12px', fontSize: '14px', color: '#f59e0b', textAlign: 'right' }}>
-                              {item.takeaway.toLocaleString('vi-VN')} VNĐ
-                            </td>
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px' }}>
