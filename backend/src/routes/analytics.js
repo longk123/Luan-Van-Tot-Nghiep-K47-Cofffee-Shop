@@ -44,4 +44,11 @@ router.get('/top-menu-items', analyticsController.getTopMenuItems);
  */
 router.get('/shift-stats', analyticsController.getShiftStats);
 
+/**
+ * @route GET /api/v1/analytics/profit-report
+ * @desc Lấy báo cáo lợi nhuận chi tiết (bao gồm giá vốn topping)
+ * @access Manager, Admin
+ */
+router.get('/profit-report', analyticsController.getProfitReport);
+
 export default router;

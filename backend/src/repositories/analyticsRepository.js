@@ -331,5 +331,28 @@ export default {
     
     const { rows } = await query(sql);
     return rows;
+  },
+
+  /**
+   * Lấy báo cáo lợi nhuận từ view v_profit_with_topping_cost
+   */
+  async getProfitReport({ startDate, endDate }) {
+    const sql = `
+      SELECT 
+        order_id,
+        closed_at,
+        doanh_thu,
+        gia_von_mon,
+        gia_von_topping,
+        tong_gia_von,
+        loi_nhuan
+      FROM v_profit_with_topping_cost
+      WHERE closed_at::date >= $1::date
+        AND closed_at::date <= $2::date
+      ORDER BY closed_at DESC
+    `;
+    
+    const { rows } = await query(sql, [startDate, endDate]);
+    return rows;
   }
 };

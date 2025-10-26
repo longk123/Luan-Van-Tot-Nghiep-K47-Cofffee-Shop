@@ -188,6 +188,66 @@ class AnalyticsService {
       throw error;
     }
   }
+
+  /**
+   * Lấy báo cáo lợi nhuận chi tiết
+   */
+  async getProfitReport({ startDate, endDate, includeTopping = true }) {
+    try {
+      const data = await analyticsRepository.getProfitReport({
+        startDate,
+        endDate
+      });
+      
+      // Tính tổng
+      const summary = {
+        totalRevenue: 0,
+        totalCostMon: 0,
+        totalCostTopping: 0,
+        totalCost: 0,
+        totalProfit: 0,
+        totalOrders: data.length,
+        margin: 0
+      };
+      
+      const details = data.map(order => {
+        const revenue = Number(order.doanh_thu || 0);
+        const costMon = Number(order.gia_von_mon || 0);
+        const costTopping = includeTopping ? Number(order.gia_von_topping || 0) : 0;
+        const totalCost = costMon + costTopping;
+        const profit = revenue - totalCost;
+        const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+        
+        // Cộng dồn vào summary
+        summary.totalRevenue += revenue;
+        summary.totalCostMon += costMon;
+        summary.totalCostTopping += costTopping;
+        summary.totalCost += totalCost;
+        summary.totalProfit += profit;
+        
+        return {
+          orderId: order.order_id,
+          closedAt: order.closed_at,
+          revenue,
+          costMon,
+          costTopping,
+          totalCost,
+          profit,
+          margin
+        };
+      });
+      
+      // Tính margin tổng
+      summary.margin = summary.totalRevenue > 0 
+        ? (summary.totalProfit / summary.totalRevenue) * 100 
+        : 0;
+      
+      return { summary, details };
+    } catch (error) {
+      console.error('Error getting profit report:', error);
+      throw error;
+    }
+  }
 }
 
 export default new AnalyticsService();

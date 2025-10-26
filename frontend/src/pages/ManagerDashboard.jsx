@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ProfitReport from '../components/manager/ProfitReport';
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -463,6 +464,7 @@ export default function ManagerDashboard() {
           {[
             { id: 'overview', name: '📊 Tổng quan', icon: '📊' },
             { id: 'revenue', name: '💰 Doanh thu', icon: '💰' },
+            { id: 'profit', name: '📈 Lợi nhuận', icon: '📈' },
             { id: 'invoices', name: '📄 Hóa đơn', icon: '📄' }
           ].map((tab) => (
             <button
@@ -689,6 +691,10 @@ export default function ManagerDashboard() {
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'profit' && (
+        <ProfitReport />
       )}
 
       {activeTab === 'invoices' && (

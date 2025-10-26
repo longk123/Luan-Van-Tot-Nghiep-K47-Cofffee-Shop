@@ -98,6 +98,25 @@ class AnalyticsController {
       data: shifts
     });
   });
+
+  /**
+   * GET /api/v1/analytics/profit-report
+   * Lấy báo cáo lợi nhuận chi tiết (bao gồm giá vốn topping)
+   */
+  getProfitReport = asyncHandler(async (req, res) => {
+    const { startDate, endDate, includeTopping = true } = req.query;
+    
+    const report = await analyticsService.getProfitReport({
+      startDate,
+      endDate,
+      includeTopping: includeTopping === 'true'
+    });
+    
+    res.json({
+      success: true,
+      data: report
+    });
+  });
 }
 
 export default new AnalyticsController();
