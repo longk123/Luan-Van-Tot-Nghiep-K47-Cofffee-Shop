@@ -1,72 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 
-export default function ProfitReport() {
+export default function ProfitReport({ startDate: propStartDate, endDate: propEndDate }) {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
-  const [timeRange, setTimeRange] = useState('today');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20; // Hiển thị 20 đơn mỗi trang
 
-  // Khởi tạo ngày
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setStartDate(today);
-    setEndDate(today);
-  }, []);
+  // Sử dụng props từ parent component
+  const startDate = propStartDate;
+  const endDate = propEndDate;
 
   useEffect(() => {
     if (startDate && endDate) {
       fetchReport();
     }
-  }, [timeRange, startDate, endDate]);
+  }, [startDate, endDate]);
 
   const fetchReport = async () => {
+    if (!startDate || !endDate) {
+      console.warn('⚠️ startDate or endDate is empty, skipping fetch');
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Gọi API lấy báo cáo lợi nhuận
-      const response = await api.get('/analytics/profit-report', {
-        params: { 
-          startDate, 
-          endDate,
-          includeTopping: true 
-        }
-      });
-      setReportData(response.data);
+      console.log('🔍 Fetching profit report with params:', { startDate, endDate });
+      
+      // Gọi API lấy báo cáo lợi nhuận - gửi params trực tiếp trong URL
+      const url = `/analytics/profit-report?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&includeTopping=true`;
+      console.log('🔗 Full URL:', url);
+      
+      const response = await api.get(url);
+      
+      console.log('📊 Full API response:', response);
+      console.log('📊 response.data:', response.data);
+      
+      // Interceptor đã unwrap { success, data } thành chỉ còn data
+      const reportResult = response.data; // FIX: Không phải response.data.data
+      console.log('✅ Setting reportData to:', reportResult);
+      console.log('📋 Details count:', reportResult?.details?.length);
+      
+      setReportData(reportResult);
+      
+      console.log('✅ reportData set complete');
     } catch (error) {
-      console.error('Error fetching profit report:', error);
+      console.error('❌ Error fetching profit report:', error);
+      console.error('❌ Error response:', error.response);
       alert('Lỗi tải báo cáo: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleTimeRangeChange = (range) => {
-    setTimeRange(range);
-    const today = new Date();
-    
-    switch (range) {
-      case 'today':
-        const todayStr = today.toISOString().split('T')[0];
-        setStartDate(todayStr);
-        setEndDate(todayStr);
-        break;
-      case 'week':
-        const weekAgo = new Date(today);
-        weekAgo.setDate(today.getDate() - 7);
-        setStartDate(weekAgo.toISOString().split('T')[0]);
-        setEndDate(today.toISOString().split('T')[0]);
-        break;
-      case 'month':
-        const monthAgo = new Date(today);
-        monthAgo.setMonth(today.getMonth() - 1);
-        setStartDate(monthAgo.toISOString().split('T')[0]);
-        setEndDate(today.toISOString().split('T')[0]);
-        break;
-      case 'custom':
-        // Giữ nguyên giá trị hiện tại
-        break;
     }
   };
 
@@ -92,7 +76,7 @@ export default function ProfitReport() {
   if (!reportData) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-500">Chọn khoảng thời gian để xem báo cáo</div>
+        <div className="text-gray-500">Đang tải dữ liệu...</div>
       </div>
     );
   }
@@ -100,82 +84,7 @@ export default function ProfitReport() {
   const { summary, details } = reportData;
 
   return (
-    <div className="space-y-6">
-      {/* Header & Filters */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <h2 className="text-xl font-bold text-gray-800">Báo cáo Lợi nhuận</h2>
-          
-          {/* Time range selector */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleTimeRangeChange('today')}
-              className={`px-3 py-1 rounded ${
-                timeRange === 'today' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Hôm nay
-            </button>
-            <button
-              onClick={() => handleTimeRangeChange('week')}
-              className={`px-3 py-1 rounded ${
-                timeRange === 'week' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              7 ngày
-            </button>
-            <button
-              onClick={() => handleTimeRangeChange('month')}
-              className={`px-3 py-1 rounded ${
-                timeRange === 'month' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              30 ngày
-            </button>
-            <button
-              onClick={() => handleTimeRangeChange('custom')}
-              className={`px-3 py-1 rounded ${
-                timeRange === 'custom' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Tùy chỉnh
-            </button>
-          </div>
-
-          {/* Date inputs */}
-          {timeRange === 'custom' && (
-            <div className="flex gap-2 items-center">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="border rounded px-2 py-1"
-              />
-              <span className="text-gray-500">đến</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border rounded px-2 py-1"
-              />
-              <button
-                onClick={fetchReport}
-                className="px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Xem
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="space-y-6">{/* Bỏ header filter riêng - dùng chung filter ở đầu trang */}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -269,6 +178,32 @@ export default function ProfitReport() {
       {/* Details Table */}
       {showDetails && details && details.length > 0 && (
         <div className="bg-white rounded-lg shadow overflow-hidden">
+          {/* Pagination info */}
+          <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <div className="text-sm text-gray-700">
+              Hiển thị {Math.min((currentPage - 1) * itemsPerPage + 1, details.length)} - {Math.min(currentPage * itemsPerPage, details.length)} trong tổng số {details.length} đơn hàng
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                ← Trước
+              </button>
+              <span className="px-3 py-1 text-sm">
+                Trang {currentPage} / {Math.ceil(details.length / itemsPerPage)}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(details.length / itemsPerPage), p + 1))}
+                disabled={currentPage >= Math.ceil(details.length / itemsPerPage)}
+                className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Sau →
+              </button>
+            </div>
+          </div>
+          
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -281,6 +216,9 @@ export default function ProfitReport() {
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Doanh thu
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Giảm giá
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Giá vốn món
@@ -300,7 +238,9 @@ export default function ProfitReport() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {details.map((order) => (
+                {details
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((order) => (
                   <tr key={order.orderId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       #{order.orderId}
@@ -310,6 +250,9 @@ export default function ProfitReport() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                       {formatCurrency(order.revenue)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600">
+                      {order.totalDiscount > 0 ? `-${formatCurrency(order.totalDiscount)}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
                       {formatCurrency(order.costMon)}

@@ -202,6 +202,11 @@ class AnalyticsService {
       // Tính tổng
       const summary = {
         totalRevenue: 0,
+        totalOriginalRevenue: 0,
+        totalDiscountLine: 0,
+        totalDiscountPromo: 0,
+        totalDiscountManual: 0,
+        totalDiscount: 0,
         totalCostMon: 0,
         totalCostTopping: 0,
         totalCost: 0,
@@ -211,6 +216,11 @@ class AnalyticsService {
       };
       
       const details = data.map(order => {
+        const originalRevenue = Number(order.doanh_thu_goc || 0);
+        const discountLine = Number(order.giam_gia_line || 0);
+        const discountPromo = Number(order.giam_gia_khuyen_mai || 0);
+        const discountManual = Number(order.giam_gia_thu_cong || 0);
+        const totalDiscount = Number(order.tong_giam_gia || 0);
         const revenue = Number(order.doanh_thu || 0);
         const costMon = Number(order.gia_von_mon || 0);
         const costTopping = includeTopping ? Number(order.gia_von_topping || 0) : 0;
@@ -219,6 +229,11 @@ class AnalyticsService {
         const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
         
         // Cộng dồn vào summary
+        summary.totalOriginalRevenue += originalRevenue;
+        summary.totalDiscountLine += discountLine;
+        summary.totalDiscountPromo += discountPromo;
+        summary.totalDiscountManual += discountManual;
+        summary.totalDiscount += totalDiscount;
         summary.totalRevenue += revenue;
         summary.totalCostMon += costMon;
         summary.totalCostTopping += costTopping;
@@ -228,6 +243,11 @@ class AnalyticsService {
         return {
           orderId: order.order_id,
           closedAt: order.closed_at,
+          originalRevenue,
+          discountLine,
+          discountPromo,
+          discountManual,
+          totalDiscount,
           revenue,
           costMon,
           costTopping,

@@ -11,8 +11,10 @@ export default function ManagerDashboard() {
   const [revenueChart, setRevenueChart] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
-  const [timeRange, setTimeRange] = useState('week'); // week, month, quarter, year
+  const [timeRange, setTimeRange] = useState('week'); // day, week, month, quarter, year, custom
   const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [invoicePage, setInvoicePage] = useState(1);
   const invoicesPerPage = 20;
   
@@ -75,6 +77,19 @@ export default function ManagerDashboard() {
           startDate: formatDate(yearStart),
           endDate: formatDate(yearEnd)
         };
+      case 'custom':
+        // Sử dụng customStartDate và customEndDate từ state
+        if (customStartDate && customEndDate) {
+          const start = new Date(customStartDate);
+          const end = new Date(customEndDate);
+          const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+          return {
+            days: daysDiff,
+            startDate: customStartDate,
+            endDate: customEndDate
+          };
+        }
+        return { days: 7 }; // Fallback nếu chưa chọn
       default:
         return { days: 7 };
     }
@@ -390,7 +405,8 @@ export default function ManagerDashboard() {
               { value: 'week', label: '📊 Tuần', icon: '📊' },
               { value: 'month', label: '📈 Tháng', icon: '📈' },
               { value: 'quarter', label: '📋 Quý', icon: '📋' },
-              { value: 'year', label: '🗓️ Năm', icon: '🗓️' }
+              { value: 'year', label: '🗓️ Năm', icon: '🗓️' },
+              { value: 'custom', label: '⚙️ Tùy chỉnh', icon: '⚙️' }
             ].map((option) => (
               <button
                 key={option.value}
@@ -413,23 +429,62 @@ export default function ManagerDashboard() {
             ))}
           </div>
           
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>
-              Ngày tham chiếu:
-            </label>
-            <input
-              type="date"
-              value={customDate}
-              onChange={(e) => setCustomDate(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px',
-                backgroundColor: 'white'
-              }}
-            />
-          </div>
+          {/* Custom date range inputs */}
+          {timeRange === 'custom' && (
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                Từ:
+              </label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
+              <label style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                Đến:
+              </label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
+            </div>
+          )}
+          
+          {/* Reference date for Quarter/Year */}
+          {(timeRange === 'quarter' || timeRange === 'year') && (
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                Ngày tham chiếu:
+              </label>
+              <input
+                type="date"
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
+            </div>
+          )}
           
           <button
             onClick={loadData}
@@ -694,7 +749,10 @@ export default function ManagerDashboard() {
       )}
 
       {activeTab === 'profit' && (
-        <ProfitReport />
+        <ProfitReport 
+          startDate={getTimeRangeParams(timeRange, customDate).startDate}
+          endDate={getTimeRangeParams(timeRange, customDate).endDate}
+        />
       )}
 
       {activeTab === 'invoices' && (
@@ -779,6 +837,7 @@ export default function ManagerDashboard() {
                   <tr style={{ backgroundColor: '#f9fafb' }}>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>ID</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Bàn</th>
+                    <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Giảm giá</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Tổng tiền</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Trạng thái</th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e5e7eb', fontSize: '14px', fontWeight: '600' }}>Thời gian</th>
@@ -791,6 +850,9 @@ export default function ManagerDashboard() {
                       <td style={{ padding: '12px', fontSize: '14px' }}>#{invoice.id}</td>
                       <td style={{ padding: '12px', fontSize: '14px' }}>
                         {invoice.order_type === 'TAKEAWAY' ? 'Mang đi' : (invoice.table?.name || 'Không xác định')}
+                      </td>
+                      <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#dc2626', textAlign: 'right' }}>
+                        {invoice.total_discount > 0 ? `-${invoice.total_discount?.toLocaleString('vi-VN')} VNĐ` : '-'}
                       </td>
                       <td style={{ padding: '12px', fontSize: '14px', fontWeight: '600', color: '#059669' }}>
                         {invoice.total_amount?.toLocaleString('vi-VN')} VNĐ

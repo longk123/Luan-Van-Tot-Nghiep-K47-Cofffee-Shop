@@ -104,12 +104,24 @@ class AnalyticsController {
    * Lấy báo cáo lợi nhuận chi tiết (bao gồm giá vốn topping)
    */
   getProfitReport = asyncHandler(async (req, res) => {
+    console.log('📊 Full request query:', req.query);
+    console.log('📊 Full request params:', req.params);
+    console.log('📊 Request URL:', req.url);
+    
     const { startDate, endDate, includeTopping = true } = req.query;
+    
+    console.log('📊 Profit report request:', { startDate, endDate, includeTopping });
     
     const report = await analyticsService.getProfitReport({
       startDate,
       endDate,
       includeTopping: includeTopping === 'true'
+    });
+    
+    console.log('📊 Profit report result:', {
+      totalOrders: report.summary?.totalOrders,
+      totalRevenue: report.summary?.totalRevenue,
+      detailsCount: report.details?.length
     });
     
     res.json({

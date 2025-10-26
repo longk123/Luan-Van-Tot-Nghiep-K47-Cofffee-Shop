@@ -244,6 +244,11 @@ export default {
         COALESCE(settlement.payments_refunded, 0) AS payments_refunded,
         COALESCE(settlement.payments_net, 0) AS payments_net,
         COALESCE(settlement.amount_due, 0) AS amount_due,
+        -- Discount information
+        COALESCE(money.line_discounts_total, 0) AS line_discounts_total,
+        COALESCE(money.promo_total, 0) AS promo_total,
+        COALESCE(money.manual_discount, 0) AS manual_discount,
+        (COALESCE(money.line_discounts_total, 0) + COALESCE(money.promo_total, 0) + COALESCE(money.manual_discount, 0)) AS total_discount,
         -- Item count
         (SELECT COUNT(*) FROM don_hang_chi_tiet WHERE don_hang_id = o.id) AS item_count
       FROM don_hang o
@@ -252,6 +257,7 @@ export default {
       LEFT JOIN users u ON u.user_id = o.nhan_vien_id
       LEFT JOIN ca_lam ca ON ca.id = o.ca_lam_id
       LEFT JOIN v_order_settlement settlement ON settlement.order_id = o.id
+      LEFT JOIN v_order_money_totals money ON money.order_id = o.id
       WHERE ${whereConditions.join(' AND ')}
       ORDER BY o.opened_at DESC
       LIMIT $${paramCount - 1} OFFSET $${paramCount}
@@ -341,6 +347,11 @@ export default {
       SELECT 
         order_id,
         closed_at,
+        doanh_thu_goc,
+        giam_gia_line,
+        giam_gia_khuyen_mai,
+        giam_gia_thu_cong,
+        tong_giam_gia,
         doanh_thu,
         gia_von_mon,
         gia_von_topping,
