@@ -665,31 +665,58 @@ export default function OrderDrawer({
   }
 
   const panel = (
-    <div className="h-full bg-white shadow-2xl p-4 flex flex-col overflow-auto" style={{ width }}>
-      <div className="flex items-center justify-between">
+    <div className="h-full bg-white shadow-2xl p-6 flex flex-col overflow-auto scrollbar-thin border-l-4 border-[#c9975b]" style={{ width }}>
+      <div className="flex items-center justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">
-              {!localOrder ? 'Đơn hàng' : (localOrder.order_type === 'TAKEAWAY' ? 'Mang đi' : `Bàn ${localOrder.ban_id || ''}`)} {orderId ? `– Đơn #${orderId}` : ''}
-            </h2>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
+              <div className="relative w-10 h-10 bg-gradient-to-br from-[#c9975b] via-[#a8824f] to-[#8B6F47] rounded-xl flex items-center justify-center shadow-lg">
+                {localOrder?.order_type === 'TAKEAWAY' ? (
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                )}
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {!localOrder ? 'Đơn hàng' : (localOrder.order_type === 'TAKEAWAY' ? 'Mang đi' : `Bàn ${localOrder.ban_id || ''}`)}
+              </h2>
+              {orderId && <p className="text-sm text-gray-600 font-medium">Đơn #{orderId}</p>}
+            </div>
             <div className="flex items-center gap-2">
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+              <span className={`text-xs px-3 py-1.5 rounded-lg font-bold shadow-md ${
                 isPaid 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-amber-100 text-amber-700'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' 
+                  : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white'
               }`}>
                 {isPaid ? 'PAID' : (localOrder?.status || localOrder?.trang_thai || 'OPEN')}
               </span>
               {hasPendingItems && (
-                <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-amber-200 text-amber-900 animate-pulse">
-                  ⏸️ CHƯA XÁC NHẬN
+                <span className="text-xs px-3 py-1.5 rounded-lg font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md animate-pulse flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
+                  </svg>
+                  CHƯA XÁC NHẬN
                 </span>
               )}
             </div>
           </div>
           {shift && (
-            <div className="mt-1 text-xs text-gray-500">
-              Thu ngân: <b>{shift.nhan_vien?.full_name}</b> • {new Date(shift.started_at).toLocaleTimeString()}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
+              <svg className="w-4 h-4 text-[#c9975b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-xs text-gray-700">
+                <span className="font-semibold">{shift.nhan_vien?.full_name}</span>
+                <span className="mx-1.5 text-gray-400">•</span>
+                <span className="text-gray-600">{new Date(shift.started_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+              </span>
             </div>
           )}
         </div>
@@ -697,43 +724,49 @@ export default function OrderDrawer({
           <button 
             onClick={handleCloseDrawer}
             disabled={hasPendingItems}
-            title={hasPendingItems ? 'Vui lòng xác nhận đơn trước khi quay lại' : 'Quay lại'}
-            className={`p-2 border rounded-full transition-colors ml-2 outline-none focus:outline-none ${
+            title={hasPendingItems ? 'Vui lòng xác nhận đơn trước khi quay lại' : 'Đóng'}
+            className={`p-2.5 border-2 rounded-xl transition-all duration-300 ml-3 outline-none focus:outline-none shadow-lg ${
               hasPendingItems 
                 ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
-                : 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-700 hover:text-amber-800'
+                : 'bg-gradient-to-r from-red-500 to-rose-600 border-red-400 text-white hover:from-red-600 hover:to-rose-700 hover:shadow-xl hover:-translate-y-0.5'
             }`}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
       </div>
 
       {isPaid && (
-        <div className="mx-0 mb-2 rounded-xl bg-green-50 text-green-700 px-3 py-2 text-sm">
-          Đơn đã thanh toán. Không thể thêm/sửa món.
+        <div className="mx-0 mb-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 text-green-700 px-4 py-3 text-sm font-semibold shadow-sm flex items-center gap-2">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Đơn đã thanh toán. Không thể thêm/sửa món.</span>
         </div>
       )}
       
       {hasPendingItems && !isPaid && (
-        <div className="mx-0 mb-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 text-sm flex items-center gap-2">
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className="mx-0 mb-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 text-amber-700 px-4 py-3 text-sm font-semibold shadow-sm flex items-center gap-2">
+          <svg className="w-5 h-5 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <span>Vui lòng xác nhận đơn trước khi quay lại</span>
         </div>
       )}
 
-      <div className="mt-4">
+      <div className="mt-4 flex-1">
         {loading ? (
-          <div className="p-4 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
-            <p className="mt-2 text-gray-500 text-sm">Đang tải...</p>
+          <div className="p-8 text-center">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 border-4 border-[#c9975b]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-[#c9975b] rounded-full animate-spin"></div>
+            </div>
+            <p className="text-gray-600 text-sm font-medium">Đang tải...</p>
           </div>
         ) : items.length > 0 ? (
-          <div className="space-y-2 p-2">
+          <div className="space-y-3 pb-4">
             {items.map((line) => (
               <LineItemWithOptions
                 key={line.line_id}
@@ -747,12 +780,17 @@ export default function OrderDrawer({
             ))}
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-500">
-            <svg className="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
-            <p className="text-sm">Chưa có món nào</p>
-            <p className="text-xs text-gray-400 mt-1">Thêm món từ menu bên trái</p>
+          <div className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-amber-200 rounded-full blur-2xl opacity-30 animate-pulse"></div>
+              <div className="relative w-24 h-24 bg-gradient-to-br from-amber-100 via-orange-50 to-amber-200 rounded-full flex items-center justify-center shadow-xl border-4 border-white">
+                <svg className="w-12 h-12 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-lg font-bold text-gray-800 mb-2">Chưa có món nào</p>
+            <p className="text-sm text-gray-600 text-center max-w-xs leading-relaxed">Thêm món từ menu bên trái để bắt đầu đơn hàng</p>
           </div>
         )}
       </div>
@@ -763,23 +801,35 @@ export default function OrderDrawer({
           <div className="mb-3 flex items-center gap-2 text-xs flex-wrap">
             <span className="text-gray-500">{items.length} ly:</span>
             {items.filter(i => i.trang_thai_che_bien === 'PENDING').length > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
-                ⏸️ {items.filter(i => i.trang_thai_che_bien === 'PENDING').length} chưa xác nhận
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {items.filter(i => i.trang_thai_che_bien === 'PENDING').length} chưa xác nhận
               </span>
             )}
             {items.filter(i => i.trang_thai_che_bien === 'QUEUED').length > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                ⏳ {items.filter(i => i.trang_thai_che_bien === 'QUEUED').length} chờ
+              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {items.filter(i => i.trang_thai_che_bien === 'QUEUED').length} chờ
               </span>
             )}
             {items.filter(i => i.trang_thai_che_bien === 'MAKING').length > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                🔥 {items.filter(i => i.trang_thai_che_bien === 'MAKING').length} làm
+              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/>
+                </svg>
+                {items.filter(i => i.trang_thai_che_bien === 'MAKING').length} làm
               </span>
             )}
             {items.filter(i => i.trang_thai_che_bien === 'DONE').length > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                ✅ {items.filter(i => i.trang_thai_che_bien === 'DONE').length} xong
+              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {items.filter(i => i.trang_thai_che_bien === 'DONE').length} xong
               </span>
             )}
           </div>
@@ -790,7 +840,7 @@ export default function OrderDrawer({
           <div className="mb-2">
             <button
               onClick={() => setShowPromoSection(!showPromoSection)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors text-sm font-medium text-amber-700 outline-none focus:outline-none"
+              className="w-full flex items-center justify-between px-3 py-2 bg-[#FEF7ED] hover:bg-[#FAF5EF] border border-[#d4a574] rounded-lg transition-colors text-sm font-medium text-[#8B6F47] outline-none focus:outline-none"
             >
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -798,7 +848,7 @@ export default function OrderDrawer({
                 </svg>
                 Khuyến mãi & Giảm giá
                 {(promotions.length > 0 || (moneySummary?.manual_discount > 0)) ? (
-                  <span className="px-1.5 py-0.5 text-xs bg-amber-600 text-white rounded-full">
+                  <span className="px-1.5 py-0.5 text-xs bg-[#c9975b] text-white rounded-full">
                     {promotions.length + (moneySummary?.manual_discount > 0 ? 1 : 0)}
                   </span>
                 ) : null}
@@ -812,12 +862,15 @@ export default function OrderDrawer({
               {/* Nút gợi ý khuyến mãi */}
               <button
                 onClick={handleShowPromotions}
-                className="w-full px-3 py-2 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border-2 border-purple-200 rounded-lg text-sm font-semibold text-purple-700 transition-all outline-none focus:outline-none flex items-center justify-center gap-2"
+                className="w-full px-3 py-2 bg-gradient-to-r from-[#FEF7ED] to-[#FAF5EF] hover:from-[#FAF5EF] hover:to-[#F5EFE7] border-2 border-[#d4a574] rounded-lg text-sm font-semibold text-[#8B6F47] transition-all outline-none focus:outline-none flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                 </svg>
-                💡 Gợi ý mã khuyến mãi
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                Gợi ý mã khuyến mãi
               </button>
 
               <div className="flex gap-2">
@@ -833,7 +886,7 @@ export default function OrderDrawer({
                 <button
                   onClick={handleApplyPromo}
                   disabled={!promoCode.trim() || applyingPromo}
-                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors outline-none focus:outline-none"
+                  className="px-3 py-1.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 outline-none focus:outline-none"
                 >
                   {applyingPromo ? '...' : 'Áp'}
                 </button>
@@ -861,9 +914,12 @@ export default function OrderDrawer({
 
               <button
                 onClick={() => setShowDiscountDialog(true)}
-                className="w-full px-2 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded text-xs font-medium text-blue-700 transition-colors outline-none focus:outline-none"
+                className="w-full px-3 py-2 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:-translate-y-0.5 transition-all text-sm font-bold outline-none focus:outline-none flex items-center justify-center gap-2 shadow-md"
               >
-                💰 Giảm thủ công
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Giảm thủ công
               </button>
             </div>
           </div>
@@ -917,7 +973,7 @@ export default function OrderDrawer({
                   <button
                     onClick={handleMoveTable}
                     disabled={!moveTableId}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 text-xs font-medium transition-colors outline-none focus:outline-none"
+                    className="px-3 py-1.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 text-xs font-medium transition-all duration-200 outline-none focus:outline-none"
                   >
                     Đổi
                   </button>
@@ -981,9 +1037,9 @@ export default function OrderDrawer({
             </div>
           )}
           
-          <div className="pt-2 border-t-2 border-amber-300 flex items-center justify-between">
-            <span className="font-bold text-amber-900">Tổng cộng:</span>
-            <span className="font-bold text-amber-600 text-2xl">
+          <div className="pt-2 border-t-2 border-amber-300 flex items-center justify-between mt-2">
+            <span className="font-bold text-amber-900 text-base">Tổng cộng:</span>
+            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600 text-2xl">
               {(moneySummary?.grand_total || summary?.subtotal || 0).toLocaleString()}đ
             </span>
           </div>
@@ -1034,15 +1090,18 @@ export default function OrderDrawer({
               <>
                 <button
                   onClick={handleConfirmOrder}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-3 rounded-xl border border-green-600 transition-all duration-200 font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+                  className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 hover:-translate-y-0.5 text-white py-3.5 px-4 rounded-xl border-2 border-green-400 transition-all duration-200 font-bold flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl outline-none focus:outline-none animate-pulse hover:animate-none"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  ✓ Xác nhận đơn → Gửi bếp
+                  Xác nhận đơn → Gửi bếp
                 </button>
-                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
-                  ⚠️ Vui lòng xác nhận đơn trước khi thanh toán
+                <p className="text-sm text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-lg p-2.5 text-center font-semibold flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  Vui lòng xác nhận đơn trước khi thanh toán
                 </p>
               </>
             )}
@@ -1051,20 +1110,38 @@ export default function OrderDrawer({
             <button
               onClick={() => setShowCancelDialog(true)}
               disabled={hasAnyConfirmedItems && hasItemsInProgress}
-              className="w-full bg-gradient-to-r from-red-50 to-red-100 text-red-700 py-3 px-3 rounded-xl border border-red-200 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-sm hover:from-red-100 hover:to-red-200 hover:border-red-300 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+              className={`w-full py-3.5 px-4 rounded-xl border-2 transition-all duration-300 font-bold flex items-center justify-center gap-2 shadow-lg outline-none focus:outline-none ${
+                hasAnyConfirmedItems && hasItemsInProgress
+                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-red-500 via-red-550 to-red-500 border-red-500 text-white hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-red-600 hover:border-red-500 hover:shadow-xl hover:-translate-y-0.5'
+              }`}
               title={
                 allItemsPending ? 'Hủy đơn hàng' :
                 hasAnyConfirmedItems && hasItemsInProgress ? 'Không thể hủy: Có món đang làm hoặc đã hoàn tất' : 
                 'Hủy đơn hàng'
               }
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              {hasAnyConfirmedItems && hasItemsInProgress ? '🔒 Không thể hủy' : 'Hủy đơn'}
+              {hasAnyConfirmedItems && hasItemsInProgress ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Không thể hủy
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Hủy đơn
+                </>
+              )}
             </button>
             {hasAnyConfirmedItems && hasItemsInProgress && (
-              <p className="text-xs text-red-600 text-center">
+              <p className="text-xs text-red-600 text-center font-semibold flex items-center justify-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
                 Có món đã xác nhận và đang làm/đã hoàn tất. Liên hệ bếp để hủy.
               </p>
             )}
@@ -1103,7 +1180,7 @@ export default function OrderDrawer({
                     });
                   }
                 }}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-3 rounded-xl border border-green-600 transition-all duration-200 font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:-translate-y-0.5 text-white py-3 px-3 rounded-xl border border-green-600 transition-all duration-200 font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -1156,7 +1233,7 @@ export default function OrderDrawer({
                   });
                 }
               }}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 px-3 rounded-xl border border-blue-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 hover:-translate-y-0.5 text-white py-3 px-3 rounded-xl border border-blue-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -1319,7 +1396,7 @@ export default function OrderDrawer({
                       <div className="flex-1">
                         {/* Mã và giảm giá */}
                         <div className="flex items-center gap-3 mb-2">
-                          <span className={`px-3 py-1.5 rounded-lg font-bold text-base ${
+                          <span className={`px-3 py-1.5 rounded-lg font-bold text-base shadow-md transition-transform hover:scale-105 ${
                             alreadyApplied 
                               ? 'bg-green-600 text-white' 
                               : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
@@ -1470,7 +1547,7 @@ export default function OrderDrawer({
             </button>
             <button
               onClick={handleApplyManualDiscount}
-              className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all hover:shadow-lg outline-none focus:outline-none"
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 hover:-translate-y-0.5 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg outline-none focus:outline-none"
             >
               Áp dụng
             </button>
@@ -1483,7 +1560,7 @@ export default function OrderDrawer({
   if (docked) {
     return (
       <>
-        <div className="fixed inset-y-0 right-0 z-40 pointer-events-none">
+        <div className="fixed inset-y-0 right-0 z-[1100] pointer-events-none">
           <div className="h-full pointer-events-auto">
             {panel}
           </div>
@@ -1515,7 +1592,7 @@ export default function OrderDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 flex">
+      <div className="fixed inset-0 z-[1100] flex">
         <div 
           className="flex-1 bg-black/30" 
           onClick={docked || hasPendingItems ? undefined : handleCloseDrawer}

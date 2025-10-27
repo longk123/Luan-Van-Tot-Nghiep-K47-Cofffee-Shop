@@ -14,27 +14,42 @@ export default function AuthedLayout({ children, shift }) {
   }
   
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-gray-900">
-      <header className="sticky top-0 z-10 bg-gradient-to-r from-[#FBEAD0] to-[#FFF8ED] backdrop-blur border-b">
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">☕</span>
-            <div className="flex flex-col">
-              <h1 className="font-semibold flex items-baseline gap-1">
-                <span style={{ color: '#A07B4A' }}>POS</span>
-                <span style={{ color: '#363636' }}>cà phê</span>
-              </h1>
-              <p className="text-sm" style={{ color: '#6B6B6B' }}>Hệ thống quản lý cà phê</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 text-gray-900">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 shadow-lg border-b border-gray-200/50">
+        <div className="mx-auto max-w-7xl px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Logo with enhanced glow effect */}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#c9975b] to-[#8B6F47] rounded-2xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                <div className="relative w-12 h-12 bg-gradient-to-br from-[#c9975b] via-[#a8824f] to-[#8B6F47] rounded-2xl flex items-center justify-center shadow-xl transform group-hover:scale-105 transition-transform">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Brand text with enhanced styling */}
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-extrabold tracking-tight">
+                  <span className="bg-gradient-to-r from-[#c9975b] via-[#a8824f] to-[#8B6F47] bg-clip-text text-transparent">POS</span>
+                  <span className="text-gray-800"> Cà Phê</span>
+                </h1>
+                <p className="text-xs text-gray-600 font-semibold flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                  Hệ thống quản lý chuyên nghiệp
+                </p>
+              </div>
             </div>
-          </div>
-          
-          {/* User Badge only - Shift info moved to main content */}
-          <div className="flex items-center gap-3">
-            <UserBadge />
+            
+            {/* User Badge */}
+            <div className="flex items-center gap-3">
+              <UserBadge />
+            </div>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
     </div>
   );
 }

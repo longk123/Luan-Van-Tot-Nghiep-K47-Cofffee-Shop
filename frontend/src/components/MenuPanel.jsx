@@ -10,6 +10,18 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Lock body scroll when dialog is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open || !item) return;
     
@@ -32,7 +44,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
   if (!open || !item) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
         <div className="px-6 py-4 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
           <h3 className="text-xl font-bold text-amber-900">{item.ten}</h3>
@@ -279,37 +291,45 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
   return (
     <div className="h-full flex flex-col">
       {/* Search */}
-      <div className="px-4 py-3 border-b border-amber-100 bg-amber-50">
-        <input
-          type="text"
-          placeholder="🔍 Tìm món..."
-          value={search}
-          onChange={handleSearch}
-          className="w-full bg-white border-2 border-amber-200 rounded-xl px-4 py-2.5 text-sm text-amber-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-all shadow-sm"
-        />
+      <div className="px-4 py-4 border-b-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Tìm món..."
+            value={search}
+            onChange={handleSearch}
+            className="w-full bg-white border-2 border-amber-300 rounded-xl pl-10 pr-4 py-3 text-sm text-amber-900 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-400 transition-all shadow-md hover:shadow-lg font-medium"
+          />
+        </div>
       </div>
 
       {/* Categories tabs */}
-      <div className="px-4 py-3 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50">
-        <div className="flex gap-2 overflow-x-auto">
+      <div className="px-4 py-3 border-b-2 border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => { setActiveCat(0); setSearching(false); setSearch(''); }}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all outline-none focus:outline-none shadow-sm ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex items-center gap-2 ${
               activeCat === 0 
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md' 
-                : 'bg-white text-amber-700 hover:bg-amber-100 border border-amber-200'
+                ? 'bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white shadow-lg scale-105 border-2 border-[#c9975b]' 
+                : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-2 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
             }`}
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
             Tất cả
           </button>
           {cats.map((c) => (
             <button
               key={c.id}
               onClick={() => { setActiveCat(c.id); setSearching(false); setSearch(''); }}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all outline-none focus:outline-none shadow-sm ${
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none ${
                 activeCat === c.id 
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md' 
-                  : 'bg-white text-amber-700 hover:bg-amber-100 border border-amber-200'
+                  ? 'bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white shadow-lg scale-105 border-2 border-[#c9975b]' 
+                  : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-2 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
               }`}
             >
               {c.ten}
@@ -319,7 +339,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
       </div>
 
       {/* Items grid */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-amber-50/50 to-white">
+      <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-amber-50/50 to-white scrollbar-thin">
         {loading ? (
           <div className="p-4 text-amber-600">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto mb-2"></div>
@@ -382,14 +402,28 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
                         if (adding) return;
                         setDialog({ open: true, item: m });
                       }}
-                      className={`w-full py-2.5 px-4 rounded-xl font-semibold text-base transition-all outline-none focus:outline-none text-center border-0 shadow-sm ${
+                      className={`w-full py-3 px-4 rounded-xl font-bold text-base transition-all duration-200 outline-none focus:outline-none text-center border-2 flex items-center justify-center gap-2 ${
                         disabled 
-                          ? 'bg-amber-200 text-amber-600 cursor-not-allowed' 
-                          : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white hover:shadow-md'
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-300' 
+                          : 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
                       } ${adding ? 'opacity-50' : ''}`}
                       style={{ overflow: 'visible', whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}
                     >
-                      {disabled ? '🔒 Đã thanh toán' : 'THÊM'}
+                      {disabled ? (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          Đã thanh toán
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                          Thêm
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

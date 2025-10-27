@@ -1,5 +1,5 @@
 // === src/pages/Dashboard.jsx ===
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { api } from '../api.js';
@@ -439,63 +439,106 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   }
 
   const showWorkpane = drawer.open; // Hiển thị menu khi có drawer mở (dù mode nào)
-  const rightPad = showWorkpane ? 640 : 0;
+  const drawerWidth = posMode ? 680 : 640;
+  const rightPad = showWorkpane ? drawerWidth + 16 : 0; // Thêm 16px khoảng cách để scrollbar nằm giữa
 
   return (
     <AuthedLayout shift={shift}>
+      <div style={{ marginRight: showWorkpane ? `${drawerWidth + 16}px` : '0' }}>
       {/* Header with area info */}
       {!posMode && !showWorkpane && (
         <>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold">
-                Khu vực <span className="text-sm text-gray-500 font-normal ml-2">{areas.length} khu vực</span>
-              </h2>
-              {shift && shift.id && (
-                <div className="mt-2 flex items-center gap-4 text-sm">
-                  <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
-                  </span>
-                  <span className="text-gray-500">
-                    Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
-                  </span>
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-6">
+              {/* Left: Area info */}
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-blue-500 rounded-xl blur-lg opacity-20"></div>
+                    <div className="relative w-12 h-12 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Quản lý Khu vực</h2>
+                    <p className="text-sm text-gray-600 font-medium flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                      {areas.length} khu vực đang hoạt động
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className="flex gap-2">
+                
+                {/* Shift info */}
+                {shift && shift.id && (
+                  <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-2 border-green-200 rounded-xl shadow-sm hover:shadow-md transition-all">
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+                        <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></div>
+                      </div>
+                      <span className="text-sm font-semibold text-green-800">
+                        Ca #{shift.id}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-600">•</span>
+                    <span className="text-sm text-gray-700">
+                      {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
+                    </span>
+                    <span className="text-sm text-gray-600">•</span>
+                    <span className="text-sm text-gray-500">
+                      {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit'
+                      }) : 'Invalid Date'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Action buttons - Redesigned with invert hover */}
+              <div className="flex flex-wrap gap-3 justify-end">
               {/* Badge đơn từ ca trước */}
               {transferredOrders.length > 0 && (
                 <button
                   onClick={() => setShowTransferredOrdersDialog(true)}
-                  className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2 animate-pulse"
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-2 border-amber-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-amber-600 hover:border-amber-500 hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 animate-pulse shadow-lg"
                 >
-                  ⚠️ {transferredOrders.length} đơn từ ca trước
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>{transferredOrders.length} đơn từ ca trước</span>
                 </button>
               )}
               <button
                 onClick={() => setShowReservationsList(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                className="px-4 py-2.5 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
               >
-                📋 Danh sách đặt bàn
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <span>Danh sách đặt bàn</span>
               </button>
               <button
                 onClick={() => setShowReservationPanel(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                className="px-4 py-2.5 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
               >
-                📅 Đặt bàn
-              </button>
-              <button
-                onClick={handleCreateTakeaway}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium outline-none focus:outline-none"
-              >
-                + Đơn mang đi
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>Đặt bàn</span>
               </button>
               <button
                 onClick={() => window.location.href = '/takeaway'}
-                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                className="px-4 py-2.5 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
               >
-                📦 DS Mang đi
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>DS Mang đi</span>
               </button>
               {canViewCurrentShiftOrders && (
                 <button
@@ -503,30 +546,41 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                     setShiftOrdersRefreshKey(prev => prev + 1);
                     setShowCurrentShiftOrders(true);
                   }}
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                  className="px-4 py-2.5 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
                 >
-                  📊 Lịch sử đơn
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span>Lịch sử đơn</span>
                 </button>
               )}
               {shift && shift.status === 'OPEN' ? (
                 <button
                   onClick={() => setShowCloseShiftModal(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                  className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-2 border-purple-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-700 hover:border-purple-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
                 >
-                  📊 Đóng ca
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Đóng ca</span>
                 </button>
               ) : (
                 <button
                   onClick={() => setShowOpenShiftModal(true)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2"
+                  className="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-2 border-green-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-green-700 hover:border-green-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
                 >
-                  🚀 Mở ca
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Mở ca</span>
                 </button>
               )}
             </div>
           </div>
+          </div>
           
-          <div className="mt-3">
+          {/* Area Tabs - Improved */}
+          <div className="mt-6">
             <AreaTabs areas={areas} activeId={activeArea} onChange={setActiveArea} />
           </div>
         </>
@@ -534,19 +588,18 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
 
       {/* Workpane (Menu + back button) - Hiển thị khi có đơn đang mở */}
       {showWorkpane && (
-        <div className="mb-4" style={{ paddingRight: rightPad }}>
+        <div className="mb-4">
           <div className="flex items-center justify-between">
             <button 
               disabled={drawerHasPendingItems}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-xl transition-colors outline-none focus:outline-none ${
+              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border-2 transition-all duration-200 outline-none focus:outline-none ${
                 drawerHasPendingItems
                   ? 'text-gray-400 bg-gray-100 border-gray-300 cursor-not-allowed'
-                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+                  : 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
               }`}
               title={drawerHasPendingItems ? 'Vui lòng xác nhận đơn trước khi quay lại' : undefined}
               onClick={() => {
                 if (drawerHasPendingItems) return;
-                
                 // Nếu là đơn mang đi chưa có món → Hỏi có hủy không
                 if (drawer.order?.order_type === 'TAKEAWAY' && !drawerHasItems) {
                   setTriggerCancelDialog(true);
@@ -561,12 +614,6 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               </svg>
               {posMode ? 'Danh sách bàn' : 'Quay lại'}
             </button>
-            <div className="text-sm text-gray-500">
-              {drawer.order?.order_type === 'TAKEAWAY' 
-                ? `Mang đi • Đơn #${drawer.order?.id}` 
-                : `Bàn ${drawer.order?.ban_id} • Đơn #${drawer.order?.id}`
-              }
-            </div>
           </div>
           
           <div className="mt-4">
@@ -945,6 +992,34 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
           📊 Trang quản lý
         </button>
       )}
+
+      {/* Floating Action Button - Đơn mang đi - ENHANCED */}
+      <div className="fixed bottom-6 right-6 z-[1000] group">
+        {/* Tooltip */}
+        <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
+          <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
+            Tạo đơn mang đi mới
+            <div className="absolute top-full right-6 -mt-1">
+              <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Button với glow effect */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
+          <button
+            onClick={handleCreateTakeaway}
+            className="relative w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 text-white rounded-full shadow-2xl hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
+            title="Tạo đơn mang đi mới"
+          >
+            <svg className="w-7 h-7 transition-transform group-hover:rotate-90 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      </div> {/* End of content wrapper with marginRight */}
     </AuthedLayout>
   );
 }

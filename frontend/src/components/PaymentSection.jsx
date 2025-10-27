@@ -22,6 +22,18 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
   // PayOS QR Panel state
   const [showPayOSPanel, setShowPayOSPanel] = useState(false);
 
+  // Lock body scroll when refund dialog is open
+  useEffect(() => {
+    if (showRefundDialog) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showRefundDialog]);
+
   useEffect(() => {
     loadPaymentMethods();
   }, [orderId]);
@@ -103,8 +115,13 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
       setSettlement(settlement);
       setPayments(paymentsData);
       
-      // Auto-fill amount = amount_due
-      setAmount(amountDue > 0 ? amountDue.toString() : '');
+      // Auto-fill amount = amount_due (chỉ khi amount đang rỗng)
+      setAmount(prev => {
+        // Nếu đang có giá trị (người dùng đã nhập), giữ nguyên
+        if (prev) return prev;
+        // Nếu rỗng, auto-fill với amountDue
+        return amountDue > 0 ? amountDue.toString() : '';
+      });
     } catch (error) {
       console.error('Error loading settlement:', error);
     }
@@ -280,23 +297,29 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
   const amountDue = settlement?.amount_due || 0;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Payment Summary - chỉ hiển thị khi có payments */}
       {settlement && (settlement.payments_captured > 0 || settlement.payments_refunded > 0) && (
-        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border-2 border-emerald-200">
-          <div className="space-y-2">
+        <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-5 border-2 border-emerald-300 shadow-sm">
+          <div className="space-y-2.5">
             {settlement.payments_captured > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-green-700">Đã thu:</span>
-                <span className="font-semibold text-green-600">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-semibold text-green-800">Đã thu:</span>
+                </div>
+                <span className="text-lg font-bold text-green-700">
                   {settlement.payments_captured?.toLocaleString()}đ
                 </span>
               </div>
             )}
             {settlement.payments_refunded > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-red-700">Đã hoàn:</span>
-                <span className="font-semibold text-red-600">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-sm font-semibold text-red-800">Đã hoàn:</span>
+                </div>
+                <span className="text-lg font-bold text-red-700">
                   -{settlement.payments_refunded?.toLocaleString()}đ
                 </span>
               </div>
@@ -307,30 +330,79 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
 
       {/* Payment form - chỉ hiển thị khi chưa thanh toán và còn phải trả */}
       {!isPaid && amountDue > 0 && (
-        <>
+        <div className="space-y-3">
           {/* Payment methods */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Phương thức</label>
+          <div className="bg-white rounded-xl p-3 border-2 border-gray-100 shadow-sm">
+            <label className="flex items-center gap-2 text-xs font-bold text-gray-900 mb-2 uppercase tracking-wide">
+              <div className="p-1 bg-amber-100 rounded-md">
+                <svg className="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              Phương thức thanh toán
+            </label>
             <div className="grid grid-cols-3 gap-2">
-              {paymentMethods.map(method => (
-                <button
-                  key={method.code}
-                  onClick={() => {
-                    setSelectedMethod(method.code);
-                    // Ẩn PayOS panel khi chọn method khác
-                    if (method.code !== 'ONLINE') {
-                      setShowPayOSPanel(false);
-                    }
-                  }}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all outline-none focus:outline-none ${
-                    selectedMethod === method.code
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {method.name}
-                </button>
-              ))}
+              {paymentMethods.map(method => {
+                const isSelected = selectedMethod === method.code;
+                const isCash = method.code === 'CASH';
+                const isOnline = method.code === 'ONLINE';
+                const isCard = method.code === 'CARD';
+                
+                return (
+                  <button
+                    key={method.code}
+                    onClick={() => {
+                      setSelectedMethod(method.code);
+                      // Ẩn PayOS panel khi chọn method khác
+                      if (method.code !== 'ONLINE') {
+                        setShowPayOSPanel(false);
+                      }
+                    }}
+                    className={`group relative overflow-hidden px-3 py-2.5 rounded-lg font-bold transition-all duration-200 outline-none focus:outline-none ${
+                      isSelected
+                        ? isCash
+                          ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-md shadow-green-500/25 scale-[1.02]'
+                          : isOnline
+                          ? 'bg-gradient-to-br from-[#d4a574] to-[#c9975b] text-white shadow-md shadow-[#c9975b]/25 scale-[1.02]'
+                          : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25 scale-[1.02]'
+                        : 'bg-gradient-to-br from-gray-50 to-gray-100 text-gray-700 border-2 border-gray-200 hover:border-[#d4a574] hover:shadow-sm hover:scale-[1.01]'
+                    }`}
+                  >
+                    {/* Animated background on hover */}
+                    {!isSelected && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#FEF7ED] to-[#FAF5EF] opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                    )}
+                    
+                    <div className="relative flex flex-col items-center gap-1">
+                      {isCash && (
+                        <svg className={`w-5 h-5 transition-transform group-hover:scale-110 ${isSelected ? 'text-white' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      )}
+                      {isOnline && (
+                        <svg className={`w-5 h-5 transition-transform group-hover:scale-110 ${isSelected ? 'text-white' : 'text-orange-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                      {isCard && (
+                        <svg className={`w-5 h-5 transition-transform group-hover:scale-110 ${isSelected ? 'text-white' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                      )}
+                      <span className="text-[10px] leading-tight font-bold">{method.name}</span>
+                    </div>
+                    
+                    {/* Checkmark indicator */}
+                    {isSelected && (
+                      <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-md">
+                        <svg className="w-2.5 h-2.5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
           
@@ -338,9 +410,21 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
           {selectedMethod === 'ONLINE' && !showPayOSPanel && (
             <button
               onClick={() => setShowPayOSPanel(true)}
-              className="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl"
+              className="group relative overflow-hidden w-full py-3 px-4 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl font-bold text-base transition-all duration-300 shadow-lg shadow-[#c9975b]/25 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] outline-none focus:outline-none"
             >
-              🌐 Tạo mã thanh toán online
+              {/* Animated shine effect */}
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+              
+              <div className="relative flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 9h6v6H9z" />
+                </svg>
+                <span>Tạo mã thanh toán online</span>
+                <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </div>
             </button>
           )}
           
@@ -358,31 +442,46 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
             />
           )}
 
-          {/* Amount input - ẩn khi đang hiển thị PayOS panel */}
+          {/* Amount display - read-only, ẩn khi đang hiển thị PayOS panel */}
           {!showPayOSPanel && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Số tiền còn phải trả</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Nhập số tiền..."
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border-2 border-amber-200 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-bold text-amber-900 mb-2 uppercase tracking-wide">
+                <div className="p-1 bg-amber-200 rounded-md">
+                  <svg className="w-3 h-3 text-amber-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                Số tiền thanh toán
+              </label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                  <span className="text-lg font-black text-amber-700">đ</span>
+                </div>
+                <div className="w-full pl-10 pr-3 py-3 text-xl font-bold border-2 border-amber-300 bg-amber-50/50 rounded-lg text-amber-900 cursor-not-allowed select-none">
+                  {amount || '0'}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Cash specific - ẩn khi đang hiển thị PayOS panel */}
           {!showPayOSPanel && selectedMethod === 'CASH' && (
-            <>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Khách đưa</label>
+            <div className="space-y-3">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border-2 border-green-200 shadow-sm">
+                <label className="flex items-center gap-2 text-xs font-bold text-green-900 mb-2 uppercase tracking-wide">
+                  <div className="p-1 bg-green-200 rounded-md">
+                    <svg className="w-3 h-3 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  Khách đưa
+                </label>
                 <input
                   type="number"
                   value={amountTendered}
                   onChange={(e) => setAmountTendered(e.target.value)}
                   placeholder="Số tiền khách đưa..."
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2.5 text-base font-bold border-2 border-green-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all placeholder:text-green-300"
                 />
                 {/* Quick buttons */}
                 <div className="grid grid-cols-4 gap-2 mt-2">
@@ -390,39 +489,60 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
                     <button
                       key={val}
                       onClick={() => setAmountTendered(val.toString())}
-                      className="px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium transition-colors outline-none focus:outline-none"
+                      className="group relative overflow-hidden px-2 py-2 bg-white hover:bg-gradient-to-br hover:from-[#FEF7ED] hover:to-[#FAF5EF] border-2 border-[#d4a574] hover:border-[#c9975b] rounded-lg text-xs font-bold text-[#8B6F47] transition-all duration-150 hover:shadow-md hover:scale-105 active:scale-95"
                     >
-                      {val / 1000}k
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#FAF5EF] to-[#F5EFE7] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <span className="relative">{val / 1000}k</span>
                     </button>
                   ))}
                 </div>
               </div>
               
               {change > 0 && (
-                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-blue-900">Tiền thừa:</span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      {change.toLocaleString()}đ
-                    </span>
+                <div className="relative overflow-hidden bg-gradient-to-br from-[#d4a574] to-[#c9975b] rounded-xl p-3 shadow-lg shadow-[#c9975b]/25">
+                  {/* Animated background pattern */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 left-0 w-full h-full" style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '15px 15px'}}></div>
+                  </div>
+                  
+                  <div className="relative flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-white/20 backdrop-blur-sm rounded-lg">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                      </div>
+                      <span className="text-xs font-bold text-white uppercase tracking-wide">Tiền thừa</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black text-white drop-shadow-md">
+                        {change.toLocaleString()}
+                      </span>
+                      <span className="text-sm font-bold text-white/90">đ</span>
+                    </div>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* Non-cash reference - chỉ hiển thị cho CARD */}
           {!showPayOSPanel && selectedMethod === 'CARD' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 border-2 border-blue-200 shadow-sm">
+              <label className="flex items-center gap-2 text-xs font-bold text-blue-900 mb-2 uppercase tracking-wide">
+                <div className="p-1 bg-blue-200 rounded-md">
+                  <svg className="w-3 h-3 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                </div>
                 Mã tham chiếu
               </label>
               <input
                 type="text"
                 value={txRef}
                 onChange={(e) => setTxRef(e.target.value)}
-                placeholder="MB-123456..."
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="VD: MB-123456..."
+                className="w-full px-3 py-2.5 text-base font-bold border-2 border-blue-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-blue-300"
               />
             </div>
           )}
@@ -432,12 +552,35 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
             <button
               onClick={handlePay}
               disabled={loading || !amount}
-              className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+              className="group relative overflow-hidden w-full py-3.5 px-6 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl font-black text-base transition-all duration-200 shadow-lg shadow-[#c9975b]/25 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] outline-none focus:outline-none"
             >
-              {loading ? 'Đang xử lý...' : '💵 Thu tiền'}
+              {/* Animated gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              
+              <div className="relative flex items-center justify-center gap-2.5">
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="uppercase tracking-wide">Đang xử lý...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span className="uppercase tracking-wide">Thu tiền</span>
+                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </>
+                )}
+              </div>
             </button>
           )}
-        </>
+        </div>
       )}
 
       {/* Payment history */}
@@ -536,7 +679,7 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
       
       {/* Refund Dialog */}
       {showRefundDialog && refundPayment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1200]">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Hoàn tiền</h3>
             

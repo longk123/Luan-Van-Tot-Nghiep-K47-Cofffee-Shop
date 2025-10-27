@@ -136,7 +136,7 @@ export default function OpenOrdersDialog({
           {isViewOnly ? (
             <button
               onClick={onClose}
-              className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors outline-none focus:outline-none"
+              className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 text-white rounded-xl font-semibold transition-all duration-200 outline-none focus:outline-none"
             >
               Đóng
             </button>
@@ -145,14 +145,14 @@ export default function OpenOrdersDialog({
               <button
                 onClick={onGoBack}
                 disabled={loading}
-                className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+                className="flex-1 py-3 px-4 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
               >
                 🔙 Quay lại xử lý
               </button>
               <button
                 onClick={onForceClose}
                 disabled={loading}
-                className="flex-1 py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
               >
                 {loading ? 'Đang xử lý...' : '➡️ Chuyển đơn sang ca sau'}
               </button>

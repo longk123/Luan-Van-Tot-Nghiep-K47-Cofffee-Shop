@@ -243,4 +243,39 @@ export const api = {
   getTopMenuItems: (days = 7, limit = 10) => request('GET', `/analytics/top-menu-items?days=${days}&limit=${limit}`),
   // Thống kê ca làm việc
   getShiftStats: (days = 7) => request('GET', `/analytics/shift-stats?days=${days}`),
+  
+  // ===== INVENTORY MANAGEMENT =====
+  // Lấy danh sách nguyên liệu
+  getIngredients: () => request('GET', '/inventory/ingredients'),
+  // Lấy chi tiết nguyên liệu
+  getIngredientById: (id) => request('GET', `/inventory/ingredients/${id}`),
+  // Lịch sử xuất kho
+  getExportHistory: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    return request('GET', `/inventory/export-history?${params.toString()}`);
+  },
+  // Lịch sử nhập kho
+  getImportHistory: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    return request('GET', `/inventory/import-history?${params.toString()}`);
+  },
+  // Cảnh báo tồn kho
+  getInventoryWarnings: () => request('GET', '/inventory/warnings'),
+  // Báo cáo tồn kho
+  getInventoryReport: () => request('GET', '/inventory/report'),
+  // Tính giá vốn món
+  calculateCost: (monId, bienTheId = null) => {
+    const params = new URLSearchParams();
+    params.set('mon_id', monId);
+    if (bienTheId) params.set('bien_the_id', bienTheId);
+    return request('GET', `/inventory/calculate-cost?${params.toString()}`);
+  },
+  // Nhập kho mới
+  importInventory: (data) => request('POST', '/inventory/import', data),
 };

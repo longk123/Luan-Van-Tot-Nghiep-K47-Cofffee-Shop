@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ProfitReport from '../components/manager/ProfitReport';
+import { COLORS } from '../constants/colors';
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -402,7 +403,7 @@ export default function ManagerDashboard() {
         </div>
         <button 
           onClick={() => window.location.reload()}
-          style={{ padding: '10px 15px', backgroundColor: '#3b82f6', color: 'white', borderWidth: '0', borderStyle: 'none', borderRadius: '5px', cursor: 'pointer' }}
+          style={{ padding: '10px 15px', backgroundColor: COLORS.primary.main, color: 'white', borderWidth: '0', borderStyle: 'none', borderRadius: '5px', cursor: 'pointer' }}
         >
           🔄 Làm mới
         </button>
@@ -434,7 +435,7 @@ export default function ManagerDashboard() {
                 onClick={() => setTimeRange(option.value)}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: timeRange === option.value ? '#3b82f6' : '#f3f4f6',
+                  backgroundColor: timeRange === option.value ? COLORS.primary.main : '#f3f4f6',
                   color: timeRange === option.value ? 'white' : '#374151',
                   borderWidth: '0',
                   borderStyle: 'none',
@@ -550,8 +551,8 @@ export default function ManagerDashboard() {
                 borderTop: 'none',
                 borderLeft: 'none',
                 borderRight: 'none',
-                borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
-                color: activeTab === tab.id ? '#3b82f6' : '#6b7280',
+                borderBottom: activeTab === tab.id ? `2px solid ${COLORS.primary.main}` : '2px solid transparent',
+                color: activeTab === tab.id ? COLORS.primary.main : '#6b7280',
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '500'
@@ -569,7 +570,7 @@ export default function ManagerDashboard() {
           {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#059669' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: COLORS.success.dark }}>
             💰 Doanh thu {timeRange === 'day' ? 'hôm nay' : timeRange === 'week' ? 'tuần này' : timeRange === 'month' ? 'tháng này' : timeRange === 'quarter' ? 'quý này' : 'năm nay'}
           </h3>
           <p style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
@@ -590,7 +591,7 @@ export default function ManagerDashboard() {
         </div>
         
         <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#3b82f6' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: COLORS.dark.main }}>
             🛒 Đơn hàng đã thanh toán
           </h3>
           <p style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>
@@ -720,26 +721,26 @@ export default function ManagerDashboard() {
                     <Line 
                       type="monotone" 
                       dataKey="total" 
-                      stroke="#059669" 
+                      stroke={COLORS.success.dark}
                       strokeWidth={3}
                       name="Tổng doanh thu"
-                      dot={{ fill: '#059669', strokeWidth: 2, r: 4 }}
+                      dot={{ fill: COLORS.success.dark, strokeWidth: 2, r: 4 }}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="dineIn" 
-                      stroke="#3b82f6" 
+                      stroke={COLORS.primary.main}
                       strokeWidth={2}
                       name="Tại bàn"
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 3 }}
+                      dot={{ fill: COLORS.primary.main, strokeWidth: 2, r: 3 }}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="takeaway" 
-                      stroke="#f59e0b" 
+                      stroke={COLORS.accent.main}
                       strokeWidth={2}
                       name="Mang đi"
-                      dot={{ fill: '#f59e0b', strokeWidth: 2, r: 3 }}
+                      dot={{ fill: COLORS.accent.main, strokeWidth: 2, r: 3 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1404,20 +1405,44 @@ export default function ManagerDashboard() {
 
       {/* Floating Navigation Buttons */}
       <button 
-        onClick={() => navigate('/dashboard')}
+        onClick={() => navigate('/inventory')}
         style={{
           position: 'fixed',
           bottom: '24px',
           left: '24px',
           padding: '12px 24px',
-          backgroundColor: '#3b82f6',
+          backgroundColor: '#8b5cf6',
           color: 'white',
           border: 'none',
           borderRadius: '8px',
           fontSize: '16px',
           fontWeight: '600',
           cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+          boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}
+      >
+        📦 Quản lý Kho
+      </button>
+      
+      <button 
+        onClick={() => navigate('/dashboard')}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '200px',
+          padding: '12px 24px',
+          backgroundColor: COLORS.primary.main,
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '16px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          boxShadow: `0 4px 12px ${COLORS.primary.main}66`,
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
@@ -1425,14 +1450,14 @@ export default function ManagerDashboard() {
           transition: 'all 0.2s ease'
         }}
         onMouseEnter={(e) => {
-          e.target.style.backgroundColor = '#2563eb';
+          e.target.style.backgroundColor = COLORS.primary.dark;
           e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.5)';
+          e.target.style.boxShadow = `0 6px 16px ${COLORS.primary.main}80`;
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = '#3b82f6';
+          e.target.style.backgroundColor = COLORS.primary.main;
           e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+          e.target.style.boxShadow = `0 4px 12px ${COLORS.primary.main}66`;
         }}
       >
         💰 Đi tới trang Thu ngân
@@ -1444,14 +1469,14 @@ export default function ManagerDashboard() {
           bottom: '24px',
           left: '280px',
           padding: '12px 24px',
-          backgroundColor: '#059669',
+          backgroundColor: COLORS.success.dark,
           color: 'white',
           border: 'none',
           borderRadius: '8px',
           fontSize: '16px',
           fontWeight: '600',
           cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(5, 150, 105, 0.4)',
+          boxShadow: `0 4px 12px ${COLORS.success.dark}66`,
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
@@ -1459,14 +1484,14 @@ export default function ManagerDashboard() {
           transition: 'all 0.2s ease'
         }}
         onMouseEnter={(e) => {
-          e.target.style.backgroundColor = '#047857';
+          e.target.style.backgroundColor = COLORS.success.hover;
           e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 6px 16px rgba(5, 150, 105, 0.5)';
+          e.target.style.boxShadow = `0 6px 16px ${COLORS.success.dark}80`;
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = '#059669';
+          e.target.style.backgroundColor = COLORS.success.dark;
           e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 4px 12px rgba(5, 150, 105, 0.4)';
+          e.target.style.boxShadow = `0 4px 12px ${COLORS.success.dark}66`;
         }}
       >
         🍳 Đi tới trang Bếp

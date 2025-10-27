@@ -39,29 +39,29 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
     so_nguoi: upcomingReservation?.so_nguoi
   } : (upcomingReservation || null);
   
-  // Màu card theo trạng thái bàn
+  // Màu card theo trạng thái bàn - NÂNG CẤP CHUYÊN NGHIỆP
   const getStatusColor = () => {
-    if (table.trang_thai === 'KHOA') return 'bg-red-50 border-red-200';
-    if (hasReservation && !hasOrder) return 'bg-indigo-50 border-indigo-300'; // Bàn đã đặt
-    if (!hasOrder) return 'bg-green-50 border-green-200';
-    if (isPaid) return 'bg-blue-50 border-blue-200';
-    return 'bg-amber-50 border-amber-200';
+    if (table.trang_thai === 'KHOA') return 'bg-gradient-to-br from-red-50 via-red-50 to-rose-100 border-red-300 shadow-red-100/50';
+    if (hasReservation && !hasOrder) return 'bg-gradient-to-br from-indigo-50 via-purple-50 to-indigo-100 border-indigo-300 shadow-indigo-100/50'; // Bàn đã đặt
+    if (!hasOrder) return 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border-green-300 shadow-green-100/50';
+    if (isPaid) return 'bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 border-blue-300 shadow-blue-100/50';
+    return 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 border-amber-300 shadow-amber-100/50';
   };
 
-  // Badge trạng thái bàn
+  // Badge trạng thái bàn - NÂNG CẤP VỚI GRADIENT
   const getTableStatusBadge = () => {
-    if (table.trang_thai === 'KHOA') return { text: 'KHÓA', color: 'bg-red-100 text-red-700' };
-    if (hasReservation && !hasOrder) return { text: 'ĐÃ ĐẶT', color: 'bg-indigo-100 text-indigo-700 border border-indigo-300' };
-    if (table.trang_thai === 'TRONG') return { text: 'TRỐNG', color: 'bg-green-100 text-green-700' };
-    if (table.trang_thai === 'DANG_DUNG') return { text: 'ĐANG DÙNG', color: 'bg-purple-100 text-purple-700' };
-    return { text: 'TRỐNG', color: 'bg-green-100 text-green-700' };
+    if (table.trang_thai === 'KHOA') return { text: 'KHÓA', color: 'bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold shadow-md' };
+    if (hasReservation && !hasOrder) return { text: 'ĐÃ ĐẶT', color: 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold shadow-md' };
+    if (table.trang_thai === 'TRONG') return { text: 'TRỐNG', color: 'bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold shadow-md' };
+    if (table.trang_thai === 'DANG_DUNG') return { text: 'ĐANG DÙNG', color: 'bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white font-bold shadow-md' };
+    return { text: 'TRỐNG', color: 'bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold shadow-md' };
   };
 
-  // Badge trạng thái thanh toán (chỉ khi có đơn)
+  // Badge trạng thái thanh toán (chỉ khi có đơn) - NÂNG CẤP
   const getPaymentStatusBadge = () => {
     if (!hasOrder) return null;
-    if (isPaid) return { text: 'ĐÃ TT', color: 'bg-blue-100 text-blue-700' };
-    return { text: 'CHƯA TT', color: 'bg-amber-100 text-amber-700' };
+    if (isPaid) return { text: 'ĐÃ TT', color: 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-bold shadow-md' };
+    return { text: 'CHƯA TT', color: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-md' };
   };
 
   const tableStatusBadge = getTableStatusBadge();
@@ -77,21 +77,21 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
     <>
     <div
       onClick={handleCardClick}
-      className={`p-4 rounded-xl border-2 ${getStatusColor()} hover:shadow-lg transition-all text-left w-full ${
-        isLocked ? 'cursor-not-allowed' : 'cursor-pointer'
+      className={`p-5 rounded-2xl border-2 ${getStatusColor()} shadow-lg hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 text-left w-full ${
+        isLocked ? 'cursor-not-allowed opacity-90' : 'cursor-pointer'
       }`}
     >
       {/* Dòng 1: Tên bàn + Status Badges */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-sm text-gray-900 truncate">{table.ten_ban}</h3>
-        <div className="flex items-center gap-1 flex-wrap justify-end">
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {/* Badge trạng thái bàn */}
-          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${tableStatusBadge.color}`}>
+          <span className={`text-[9px] px-2 py-0.5 rounded-lg uppercase tracking-wide ${tableStatusBadge.color}`}>
             {tableStatusBadge.text}
           </span>
           {/* Badge trạng thái thanh toán */}
           {paymentStatusBadge && (
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${paymentStatusBadge.color}`}>
+            <span className={`text-[9px] px-2 py-0.5 rounded-lg uppercase tracking-wide ${paymentStatusBadge.color}`}>
               {paymentStatusBadge.text}
             </span>
           )}
@@ -99,17 +99,24 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
       </div>
 
       {/* Dòng 2: Icons info */}
-      <div className="flex items-center justify-between gap-3 text-xs text-amber-700 mb-2">
+      <div className="flex items-center justify-between gap-3 text-xs mb-3">
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <span className="text-purple-600">👥</span> {table.suc_chua}
+          <span className="flex items-center gap-1 text-purple-700 font-semibold">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+            </svg>
+            {table.suc_chua}
           </span>
-          <span className="flex items-center gap-1">
-            <span>📋</span> {table.item_count || 0} món
+          <span className="flex items-center gap-1 text-blue-700 font-semibold">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
+            </svg>
+            {table.item_count || 0} món
           </span>
         </div>
         {hasOrder && (table.grand_total > 0 || table.subtotal > 0) && (
-          <span className="font-bold text-gray-900">
+          <span className="font-bold text-sm text-gray-900 bg-white/60 px-2.5 py-0.5 rounded-lg shadow-sm">
             {(table.grand_total || table.subtotal || 0).toLocaleString()}₫
           </span>
         )}
@@ -123,8 +130,12 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setUnlockConfirm(true)}
-              className="flex-1 px-3 py-2.5 bg-white border border-amber-300 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-colors outline-none focus:outline-none"
+              title="Mở khóa bàn"
+              className="flex-1 px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-2 border-amber-400 rounded-xl text-xs font-bold hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+              </svg>
               Mở khóa
             </button>
             <button
@@ -132,9 +143,12 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                 e.stopPropagation();
                 setShowReasonDialog(true);
               }}
-              className="px-3 py-2.5 bg-white border border-blue-300 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-50 transition-colors outline-none focus:outline-none"
+              title="Xem lý do khóa"
+              className="px-3 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-2 border-blue-400 rounded-xl text-xs font-bold hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
             >
-              Lý do
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </button>
           </div>
         </div>
@@ -146,9 +160,13 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               <div className="min-h-[40px] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setShowReservationInfo(true)}
-                  className="px-6 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border-2 border-indigo-300 rounded-lg text-xs font-semibold transition-colors outline-none focus:outline-none shadow-sm"
+                  title="Thông tin xác nhận"
+                  className="px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-2 border-indigo-400 rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-1.5"
                 >
-                  📋 Thông tin xác nhận
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  Xác nhận
                 </button>
               </div>
               <div 
@@ -163,8 +181,12 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                     }
                   }
                 }}
-                className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95"
+                title="Tạo đơn hàng"
+                className="w-full px-3 py-2.5 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-600 hover:from-emerald-700 hover:via-green-700 hover:to-emerald-700 hover:shadow-xl hover:-translate-y-0.5 text-white rounded-xl text-xs font-semibold text-center transition-all duration-300 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
                 Tạo đơn
               </div>
             </>
@@ -176,8 +198,12 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   e.stopPropagation();
                   handleCardClick();
                 }}
-                className="w-full px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95"
+                title="Tạo đơn hàng mới"
+                className="w-full px-3 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-300 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-xl hover:-translate-y-0.5"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
                 Tạo đơn
               </div>
             </>
@@ -185,36 +211,46 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         </div>
       ) : (
         <div className="flex flex-col">
-          {/* Status badges - Cố định chiều cao */}
+          {/* Status badges - Cố định chiều cao - NÂNG CẤP */}
           <div className="min-h-[40px] mb-0">
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {table.q_count > 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-700 font-medium">
+                <span className="text-[10px] px-2 py-1 rounded-lg bg-gradient-to-r from-slate-500 to-gray-600 text-white font-bold shadow-md flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                  </svg>
                   {table.q_count} chờ
                 </span>
               )}
               {table.m_count > 0 && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-200 text-blue-700 font-medium">
+                <span className="text-[10px] px-2 py-1 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-bold shadow-md flex items-center gap-1 animate-pulse">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd"/>
+                  </svg>
                   {table.m_count} làm
                 </span>
               )}
             </div>
           </div>
           
-          {/* Action button for unpaid orders */}
+          {/* Action button for unpaid orders - NÂNG CẤP */}
           {!isPaid && (
             <div 
               onClick={(e) => {
                 e.stopPropagation();
                 handleCardClick();
               }}
-              className="w-full px-3 py-2.5 bg-amber-600 hover:bg-amber-700 hover:shadow-md text-white rounded-lg text-sm font-semibold text-center transition-all cursor-pointer active:scale-95"
+              title="Xem đơn hàng và thanh toán"
+              className="w-full px-3 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-300 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-xl hover:-translate-y-0.5"
             >
-              Xem đơn & Thanh toán
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              Thanh toán
             </div>
           )}
           
-          {/* Paid order - actions */}
+          {/* Paid order - actions - NÂNG CẤP */}
           {isPaid && (
             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
               <button
@@ -222,34 +258,40 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   e.stopPropagation();
                   handleCardClick();
                 }}
-                className="flex-1 px-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
+                title="Xem chi tiết đơn hàng"
+                className="flex-1 px-2.5 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:-translate-y-0.5"
               >
-                Xem
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
               </button>
-              {/* Chỉ hiển thị nút "Dọn" khi tất cả món đã hoàn thành */}
+              {/* Chỉ hiển thị nút "Dọn" và "Khóa" khi tất cả món đã hoàn thành */}
               {table.all_items_done && (
-                <button
-                  onClick={() => setCleanConfirm(true)}
-                  className="flex-1 px-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
-                >
-                  Dọn
-                </button>
+                <>
+                  <button
+                    onClick={() => setCleanConfirm(true)}
+                    title="Dọn bàn"
+                    className="flex-1 px-2.5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-xl hover:-translate-y-0.5 text-white rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowLockDialog(true);
+                    }}
+                    title="Khóa bàn"
+                    className="flex-1 px-2.5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:-translate-y-0.5 text-white rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </button>
+                </>
               )}
-              {/* Hiển thị thông báo khi chưa thể dọn bàn */}
-              {!table.all_items_done && table.item_count > 0 && (
-                <div className="flex-1 px-2 py-2.5 bg-gray-400 text-white rounded-lg text-sm font-semibold text-center cursor-not-allowed">
-                  Chờ
-                </div>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowLockDialog(true);
-                }}
-                className="flex-1 px-2 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors outline-none focus:outline-none"
-              >
-                Khóa
-              </button>
             </div>
           )}
         </div>

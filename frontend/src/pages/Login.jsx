@@ -184,15 +184,15 @@ export default function Login() {
                     onClick={() => setSelectedRole(r.key)}
                     aria-pressed={active}
                     className={[
-                      "group h-24 rounded-2xl border transition text-left p-4 focus:outline-none focus:ring-2 focus:ring-[#c9975b]",
+                      "group h-24 rounded-2xl border transition-all duration-200 text-left p-4 focus:outline-none focus:ring-2 focus:ring-[#c9975b]",
                       active
                         ? "border-[#c9975b] ring-2 ring-[#c9975b]/30 bg-[#fffaf3]"
-                        : "border-gray-200 hover:border-[#c9975b] hover:shadow bg-white",
+                        : "border-gray-200 hover:border-[#c9975b] hover:shadow-lg hover:-translate-y-0.5 bg-white",
                     ].join(" ")}
                   >
                     <div
                       className={[
-                        "w-10 h-10 rounded-xl flex items-center justify-center text-lg",
+                        "w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-colors",
                         active ? "bg-[#f2e3cf]" : "bg-[#faf5ef] group-hover:bg-[#f2e3cf]",
                       ].join(" ")}
                     >
@@ -200,7 +200,7 @@ export default function Login() {
                     </div>
                     <div
                       className={[
-                        "mt-2 text-sm font-medium",
+                        "mt-2 text-sm font-medium transition-colors",
                         active ? "text-[#7a5e3a]" : "text-gray-700 group-hover:text-[#7a5e3a]",
                       ].join(" ")}
                     >
@@ -229,7 +229,7 @@ export default function Login() {
                     <label htmlFor="username" className="sr-only">Tên đăng nhập</label>
                     <input
                       id="username"
-                      className="w-full rounded-xl border border-gray-200 px-3 py-3 outline-none focus:ring-2 focus:ring-[#c9975b] bg-white"
+                      className="w-full rounded-xl border border-gray-200 px-3 py-3 outline-none focus:ring-2 focus:ring-[#c9975b] bg-white transition-shadow"
                       placeholder="Tên đăng nhập"
                       value={form.username}
                       onChange={(e) => setForm((v) => ({ ...v, username: e.target.value }))}
@@ -242,7 +242,7 @@ export default function Login() {
                     <input
                       id="password"
                       type={showPw ? "text" : "password"}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-3 outline-none focus:ring-2 focus:ring-[#c9975b] bg-white pr-12"
+                      className="w-full rounded-xl border border-gray-200 px-3 py-3 outline-none focus:ring-2 focus:ring-[#c9975b] bg-white pr-12 transition-shadow"
                       placeholder="Mật khẩu"
                       value={form.password}
                       onChange={(e) => setForm((v) => ({ ...v, password: e.target.value }))}
@@ -276,7 +276,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading || !form.username || !form.password}
-                    className="w-full rounded-xl bg-[#c9975b] hover:bg-[#b88749] disabled:opacity-60 text-white font-semibold py-2.5 transition flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-[#c9975b] hover:bg-[#b88749] hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none text-white font-semibold py-2.5 transition-all duration-200 flex items-center justify-center gap-2"
                   >
                     {loading && (
                       <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">

@@ -11,6 +11,7 @@ import TakeawayOrders from './pages/TakeawayOrders.jsx'
 import PaymentSuccess from './pages/PaymentSuccess.jsx'
 import PaymentCancel from './pages/PaymentCancel.jsx'
 import ManagerDashboard from './pages/ManagerDashboard.jsx'
+import InventoryManagement from './pages/InventoryManagement.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
 
 const router = createBrowserRouter([
@@ -29,6 +30,14 @@ const router = createBrowserRouter([
     element: (
       <RoleGuard allowedRoles={['manager', 'admin']}>
         <ManagerDashboard />
+      </RoleGuard>
+    )
+  },
+  { 
+    path: '/inventory', 
+    element: (
+      <RoleGuard allowedRoles={['manager', 'admin']}>
+        <InventoryManagement />
       </RoleGuard>
     )
   },

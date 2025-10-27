@@ -147,10 +147,10 @@ export default function CurrentShiftOrders() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'PAID': return 'bg-green-100 text-green-800';
-      case 'OPEN': return 'bg-yellow-100 text-yellow-800';
-      case 'CANCELLED': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'PAID': return 'bg-gradient-to-r from-green-100 to-green-50 text-green-700 border-2 border-green-400 font-bold shadow-sm';
+      case 'OPEN': return 'bg-gradient-to-r from-yellow-100 to-yellow-50 text-yellow-700 border-2 border-yellow-400 font-bold shadow-sm';
+      case 'CANCELLED': return 'bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-2 border-red-400 font-bold shadow-sm';
+      default: return 'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 border-2 border-gray-400 font-bold shadow-sm';
     }
   };
 
@@ -165,10 +165,10 @@ export default function CurrentShiftOrders() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-2xl shadow-lg p-8 border-2 border-[#e7d4b8]">
         <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#e7d4b8] border-t-[#c9975b]"></div>
+          <span className="ml-3 text-[#8b6f47] font-semibold text-lg">Đang tải dữ liệu...</span>
         </div>
       </div>
     );
@@ -176,13 +176,18 @@ export default function CurrentShiftOrders() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center text-red-600">
-          <p className="text-lg font-semibold">Lỗi tải dữ liệu</p>
-          <p className="text-sm mt-1">{error}</p>
+      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-2xl shadow-lg p-8 border-2 border-[#e7d4b8]">
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center shadow-md">
+            <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-lg font-bold text-red-600 mb-2">Lỗi tải dữ liệu</p>
+          <p className="text-sm text-red-500 mb-4">{error}</p>
           <button 
             onClick={fetchOrders}
-            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-6 py-3 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl font-bold transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
           >
             Thử lại
           </button>
@@ -193,10 +198,15 @@ export default function CurrentShiftOrders() {
 
   if (!data || !data.shift) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="text-center text-gray-600">
-          <p className="text-lg font-semibold">Không có ca làm việc</p>
-          <p className="text-sm mt-1">Vui lòng mở ca làm việc để xem đơn hàng</p>
+      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-2xl shadow-lg p-8 border-2 border-[#e7d4b8]">
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-[#e7d4b8] to-[#fef7ed] rounded-full flex items-center justify-center shadow-md">
+            <svg className="w-10 h-10 text-[#c9975b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+          </div>
+          <p className="text-lg font-bold text-[#8b6f47] mb-2">Không có ca làm việc</p>
+          <p className="text-sm text-[#c9975b]/70">Vui lòng mở ca làm việc để xem đơn hàng</p>
         </div>
       </div>
     );
@@ -207,178 +217,234 @@ export default function CurrentShiftOrders() {
   return (
     <div className="space-y-6">
       {/* Thông tin ca làm việc */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Ca làm việc hiện tại</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Nhân viên</p>
-            <p className="font-semibold">{shift.nhan_vien.full_name}</p>
+      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-2xl shadow-lg p-6 border-2 border-[#e7d4b8]">
+        <h2 className="text-xl font-bold text-[#8b6f47] mb-5 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c9975b] to-[#d4a574] flex items-center justify-center shadow-sm">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Bắt đầu ca</p>
-            <p className="font-semibold">{formatDateTime(shift.started_at)}</p>
+          Ca làm việc hiện tại
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="bg-gradient-to-br from-[#e7d4b8] to-[#fef7ed] rounded-xl p-4 border border-[#c9975b]/30 shadow-sm">
+            <p className="text-sm text-[#8b6f47] font-bold mb-1 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Nhân viên
+            </p>
+            <p className="font-bold text-[#8b6f47]">{shift.nhan_vien.full_name}</p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Loại ca</p>
-            <p className="font-semibold">{shift.shift_type}</p>
+          <div className="bg-gradient-to-br from-[#e7d4b8] to-[#fef7ed] rounded-xl p-4 border border-[#c9975b]/30 shadow-sm">
+            <p className="text-sm text-[#8b6f47] font-bold mb-1 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Bắt đầu ca
+            </p>
+            <p className="font-bold text-[#8b6f47]">{formatDateTime(shift.started_at)}</p>
+          </div>
+          <div className="bg-gradient-to-br from-[#e7d4b8] to-[#fef7ed] rounded-xl p-4 border border-[#c9975b]/30 shadow-sm">
+            <p className="text-sm text-[#8b6f47] font-bold mb-1 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Loại ca
+            </p>
+            <p className="font-bold text-[#8b6f47]">{shift.shift_type}</p>
           </div>
         </div>
       </div>
 
       {/* Thống kê tổng quan */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Thống kê ca làm việc</h3>
+      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-2xl shadow-lg p-6 border-2 border-[#e7d4b8]">
+        <h3 className="text-lg font-bold text-[#8b6f47] mb-5 flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#c9975b] to-[#d4a574] flex items-center justify-center shadow-sm">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          Thống kê ca làm việc
+        </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">{stats.total_orders}</p>
-            <p className="text-sm text-gray-600">Tổng đơn</p>
+          <div className="bg-gradient-to-br from-[#c9975b] to-[#d4a574] rounded-xl p-5 text-center shadow-md border-2 border-[#b88749]">
+            <p className="text-3xl font-black text-white mb-1">{stats.total_orders}</p>
+            <p className="text-sm text-white/90 font-medium">Tổng đơn</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{stats.paid_orders}</p>
-            <p className="text-sm text-gray-600">Đã thanh toán</p>
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-center shadow-md border-2 border-green-700">
+            <p className="text-3xl font-black text-white mb-1">{stats.paid_orders}</p>
+            <p className="text-sm text-white/90 font-medium">Đã thanh toán</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-yellow-600">{stats.open_orders}</p>
-            <p className="text-sm text-gray-600">Chưa thanh toán</p>
+          <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-5 text-center shadow-md border-2 border-yellow-600">
+            <p className="text-3xl font-black text-white mb-1">{stats.open_orders}</p>
+            <p className="text-sm text-white/90 font-medium">Chưa thanh toán</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-red-600">{stats.cancelled_orders}</p>
-            <p className="text-sm text-gray-600">Đã hủy</p>
+          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 text-center shadow-md border-2 border-red-700">
+            <p className="text-3xl font-black text-white mb-1">{stats.cancelled_orders}</p>
+            <p className="text-sm text-white/90 font-medium">Đã hủy</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">{formatCurrency(stats.total_revenue)}</p>
-            <p className="text-sm text-gray-600">Doanh thu</p>
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 text-center shadow-md border-2 border-purple-700">
+            <p className="text-xl font-black text-white mb-1">{formatCurrency(stats.total_revenue)}</p>
+            <p className="text-sm text-white/90 font-medium">Doanh thu</p>
           </div>
         </div>
       </div>
 
       {/* Danh sách đơn hàng */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b">
+      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-2xl shadow-lg border-2 border-[#e7d4b8]">
+        <div className="p-6 border-b-2 border-[#e7d4b8]">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold text-gray-900">Đơn hàng trong ca</h3>
+            <h3 className="text-lg font-bold text-[#8b6f47] flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#c9975b] to-[#d4a574] flex items-center justify-center shadow-sm">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              Đơn hàng trong ca
+            </h3>
             <button 
               onClick={fetchOrders}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-sm flex items-center gap-2"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
               Làm mới
             </button>
           </div>
         </div>
         
         {orders.length === 0 ? (
-          <div className="p-6 text-center text-gray-600">
-            <p>Chưa có đơn hàng nào trong ca này</p>
+          <div className="p-10 text-center">
+            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-[#e7d4b8] to-[#fef7ed] rounded-full flex items-center justify-center shadow-md">
+              <svg className="w-10 h-10 text-[#c9975b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p className="text-[#8b6f47] font-bold text-lg">Chưa có đơn hàng nào trong ca này</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-[#e7d4b8] via-[#fef7ed] to-[#e7d4b8]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Mã đơn
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Bàn/Khách
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Loại
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Số món
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Tổng tiền
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Thời gian
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-black text-[#8b6f47] uppercase tracking-wider">
                     Thao tác
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y-2 divide-[#fef7ed]">
                 {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      #{order.id}
+                  <tr key={order.id} className="hover:bg-gradient-to-r hover:from-[#fffbf5] hover:to-[#fef7ed] transition-all">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-black text-[#8b6f47] bg-gradient-to-r from-[#e7d4b8] to-[#fef7ed] px-3 py-1 rounded-lg shadow-sm">
+                        #{order.id}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#8b6f47]">
                       {order.order_type === 'DINE_IN' ? (
                         <div>
-                          <p className="font-medium">{order.ten_ban || 'N/A'}</p>
+                          <p className="font-bold">{order.ten_ban || 'N/A'}</p>
                           {order.khu_vuc_ten && (
-                            <p className="text-xs text-gray-500">{order.khu_vuc_ten}</p>
+                            <p className="text-xs text-[#c9975b]">{order.khu_vuc_ten}</p>
                           )}
                         </div>
                       ) : (
-                        <span className="text-gray-500">Mang đi</span>
+                        <span className="text-[#c9975b] font-medium">Mang đi</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-3 py-1.5 text-xs font-bold rounded-lg shadow-sm ${
                         order.order_type === 'DINE_IN' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-orange-100 text-orange-800'
+                          ? 'bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#b88749]' 
+                          : 'bg-gradient-to-r from-orange-400 to-orange-500 text-white border-2 border-orange-600'
                       }`}>
                         {order.order_type === 'DINE_IN' ? 'Tại bàn' : 'Mang đi'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.trang_thai)}`}>
+                      <span className={`px-3 py-1.5 text-xs rounded-lg ${getStatusColor(order.trang_thai)}`}>
                         {getStatusText(order.trang_thai)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[#8b6f47]">
                       {order.so_mon}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[#c9975b]">
                       {formatCurrency(order.tong_tien)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#8b6f47]">
                       <div>
-                        <p>Mở: {formatDateTime(order.opened_at)}</p>
+                        <p className="font-medium">Mở: {formatDateTime(order.opened_at)}</p>
                         {order.closed_at && (
-                          <p>Đóng: {formatDateTime(order.closed_at)}</p>
+                          <p className="text-[#c9975b] text-xs">Đóng: {formatDateTime(order.closed_at)}</p>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
                         {order.trang_thai === 'PAID' && (
                           <>
                             <button
                               onClick={() => handleViewInvoice(order)}
-                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                              className="px-3 py-1.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
                             >
-                              👁️ Xem
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              Xem
                             </button>
                             <button
                               onClick={() => handlePrintInvoice(order)}
-                              className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                              className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
                             >
-                              🖨️ In
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                              </svg>
+                              In
                             </button>
                           </>
                         )}
                         {order.trang_thai === 'OPEN' && (
-                          <span className="text-xs text-gray-400">Chưa thanh toán</span>
+                          <span className="text-xs text-[#c9975b]/60 italic font-medium">Chưa thanh toán</span>
                         )}
                         {order.trang_thai === 'CANCELLED' && (
                           <>
                             <button
                               onClick={() => handleViewInvoice(order)}
-                              className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                              className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
                             >
-                              👁️ Xem chi tiết
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              Xem chi tiết
                             </button>
                             {order.ly_do_huy && (
-                              <span className="text-xs text-red-500" title={order.ly_do_huy}>
-                                📝 {order.ly_do_huy.substring(0, 20)}{order.ly_do_huy.length > 20 ? '...' : ''}
+                              <span className="text-xs text-red-500 italic font-medium" title={order.ly_do_huy}>
+                                {order.ly_do_huy.substring(0, 20)}{order.ly_do_huy.length > 20 ? '...' : ''}
                               </span>
                             )}
                           </>
@@ -395,18 +461,21 @@ export default function CurrentShiftOrders() {
 
       {/* Invoice Detail Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border-2 border-[#d4a574]/30">
+            <div className="flex items-center justify-between px-6 py-5 bg-gradient-to-r from-[#c9975b] via-[#d4a574] to-[#c9975b] border-b-2 border-[#e7d4b8] shadow-lg">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
                 Chi tiết hóa đơn #{selectedOrder.id}
               </h2>
               <button
                 onClick={closeInvoiceModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 hover:bg-white/20 rounded-full transition-all hover:scale-110 active:scale-95"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
@@ -572,7 +641,7 @@ export default function CurrentShiftOrders() {
                     <div className="flex gap-3 pt-4 border-t">
                       <button
                         onClick={() => handleViewPdf(selectedOrder)}
-                        className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-medium"
                       >
                         📄 Xem PDF
                       </button>
