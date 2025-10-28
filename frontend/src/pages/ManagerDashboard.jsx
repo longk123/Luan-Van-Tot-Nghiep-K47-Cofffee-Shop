@@ -1173,7 +1173,9 @@ export default function ManagerDashboard() {
                        <div className="flex gap-2 justify-center">
                          <button
                            onClick={() => handleViewInvoice(invoice)}
-                           className="px-3 py-1.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs inline-flex items-center gap-1"
+                           className="px-3 py-1.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-lg font-bold transition-colors shadow-sm text-xs inline-flex items-center gap-1"
+                           onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.backgroundImage='none';e.currentTarget.style.color='#c9975b';e.currentTarget.style.borderColor='#c9975b';}}
+                           onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.backgroundImage='';e.currentTarget.style.color='';e.currentTarget.style.borderColor='#c9975b';}}
                          >
                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1183,7 +1185,9 @@ export default function ManagerDashboard() {
                          </button>
                          <button
                            onClick={() => handleReprintConfirm(invoice)}
-                           className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs inline-flex items-center gap-1"
+                           className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-600 rounded-lg font-bold transition-colors shadow-sm text-xs inline-flex items-center gap-1"
+                           onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.backgroundImage='none';e.currentTarget.style.color='#16a34a';e.currentTarget.style.borderColor='#16a34a';}}
+                           onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.backgroundImage='';e.currentTarget.style.color='white';e.currentTarget.style.borderColor='#16a34a';}}
                          >
                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -1194,7 +1198,9 @@ export default function ManagerDashboard() {
                      ) : invoice.status === 'CANCELLED' ? (
                        <button
                          onClick={() => handleViewInvoice(invoice)}
-                         className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs inline-flex items-center gap-1"
+                         className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white border-2 border-red-600 rounded-lg font-bold transition-colors shadow-sm text-xs inline-flex items-center gap-1"
+                         onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.backgroundImage='none';e.currentTarget.style.color='#dc2626';e.currentTarget.style.borderColor='#dc2626';}}
+                         onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.backgroundImage='';e.currentTarget.style.color='white';e.currentTarget.style.borderColor='#dc2626';}}
                        >
                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1259,38 +1265,24 @@ export default function ManagerDashboard() {
               </h2>
               <button
                 onClick={() => setShowInvoiceDetail(false)}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#c9975b',
-                  color: 'white',
-                  border: '2px solid #c9975b',
-                borderRadius: '9999px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'white';
-                e.target.style.color = '#c9975b';
-                e.target.style.borderColor = '#c9975b';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#c9975b';
-                e.target.style.color = 'white';
-                e.target.style.borderColor = '#c9975b';
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              Đóng
-            </button>
+                className="w-10 h-10 rounded-full border-2 border-[#c9975b] bg-[#c9975b] text-white flex items-center justify-center transition-colors"
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.color = '#c9975b';
+                  e.target.style.borderColor = '#c9975b';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#c9975b';
+                  e.target.style.color = 'white';
+                  e.target.style.borderColor = '#c9975b';
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
 
             {loadingInvoiceDetail ? (

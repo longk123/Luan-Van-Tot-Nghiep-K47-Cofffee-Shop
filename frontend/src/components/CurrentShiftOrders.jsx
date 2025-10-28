@@ -409,7 +409,9 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                           <>
                             <button
                               onClick={() => handleViewInvoice(order)}
-                              className="px-3 py-1.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
+                              className="px-3 py-1.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
+                              onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.color='#c9975b';e.currentTarget.style.borderColor='#c9975b';}}
+                              onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.color='';e.currentTarget.style.borderColor='#c9975b';}}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -421,7 +423,9 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                             {!viewOnly && (
                               <button
                                 onClick={() => handlePrintInvoice(order)}
-                                className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
+                                className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-600 rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
+                                onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.color='#16a34a';e.currentTarget.style.borderColor='#16a34a';}}
+                                onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.color='white';e.currentTarget.style.borderColor='#16a34a';}}
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -438,7 +442,9 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                           <>
                             <button
                               onClick={() => handleViewInvoice(order)}
-                              className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
+                              className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white border-2 border-red-600 rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
+                              onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.color='#dc2626';e.currentTarget.style.borderColor='#dc2626';}}
+                              onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.color='white';e.currentTarget.style.borderColor='#dc2626';}}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -644,7 +650,7 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                     <div className="flex gap-3 pt-4 border-t">
                       <button
                         onClick={() => handleViewPdf(selectedOrder)}
-                        className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-medium"
+                        className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg border-2 border-blue-600 hover:!bg-white hover:text-blue-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 font-medium"
                       >
                         📄 Xem PDF
                       </button>
@@ -652,7 +658,7 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                       {!viewOnly && (
                         <button
                           onClick={() => handlePrintInvoice(selectedOrder)}
-                          className="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                          className="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg border-2 border-green-600 hover:!bg-white hover:text-green-600 transition-all duration-200 font-medium"
                         >
                           🖨️ In lại hóa đơn
                         </button>
