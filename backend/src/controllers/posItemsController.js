@@ -463,25 +463,44 @@ export async function deleteOrderItem(req, res, next) {
 
 /**
  * GET /api/v1/pos/orders/current-shift
- * Lấy đơn hàng của ca hiện tại (cho cashier)
+ * Lấy đơn hàng của ca hiện tại (cho cashier và manager)
+ * - Cashier: xem ca của mình
+ * - Manager/Admin: xem ca CASHIER đang mở
  */
 export async function getCurrentShiftOrders(req, res, next) {
   try {
     const userId = req.user.user_id;
-    
-    // Lấy ca hiện tại của user
-    const currentShift = await shiftsService.getCurrentShiftService(userId);
+    const userRoles = req.user.roles || [];
+
+    let currentShift;
+
+    // Check if user is Manager/Admin (not Cashier)
+    const isManager = userRoles.some(role =>
+      ['manager', 'admin'].includes(role.toLowerCase())
+    );
+    const isCashier = userRoles.some(role =>
+      role.toLowerCase() === 'cashier'
+    );
+
+    if (isManager && !isCashier) {
+      // Manager: lấy ca CASHIER đang mở
+      currentShift = await shiftsService.getOpenCashierShiftService();
+    } else {
+      // Cashier: lấy ca của mình
+      currentShift = await shiftsService.getCurrentShiftService(userId);
+    }
+
     if (!currentShift) {
-      return res.json({ 
-        success: true, 
-        data: [], 
-        message: "Không có ca làm việc đang mở" 
+      return res.json({
+        success: true,
+        data: { shift: null, orders: [], stats: {} },
+        message: "Không có ca làm việc đang mở"
       });
     }
-    
+
     // Lấy đơn hàng của ca hiện tại
     const orders = await posRepository.getCurrentShiftOrders(currentShift.id);
-    
+
     // Thống kê tổng quan
     const stats = {
       total_orders: orders.length,
@@ -492,9 +511,9 @@ export async function getCurrentShiftOrders(req, res, next) {
         .filter(o => o.trang_thai === 'PAID')
         .reduce((sum, o) => sum + parseFloat(o.tong_tien || 0), 0)
     };
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: {
         shift: currentShift,
         orders,

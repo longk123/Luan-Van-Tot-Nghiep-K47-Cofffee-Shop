@@ -147,8 +147,8 @@ router.get('/takeaway-orders', auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// GET /api/v1/pos/orders/current-shift - Lấy đơn hàng của ca hiện tại (cho cashier)
-router.get('/orders/current-shift', auth, cashierOnly, posItemsCtrl.getCurrentShiftOrders);
+// GET /api/v1/pos/orders/current-shift - Lấy đơn hàng của ca hiện tại (cho cashier và manager)
+router.get('/orders/current-shift', auth, posItemsCtrl.getCurrentShiftOrders);
 
 // POST /api/v1/pos/orders/:orderId/deliver - Giao hàng (đánh dấu hoàn tất)
 router.post('/orders/:orderId/deliver', auth, async (req, res, next) => {

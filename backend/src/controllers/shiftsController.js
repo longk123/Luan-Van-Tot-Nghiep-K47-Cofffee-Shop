@@ -13,6 +13,15 @@ export const getCurrentShift = asyncHandler(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/shifts/open-cashier
+ * Lấy ca CASHIER đang mở (bất kể user nào)
+ */
+export const getOpenCashierShift = asyncHandler(async (req, res) => {
+  const data = await shiftsService.getOpenCashierShiftService();
+  return res.json({ success: true, data });
+});
+
+/**
  * GET /api/v1/shifts/:id/summary
  * Lấy tổng quan/tóm tắt ca (live) - preview trước khi đóng
  */

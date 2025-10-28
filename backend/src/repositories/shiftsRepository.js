@@ -32,6 +32,23 @@ export async function getMyOpenShiftWithUser(userId) {
   return rows[0] || null;
 }
 
+export async function getOpenCashierShift() {
+  const sql = `
+    SELECT c.*,
+           u.user_id AS nv_id,
+           u.full_name AS nv_full_name,
+           u.username AS nv_username,
+           u.email AS nv_email
+    FROM ca_lam c
+    JOIN users u ON u.user_id = c.nhan_vien_id
+    WHERE c.status = 'OPEN' AND c.shift_type = 'CASHIER'
+    ORDER BY c.started_at DESC
+    LIMIT 1
+  `;
+  const { rows } = await query(sql);
+  return rows[0] || null;
+}
+
 export async function openShift({ nhanVienId, openingCash = null, openedBy = null, shiftType = 'CASHIER' }) {
   const client = await pool.connect();
   try {

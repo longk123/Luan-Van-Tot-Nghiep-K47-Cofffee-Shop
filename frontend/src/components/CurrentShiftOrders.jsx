@@ -4,7 +4,7 @@ import { api } from '../api.js';
 import { getUser } from '../auth.js';
 import useSSE from '../hooks/useSSE.js';
 
-export default function CurrentShiftOrders() {
+export default function CurrentShiftOrders({ viewOnly = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -417,15 +417,18 @@ export default function CurrentShiftOrders() {
                               </svg>
                               Xem
                             </button>
-                            <button
-                              onClick={() => handlePrintInvoice(order)}
-                              className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                              </svg>
-                              In
-                            </button>
+                            {/* Nút In - Ẩn khi Manager đang xem */}
+                            {!viewOnly && (
+                              <button
+                                onClick={() => handlePrintInvoice(order)}
+                                className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-bold transition-all shadow-sm hover:shadow-md hover:scale-105 active:scale-95 text-xs flex items-center gap-1"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                In
+                              </button>
+                            )}
                           </>
                         )}
                         {order.trang_thai === 'OPEN' && (
@@ -645,12 +648,15 @@ export default function CurrentShiftOrders() {
                       >
                         📄 Xem PDF
                       </button>
-                      <button
-                        onClick={() => handlePrintInvoice(selectedOrder)}
-                        className="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                      >
-                        🖨️ In lại hóa đơn
-                      </button>
+                      {/* Nút In lại - Ẩn khi Manager đang xem */}
+                      {!viewOnly && (
+                        <button
+                          onClick={() => handlePrintInvoice(selectedOrder)}
+                          className="flex-1 py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                        >
+                          🖨️ In lại hóa đơn
+                        </button>
+                      )}
                     </div>
                   )}
                   

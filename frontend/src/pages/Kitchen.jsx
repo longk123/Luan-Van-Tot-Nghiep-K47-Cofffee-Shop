@@ -29,7 +29,13 @@ export default function Kitchen() {
   // Get user info
   const user = getUser();
   const userRoles = user?.roles || [];
-  const isAdmin = userRoles.some(role => role.toLowerCase() === 'admin');
+
+  // Check if user is Manager (View Only mode)
+  const isManagerViewMode = userRoles.some(role =>
+    ['manager', 'admin'].includes(role.toLowerCase())
+  ) && !userRoles.some(role =>
+    ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
+  );
 
   // Role-based access control
   useEffect(() => {
@@ -403,26 +409,18 @@ export default function Kitchen() {
   );
 
   return (
-    <AuthedLayout shift={shift}>
+    <AuthedLayout
+      shift={shift}
+      isManagerViewMode={isManagerViewMode}
+      pageName="Kitchen"
+      backUrl="/manager"
+    >
       {/* Header Card - Đồng bộ 100% với Dashboard và Takeaway */}
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-6">
           {/* Left: Title and Shift info */}
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-4">
-              {/* Nút "Trở lại" chỉ hiển thị cho admin */}
-              {isAdmin && (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#8b6f47] bg-white border-2 border-[#d4a574] rounded-xl hover:bg-gradient-to-r hover:from-[#c9975b] hover:to-[#d4a574] hover:text-white hover:scale-105 active:scale-95 transition-all duration-200 shadow-md"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  Trở lại
-                </button>
-              )}
-
               <div className="relative">
                 <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
                 <div className="relative w-12 h-12 bg-gradient-to-br from-[#8b6f47] via-[#c9975b] to-[#d4a574] rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
@@ -455,49 +453,45 @@ export default function Kitchen() {
             )}
           </div>
 
-          {/* Right: Warning badges and actions */}
+          {/* Right: Actions */}
           <div className="flex flex-col items-end gap-3">
-            {/* Warning badges */}
-            <div className="flex items-center gap-3">
-              {!shift && (
-                <div className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-lg font-bold">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-3 justify-end">
+              {/* Nút Quay lại Manager Dashboard - chỉ hiển thị khi Manager đang xem */}
+              {isManagerViewMode && (
+                <button
+                  onClick={() => navigate('/manager')}
+                  className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-blue-600 hover:border-blue-500 hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
-                  <span>⚠️ Chưa mở ca</span>
-                </div>
+                  <span>Quay lại Manager Dashboard</span>
+                </button>
               )}
-              {shift && shift.status !== 'OPEN' && (
-                <div className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-2xl border-2 border-red-600 flex items-center gap-2 shadow-lg font-bold">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span>❌ Ca đã đóng</span>
-                </div>
-              )}
-            </div>
 
-            {/* Dropdown khu vực */}
-            <div className="relative min-w-[200px] max-w-[300px]">
-              <select
-                value={selectedArea || ''}
-                onChange={(e) => setSelectedArea(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-4 py-2.5 pr-10 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#c9975b] focus:outline-none focus:border-[#c9975b] focus:ring-2 focus:ring-[#c9975b]/20 transition-all duration-200 appearance-none cursor-pointer shadow-sm"
-              >
-                <option value="">
-                  Tất cả khu vực
-                </option>
-                {areas.map(area => (
-                  <option key={area.id} value={area.id}>
-                    {area.ten}
+              {/* Dropdown khu vực */}
+              <div className="relative min-w-[200px] max-w-[300px]">
+                <select
+                  value={selectedArea || ''}
+                  onChange={(e) => setSelectedArea(e.target.value ? parseInt(e.target.value) : null)}
+                  className="w-full px-4 py-2.5 pr-10 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#c9975b] focus:outline-none focus:border-[#c9975b] focus:ring-2 focus:ring-[#c9975b]/20 transition-all duration-200 appearance-none cursor-pointer shadow-sm"
+                >
+                  <option value="">
+                    Tất cả khu vực
                   </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                  {areas.map(area => (
+                    <option key={area.id} value={area.id}>
+                      {area.ten}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -523,7 +517,7 @@ export default function Kitchen() {
             }
             data={queued}
             bgColor="bg-[#c9975b]"
-            actions={[
+            actions={isManagerViewMode ? [] : [
               {
                 label: (
                   <span className="flex items-center gap-2">
@@ -549,7 +543,7 @@ export default function Kitchen() {
             }
             data={making}
             bgColor="bg-blue-500"
-            actions={[
+            actions={isManagerViewMode ? [] : [
               {
                 label: (
                   <span className="flex items-center gap-2">
@@ -614,52 +608,6 @@ export default function Kitchen() {
         onGoBack={() => setShowTransferredOrdersDialog(false)}
         loading={false}
       />
-
-      {/* Floating Manager Dashboard Button - only for manager/admin */}
-      {(() => {
-        const user = getUser();
-        const roles = user?.roles || [];
-        const isManager = roles.some(role => ['manager', 'admin'].includes(role.toLowerCase()));
-        
-        if (!isManager) return null;
-        
-        return (
-          <button
-            onClick={() => navigate('/manager')}
-            style={{
-              position: 'fixed',
-              bottom: '24px',
-              right: '24px',
-              padding: '12px 24px',
-              backgroundColor: '#9333ea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(147, 51, 234, 0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              zIndex: 1000,
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#7e22ce';
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 6px 16px rgba(147, 51, 234, 0.5)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#9333ea';
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 12px rgba(147, 51, 234, 0.4)';
-            }}
-          >
-            📊 Trang quản lý
-          </button>
-        );
-      })()}
     </AuthedLayout>
   );
 }

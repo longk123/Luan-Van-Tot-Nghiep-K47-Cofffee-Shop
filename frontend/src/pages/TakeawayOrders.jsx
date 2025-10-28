@@ -21,20 +21,29 @@ export default function TakeawayOrders() {
   // Shift management - sử dụng ca của thu ngân
   const [shift, setShift] = useState(null);
 
+  // Get user info and check view mode
+  const user = getUser();
+  const userRoles = user?.roles || [];
+
+  // Check if user is Manager (View Only mode)
+  const isManagerViewMode = userRoles.some(role =>
+    ['manager', 'admin'].includes(role.toLowerCase())
+  ) && !userRoles.some(role =>
+    ['cashier'].includes(role.toLowerCase())
+  );
+
   // Role-based access control - Takeaway chỉ dành cho thu ngân
   useEffect(() => {
-    const user = getUser();
-    const userRoles = user?.roles || [];
-    const isKitchenStaff = userRoles.some(role => 
+    const isKitchenStaff = userRoles.some(role =>
       ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
     );
-    
+
     if (isKitchenStaff) {
       // Redirect pha chế về trang kitchen
       console.log('🍳 Kitchen staff detected, redirecting to /kitchen');
       navigate('/kitchen', { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, userRoles]);
 
   // Load shift information
   async function loadShift() {
@@ -124,8 +133,8 @@ export default function TakeawayOrders() {
 
     return (
       <div
-        className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-xl hover:border-[#c9975b] transition-all duration-200 cursor-pointer"
-        onClick={() => handleOpenOrder(order)}
+        className={`bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-xl hover:border-[#c9975b] transition-all duration-200 ${isManagerViewMode ? 'cursor-default' : 'cursor-pointer'}`}
+        onClick={isManagerViewMode ? undefined : () => handleOpenOrder(order)}
       >
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -198,7 +207,7 @@ export default function TakeawayOrders() {
         </div>
 
         {/* Action buttons - stopPropagation để không trigger open drawer - ENHANCED */}
-        {allDone ? (
+        {!isManagerViewMode && allDone ? (
           <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
             {isPaid ? (
               /* Đã thanh toán → Chỉ cần giao */
@@ -256,7 +265,11 @@ export default function TakeawayOrders() {
   const rightPad = drawer.open ? '680px' : '0px';
 
   return (
-    <AuthedLayout>
+    <AuthedLayout
+      isManagerViewMode={isManagerViewMode}
+      pageName="Đơn mang đi"
+      backUrl="/manager"
+    >
       {!drawer.open ? (
         /* Chế độ xem danh sách */
         <>
@@ -266,16 +279,6 @@ export default function TakeawayOrders() {
               {/* Left: Title and Shift info */}
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-4">
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#8b6f47] bg-white border-2 border-[#d4a574] rounded-xl hover:bg-gradient-to-r hover:from-[#c9975b] hover:to-[#d4a574] hover:text-white hover:scale-105 active:scale-95 transition-all duration-200 shadow-md"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Trở lại
-                  </button>
-
                   <div className="relative">
                     <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
                     <div className="relative w-12 h-12 bg-gradient-to-br from-[#8b6f47] via-[#c9975b] to-[#d4a574] rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
@@ -289,7 +292,7 @@ export default function TakeawayOrders() {
                     <h2 className="text-xl font-bold text-gray-900 mb-1">Đơn mang đi</h2>
                     <p className="text-sm text-gray-600 font-medium flex items-center gap-2">
                       <span className="inline-block w-2 h-2 bg-[#c9975b] rounded-full animate-pulse"></span>
-                      Quản lý đơn takeaway
+                      Quản lý đơn mang đi
                     </p>
                   </div>
                 </div>
@@ -308,24 +311,21 @@ export default function TakeawayOrders() {
                 )}
               </div>
 
-              {/* Right: Warning badges */}
-              <div className="flex items-center gap-3">
-                {!shift && (
-                  <div className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-lg font-bold">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              {/* Right: Action buttons */}
+              <div className="flex flex-col items-end gap-3">
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3 justify-end">
+                  {/* Nút Quay lại Dashboard - Hiển thị cho cả Cashier và Manager */}
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    <span>⚠️ Chưa mở ca</span>
-                  </div>
-                )}
-                {shift && shift.status !== 'OPEN' && (
-                  <div className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-2xl border-2 border-red-600 flex items-center gap-2 shadow-lg font-bold">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    <span>❌ Ca đã đóng</span>
-                  </div>
-                )}
+                    <span>Quay lại Dashboard</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

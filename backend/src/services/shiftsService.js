@@ -1,13 +1,14 @@
 // src/services/shiftsService.js
-import { 
-  getMyOpenShift, 
-  getMyOpenShiftWithUser, 
-  openShift, 
-  closeShift, 
+import {
+  getMyOpenShift,
+  getMyOpenShiftWithUser,
+  openShift,
+  closeShift,
   getById,
   aggregateShift,
   closeShiftTx,
-  getShiftWithSummary
+  getShiftWithSummary,
+  getOpenCashierShift
 } from '../repositories/shiftsRepository.js';
 
 export async function myOpen(nhanVienId) {
@@ -16,6 +17,25 @@ export async function myOpen(nhanVienId) {
 
 export async function getCurrentShiftService(userId) {
   const row = await getMyOpenShiftWithUser(userId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    business_day: row.business_day,
+    started_at: row.started_at,
+    status: row.status,
+    shift_type: row.shift_type,
+    opening_cash: row.opening_cash,
+    nhan_vien: {
+      user_id: row.nv_id,
+      full_name: row.nv_full_name,
+      username: row.nv_username,
+      email: row.nv_email
+    }
+  };
+}
+
+export async function getOpenCashierShiftService() {
+  const row = await getOpenCashierShift();
   if (!row) return null;
   return {
     id: row.id,

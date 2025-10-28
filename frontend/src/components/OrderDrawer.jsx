@@ -23,14 +23,14 @@ function groupTablesByArea(tables) {
   return groups;
 }
 
-export default function OrderDrawer({ 
-  open, 
-  onClose, 
-  order, 
-  onPaid, 
-  refreshTick = 0, 
-  width = 680, 
-  docked = true, 
+export default function OrderDrawer({
+  open,
+  onClose,
+  order,
+  onPaid,
+  refreshTick = 0,
+  width = 680,
+  docked = true,
   shift,
   reloadTables,
   onShowToast,
@@ -38,7 +38,8 @@ export default function OrderDrawer({
   onTriggerCancelDialog,
   onTableChanged,
   onItemsChange,
-  onPendingItemsChange
+  onPendingItemsChange,
+  viewOnly = false
 }) {
   const orderId = order?.id;
   const [localOrder, setLocalOrder] = useState(order);
@@ -1189,57 +1190,59 @@ export default function OrderDrawer({
               </button>
             )}
 
-            {/* Nút In hóa đơn */}
-            <button
-              onClick={async () => {
-                try {
-                  // Ghi log in hóa đơn
-                  const user = getUser();
-                  await api.logInvoicePrint(orderId, { 
-                    printed_by: user?.user_id,
-                    note: 'In từ POS'
-                  });
-                  
-                  // Lấy PDF với token
-                  const response = await api.getInvoicePdf(orderId);
-                  const blob = await response.blob();
-                  
-                  // Tạo URL cho blob và mở trong tab mới
-                  const pdfUrl = URL.createObjectURL(blob);
-                  const newWindow = window.open(pdfUrl, '_blank');
-                  
-                  // Cleanup URL sau khi mở
-                  if (newWindow) {
-                    newWindow.addEventListener('beforeunload', () => {
-                      URL.revokeObjectURL(pdfUrl);
+            {/* Nút In hóa đơn - Ẩn khi Manager đang xem */}
+            {!viewOnly && (
+              <button
+                onClick={async () => {
+                  try {
+                    // Ghi log in hóa đơn
+                    const user = getUser();
+                    await api.logInvoicePrint(orderId, {
+                      printed_by: user?.user_id,
+                      note: 'In từ POS'
                     });
-                  } else {
-                    // Fallback nếu popup bị chặn
-                    const link = document.createElement('a');
-                    link.href = pdfUrl;
-                    link.download = `hoa_don_${orderId}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(pdfUrl);
+
+                    // Lấy PDF với token
+                    const response = await api.getInvoicePdf(orderId);
+                    const blob = await response.blob();
+
+                    // Tạo URL cho blob và mở trong tab mới
+                    const pdfUrl = URL.createObjectURL(blob);
+                    const newWindow = window.open(pdfUrl, '_blank');
+
+                    // Cleanup URL sau khi mở
+                    if (newWindow) {
+                      newWindow.addEventListener('beforeunload', () => {
+                        URL.revokeObjectURL(pdfUrl);
+                      });
+                    } else {
+                      // Fallback nếu popup bị chặn
+                      const link = document.createElement('a');
+                      link.href = pdfUrl;
+                      link.download = `hoa_don_${orderId}.pdf`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(pdfUrl);
+                    }
+                  } catch (err) {
+                    console.error('Error printing invoice:', err);
+                    onShowToast?.({
+                      show: true,
+                      type: 'error',
+                      title: 'Lỗi in hóa đơn',
+                      message: 'Không thể in hóa đơn: ' + err.message
+                    });
                   }
-                } catch (err) {
-                  console.error('Error printing invoice:', err);
-                  onShowToast?.({
-                    show: true,
-                    type: 'error',
-                    title: 'Lỗi in hóa đơn',
-                    message: 'Không thể in hóa đơn: ' + err.message
-                  });
-                }
-              }}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 hover:-translate-y-0.5 text-white py-3 px-3 rounded-xl border border-blue-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              🧾 In hóa đơn
-            </button>
+                }}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 hover:-translate-y-0.5 text-white py-3 px-3 rounded-xl border border-blue-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                🧾 In hóa đơn
+              </button>
+            )}
           </div>
         )}
       </div>

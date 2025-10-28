@@ -106,6 +106,7 @@ export const api = {
   // ===== SHIFTS / CA LÀM =====
   getMyOpenShift: () => request('GET', '/shifts/current'),
   getCurrentShift: () => request('GET', '/shifts/current'),
+  getOpenCashierShift: () => request('GET', '/shifts/open-cashier'),
   getShiftSummary: (shiftId) => request('GET', `/shifts/${shiftId}/summary`),
   getTransferredOrders: (shiftId) => request('GET', `/shifts/${shiftId}/transferred-orders`),
   closeShiftEnhanced: (shiftId, data) => request('POST', `/shifts/${shiftId}/close-enhanced`, data),

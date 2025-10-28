@@ -1,18 +1,19 @@
 // === src/layouts/AuthedLayout.jsx ===
 import { getToken } from '../auth.js';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import UserBadge from '../components/UserBadge.jsx';
 import ShiftBadge from '../components/ShiftBadge.jsx';
 
-export default function AuthedLayout({ children, shift }) {
+export default function AuthedLayout({ children, shift, isManagerViewMode = false, pageName = 'Dashboard', backUrl = '/manager' }) {
   const token = getToken();
+  const navigate = useNavigate();
   console.log('🔍 AuthedLayout - Token:', token ? 'exists' : 'missing');
-  
+
   if (!token) {
     console.log('❌ AuthedLayout - No token, redirecting to login');
     return <Navigate to="/login" replace />;
   }
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 text-gray-900">
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 shadow-lg border-b border-gray-200/50">
@@ -28,7 +29,7 @@ export default function AuthedLayout({ children, shift }) {
                   </svg>
                 </div>
               </div>
-              
+
               {/* Brand text with enhanced styling */}
               <div className="flex flex-col">
                 <h1 className="text-2xl font-extrabold tracking-tight">
@@ -41,9 +42,25 @@ export default function AuthedLayout({ children, shift }) {
                 </p>
               </div>
             </div>
-            
-            {/* User Badge */}
+
+            {/* View Mode Indicator + User Badge */}
             <div className="flex items-center gap-3">
+              {/* View Mode Badge - chỉ hiển thị khi Manager đang xem */}
+              {isManagerViewMode && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl shadow-sm">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-blue-800">Chế độ xem</span>
+                    <span className="text-[10px] text-blue-600 font-medium">{pageName}</span>
+                  </div>
+                </div>
+              )}
+
               <UserBadge />
             </div>
           </div>

@@ -25,6 +25,9 @@ router.get('/current', authMiddleware, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// GET /api/v1/shifts/open-cashier - Lấy ca CASHIER đang mở
+router.get('/open-cashier', authMiddleware, shiftsController.getOpenCashierShift);
+
 // POST /api/v1/shifts/open - Sử dụng controller mới với auth
 router.post('/open', authMiddleware, shiftsController.openShift);
 

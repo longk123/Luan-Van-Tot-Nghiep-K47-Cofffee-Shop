@@ -57,33 +57,40 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
 
   // Role-based access control
   const [userRoles, setUserRoles] = useState([]);
-  
+
   // Load user data
   useEffect(() => {
     const userData = getUser();
     console.log('🔍 Dashboard - User data:', userData);
     setUser(userData);
   }, []);
-  
+
   useEffect(() => {
     const user = getUser();
     const roles = user?.roles || [];
     setUserRoles(roles);
-    
-    const isKitchenStaff = roles.some(role => 
+
+    const isKitchenStaff = roles.some(role =>
       ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
     );
-    
+
     if (isKitchenStaff) {
       // Redirect pha chế về trang kitchen
       console.log('🍳 Kitchen staff detected, redirecting to /kitchen');
       navigate('/kitchen', { replace: true });
     }
   }, [navigate]);
-  
+
   // Check if user can view current shift orders (cashier, manager, admin)
-  const canViewCurrentShiftOrders = userRoles.some(role => 
+  const canViewCurrentShiftOrders = userRoles.some(role =>
     ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
+  );
+
+  // Check if user is Manager (View Only mode)
+  const isManagerViewMode = userRoles.some(role =>
+    ['manager', 'admin'].includes(role.toLowerCase())
+  ) && !userRoles.some(role =>
+    ['cashier'].includes(role.toLowerCase())
   );
 
   // Debug: Log drawer state changes
@@ -443,8 +450,15 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   const rightPad = showWorkpane ? drawerWidth + 16 : 0; // Thêm 16px khoảng cách để scrollbar nằm giữa
 
   return (
-    <AuthedLayout shift={shift}>
-      <div style={{ marginRight: showWorkpane ? `${drawerWidth + 16}px` : '0' }}>
+    <AuthedLayout
+      shift={shift}
+      isManagerViewMode={isManagerViewMode}
+      pageName="Dashboard Cashier"
+      backUrl="/manager"
+    >
+      <div style={{
+        marginRight: showWorkpane ? `${drawerWidth + 16}px` : '0'
+      }}>
       {/* Header with area info */}
       {!posMode && !showWorkpane && (
         <>
@@ -496,18 +510,24 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                       <span>⚠️ Chưa mở ca</span>
                     </div>
                   )}
-                  {shift && shift.status !== 'OPEN' && (
-                    <div className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-2xl border-2 border-red-600 flex items-center gap-2 shadow-lg font-bold">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span>❌ Ca đã đóng</span>
-                    </div>
-                  )}
+
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex flex-wrap gap-3 justify-end">
+              {/* Nút Quay lại Manager Dashboard - chỉ hiển thị khi Manager đang xem */}
+              {isManagerViewMode && (
+                <button
+                  onClick={() => navigate('/manager')}
+                  className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-blue-600 hover:border-blue-500 hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  <span>Quay lại Manager Dashboard</span>
+                </button>
+              )}
+
               {/* Badge đơn từ ca trước */}
               {transferredOrders.length > 0 && (
                 <button
@@ -529,15 +549,17 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                 </svg>
                 <span>Danh sách đặt bàn</span>
               </button>
-              <button
-                onClick={() => setShowReservationPanel(true)}
-                className="px-4 py-2.5 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>Đặt bàn</span>
-              </button>
+              {!isManagerViewMode && (
+                <button
+                  onClick={() => setShowReservationPanel(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Đặt bàn</span>
+                </button>
+              )}
               <button
                 onClick={() => window.location.href = '/takeaway'}
                 className="px-4 py-2.5 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
@@ -561,26 +583,28 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   <span>Lịch sử đơn</span>
                 </button>
               )}
-              {shift && shift.status === 'OPEN' ? (
-                <button
-                  onClick={() => setShowCloseShiftModal(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-2 border-purple-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-700 hover:border-purple-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Đóng ca</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowOpenShiftModal(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-2 border-green-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-green-700 hover:border-green-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>Mở ca</span>
-                </button>
+              {!isManagerViewMode && (
+                shift && shift.status === 'OPEN' ? (
+                  <button
+                    onClick={() => setShowCloseShiftModal(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-2 border-purple-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-700 hover:border-purple-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Đóng ca</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowOpenShiftModal(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-2 border-green-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-green-700 hover:border-green-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Mở ca</span>
+                  </button>
+                )
               )}
                 </div>
               </div>
@@ -650,13 +674,14 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {area.tables.map((t) => (
-                      <TableCard 
-                        key={t.id} 
-                        table={t} 
-                        onClick={handleTableClick}
-                        onCloseTable={handleCloseTable}
-                        onLockTable={handleLockTable}
-                        onUnlockTable={handleUnlockTable}
+                      <TableCard
+                        key={t.id}
+                        table={t}
+                        onClick={isManagerViewMode ? null : handleTableClick}
+                        onCloseTable={isManagerViewMode ? null : handleCloseTable}
+                        onLockTable={isManagerViewMode ? null : handleLockTable}
+                        onUnlockTable={isManagerViewMode ? null : handleUnlockTable}
+                        viewOnly={isManagerViewMode}
                       />
                     ))}
                   </div>
@@ -667,13 +692,14 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             // Dashboard mode - current area only
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {currentAreaTables.map((t) => (
-                <TableCard 
-                  key={t.id} 
-                  table={t} 
-                  onClick={handleTableClick}
-                  onCloseTable={handleCloseTable}
-                  onLockTable={handleLockTable}
-                  onUnlockTable={handleUnlockTable}
+                <TableCard
+                  key={t.id}
+                  table={t}
+                  onClick={isManagerViewMode ? null : handleTableClick}
+                  onCloseTable={isManagerViewMode ? null : handleCloseTable}
+                  onLockTable={isManagerViewMode ? null : handleLockTable}
+                  onUnlockTable={isManagerViewMode ? null : handleUnlockTable}
+                  viewOnly={isManagerViewMode}
                 />
               ))}
               {!currentAreaTables.length && <div className="text-gray-500">Không có bàn.</div>}
@@ -690,7 +716,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         onClose={(info) => {
           // Reset pending state
           setDrawerHasPendingItems(false);
-          
+
           // Nếu là object info từ TAKEAWAY
           if (typeof info === 'object' && info.orderType === 'TAKEAWAY') {
             if (!info.hasItems) {
@@ -720,6 +746,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         onTriggerCancelDialog={() => setTriggerCancelDialog(false)}
         onTableChanged={handleTableChanged}
         onItemsChange={(hasItems) => setDrawerHasItems(hasItems)}
+        viewOnly={isManagerViewMode}
       />
 
       {/* Confirmation Dialog */}
@@ -957,76 +984,42 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <CurrentShiftOrders key={shiftOrdersRefreshKey} />
+              <CurrentShiftOrders key={shiftOrdersRefreshKey} viewOnly={isManagerViewMode} />
             </div>
           </div>
         </div>
       )}
 
-      {/* Floating Manager Dashboard Button - only for manager/admin */}
-      {(user?.roles?.includes('manager') || user?.roles?.includes('admin')) && (
-        <button
-          onClick={() => navigate('/manager')}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            padding: '12px 24px',
-            backgroundColor: '#9333ea',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(147, 51, 234, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            zIndex: 1000,
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#7e22ce';
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 6px 16px rgba(147, 51, 234, 0.5)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#9333ea';
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 12px rgba(147, 51, 234, 0.4)';
-          }}
-        >
-          📊 Trang quản lý
-        </button>
-      )}
 
-      {/* Floating Action Button - Đơn mang đi - ENHANCED */}
-      <div className="fixed bottom-6 right-6 z-[1000] group">
-        {/* Tooltip */}
-        <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
-          <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
-            Tạo đơn mang đi mới
-            <div className="absolute top-full right-6 -mt-1">
-              <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
+
+      {/* Floating Action Button - Đơn mang đi - ENHANCED - Only for Cashier */}
+      {!isManagerViewMode && (
+        <div className="fixed bottom-6 right-6 z-[1000] group">
+          {/* Tooltip */}
+          <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
+            <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
+              Tạo đơn mang đi mới
+              <div className="absolute top-full right-6 -mt-1">
+                <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
+              </div>
             </div>
           </div>
+
+          {/* Button với glow effect */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
+            <button
+              onClick={handleCreateTakeaway}
+              className="relative w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 text-white rounded-full shadow-2xl hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
+              title="Tạo đơn mang đi mới"
+            >
+              <svg className="w-7 h-7 transition-transform group-hover:rotate-90 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
         </div>
-        
-        {/* Button với glow effect */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
-          <button
-            onClick={handleCreateTakeaway}
-            className="relative w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 text-white rounded-full shadow-2xl hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
-            title="Tạo đơn mang đi mới"
-          >
-            <svg className="w-7 h-7 transition-transform group-hover:rotate-90 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      )}
       </div> {/* End of content wrapper with marginRight */}
     </AuthedLayout>
   );
