@@ -7,7 +7,6 @@ import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import OpenShiftModal from '../components/OpenShiftModal.jsx';
 import CloseShiftModal from '../components/CloseShiftModal.jsx';
 import OpenOrdersDialog from '../components/OpenOrdersDialog.jsx';
-import CustomSelect from '../components/CustomSelect.jsx';
 import { getUser } from '../auth.js';
 
 export default function Kitchen() {
@@ -17,7 +16,7 @@ export default function Kitchen() {
   const [selectedArea, setSelectedArea] = useState(null);
   const [loading, setLoading] = useState(false);
   const scrollRefs = useRef({});
-  
+
   // Shift management states
   const [shift, setShift] = useState(null);
   const [showOpenShift, setShowOpenShift] = useState(false);
@@ -26,26 +25,28 @@ export default function Kitchen() {
   const [openOrders, setOpenOrders] = useState([]);
   const [transferredOrders, setTransferredOrders] = useState([]);
   const [showTransferredOrdersDialog, setShowTransferredOrdersDialog] = useState(false);
-  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Get user info
+  const user = getUser();
+  const userRoles = user?.roles || [];
+  const isAdmin = userRoles.some(role => role.toLowerCase() === 'admin');
 
   // Role-based access control
   useEffect(() => {
-    const user = getUser();
     console.log('🔍 User data:', user);
-    
+
     // Kiểm tra roles array - cho phép kitchen staff, manager và admin
-    const userRoles = user?.roles || [];
-    const hasAccess = userRoles.some(role => 
+    const hasAccess = userRoles.some(role =>
       ['kitchen', 'barista', 'chef', 'cook', 'manager', 'admin'].includes(role.toLowerCase())
     );
-    
+
     console.log('🔍 Kitchen access check:', { userRoles, hasAccess });
-    
+
     if (!hasAccess) {
       console.log('❌ User không có quyền truy cập Kitchen, redirect về dashboard');
       navigate('/dashboard', { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, user, userRoles]);
 
   async function loadAreas() {
     try {
@@ -161,38 +162,13 @@ export default function Kitchen() {
       if (!silent) setLoading(false);
     }
   }
-  
-  const handleRefresh = () => {
-    loadQueue(true);
-  };
 
   useEffect(() => {
     loadAreas();
     loadShift();
   }, []);
 
-  // Force re-render when shift state changes
-  useEffect(() => {
-    console.log('🔄 Shift state changed:', shift);
-    console.log('🔄 Force re-render triggered');
-    
-    // Force component re-render
-    if (shift && shift.status === 'OPEN') {
-      console.log('🔄 Shift is OPEN, should show close button');
-    } else {
-      console.log('🔄 No shift or shift not OPEN, should show open button');
-    }
-    
-    // Force re-render by updating a dummy state
-    setRefreshTick(prev => prev + 1);
-  }, [shift]);
-  
-  // Debug: Log when shift becomes null
-  useEffect(() => {
-    if (shift === null) {
-      console.log('🔄 Shift is now NULL - UI should show open button');
-    }
-  }, [shift]);
+
   useEffect(() => { loadQueue(); }, [selectedArea]);
   
   // TẮT auto update thời gian để tránh re-render
@@ -282,17 +258,29 @@ export default function Kitchen() {
     }
   };
 
-  const KitchenColumn = ({ title, data, bgColor, actions }) => (
-    <div className={`flex-1 ${bgColor} rounded-2xl p-4`}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-white text-lg">{title}</h3>
-        <span className="bg-white/20 text-white px-3 py-1 rounded-full text-sm font-semibold">
-          {data.length}
-        </span>
+  const KitchenColumn = ({ title, data, bgColor, icon, actions }) => (
+    <div className="flex-1 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+      {/* Header - Đơn giản và chuyên nghiệp */}
+      <div className="px-6 py-4 bg-gray-50 border-b-2 border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 ${bgColor} rounded-xl flex items-center justify-center shadow-md`}>
+              {icon}
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-base">{title}</h3>
+              <p className="text-gray-600 text-sm font-medium">{data.length} món</p>
+            </div>
+          </div>
+          <div className={`${bgColor} text-white px-4 py-2 rounded-xl font-bold text-lg min-w-[50px] text-center shadow-md`}>
+            {data.length}
+          </div>
+        </div>
       </div>
-      
-      <div 
-        className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2"
+
+      {/* Content area */}
+      <div
+        className="p-4 space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto"
         style={{ scrollBehavior: 'auto' }}
         ref={el => {
           if (el) {
@@ -308,58 +296,100 @@ export default function Kitchen() {
         }}
       >
         {data.length === 0 ? (
-          <div className="text-center text-white/60 py-12">
-            <svg className="w-16 h-16 mx-auto mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm">Không có món</p>
+          <div className="text-center py-16">
+            <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-500 font-medium">Không có món nào</p>
+            <p className="text-gray-400 text-sm mt-1">Danh sách trống</p>
           </div>
         ) : (
           data.map(item => (
-            <div key={item.id} className="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="flex items-start justify-between mb-3">
+            <div
+              key={item.id}
+              className="bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200"
+            >
+              {/* Header: Tên món & Số lượng */}
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h4 className="font-bold text-gray-900 text-lg mb-1">
-                    {item.mon_ten} {item.bien_the_ten && <span className="text-blue-600">• {item.bien_the_ten}</span>}
+                  <h4 className="font-bold text-gray-900 text-lg mb-2 leading-tight">
+                    {item.mon_ten}
                   </h4>
-                  <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
+                  {item.bien_the_ten && (
+                    <div className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold mb-2 border border-blue-200">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      {item.bien_the_ten}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg font-medium border border-gray-200">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                       {item.ten_ban || 'Mang đi'}
                     </span>
                     {item.khu_vuc_ten && (
-                      <span className="text-purple-600">📍 {item.khu_vuc_ten}</span>
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg font-medium border border-purple-200">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {item.khu_vuc_ten}
+                      </span>
                     )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xl">
+                <div className="ml-4">
+                  <div className="bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold text-xl shadow-md min-w-[70px] text-center border-2 border-emerald-600">
                     ×{item.so_luong}
                   </div>
                 </div>
               </div>
 
+              {/* Ghi chú */}
               {item.ghi_chu && (
-                <div className="mb-3 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                  <p className="text-sm text-yellow-800">📝 {item.ghi_chu}</p>
+                <div className="mb-4 p-3 bg-amber-50 border-l-4 border-amber-400 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <p className="text-sm text-amber-900 font-medium leading-relaxed">{item.ghi_chu}</p>
+                  </div>
                 </div>
               )}
 
+              {/* Thời gian */}
               {item.created_at && (
-                <div className="mb-3 text-xs text-gray-600">
-                  ⏱️ Đặt lúc: {new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  {item.started_at && ` • Bắt đầu: ${new Date(item.started_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+                <div className="mb-4 flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg font-medium">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Đặt: {new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  {item.started_at && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg font-medium">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Bắt đầu: {new Date(item.started_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
                 </div>
               )}
 
+              {/* Action buttons */}
               <div className="flex gap-2">
                 {actions?.map(btn => (
                   <button
                     key={btn.label}
                     onClick={() => handleAction(item.id, btn.action)}
-                    className={`flex-1 py-2 px-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg ${btn.className} outline-none focus:outline-none`}
+                    className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:shadow-md ${btn.className} outline-none focus:outline-none`}
                   >
                     {btn.label}
                   </button>
@@ -374,91 +404,176 @@ export default function Kitchen() {
 
   return (
     <AuthedLayout shift={shift}>
-      <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">🍳 Bếp / Pha chế</h2>
-            <p className="text-sm text-gray-600">Kitchen Display System</p>
-            {shift && shift.status === 'OPEN' && (
-              <div className="mt-2 flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Ca #{shift.id} - {shift.nhan_vien?.full_name || 'Unknown'}
+      {/* Header Card - Đồng bộ 100% với Dashboard và Takeaway */}
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-6">
+          {/* Left: Title and Shift info */}
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-4">
+              {/* Nút "Trở lại" chỉ hiển thị cho admin */}
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#8b6f47] bg-white border-2 border-[#d4a574] rounded-xl hover:bg-gradient-to-r hover:from-[#c9975b] hover:to-[#d4a574] hover:text-white hover:scale-105 active:scale-95 transition-all duration-200 shadow-md"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Trở lại
+                </button>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
+                <div className="relative w-12 h-12 bg-gradient-to-br from-[#8b6f47] via-[#c9975b] to-[#d4a574] rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Bếp / Pha chế</h2>
+                <p className="text-sm text-gray-600 font-medium flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 bg-[#c9975b] rounded-full animate-pulse"></span>
+                  Kitchen Display System
+                </p>
+              </div>
+            </div>
+
+            {/* Shift info */}
+            {shift && shift.id && (
+              <div className="mt-3 flex items-center gap-4 text-sm">
+                <span className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md font-bold">
+                  <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
+                  Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                 </span>
-                <span className="text-gray-500">
+                <span className="text-[#8b6f47] font-medium">
                   Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
                 </span>
               </div>
             )}
           </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Nút mở/đóng ca */}
-            {shift?.status === 'OPEN' ? (
-              <button
-                key={`close-${shift.id}-${refreshTick}`}
-                onClick={() => setShowCloseShift(true)}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2 whitespace-nowrap"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Đóng ca
-              </button>
-            ) : (
-              <button
-                key={`open-${refreshTick}`}
-                onClick={() => setShowOpenShift(true)}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium outline-none focus:outline-none flex items-center gap-2 whitespace-nowrap"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m-6 0h6m0 0h6" />
-                </svg>
-                Mở ca
-              </button>
-            )}
-            
+
+          {/* Right: Warning badges and actions */}
+          <div className="flex flex-col items-end gap-3">
+            {/* Warning badges */}
+            <div className="flex items-center gap-3">
+              {!shift && (
+                <div className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-lg font-bold">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>⚠️ Chưa mở ca</span>
+                </div>
+              )}
+              {shift && shift.status !== 'OPEN' && (
+                <div className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-2xl border-2 border-red-600 flex items-center gap-2 shadow-lg font-bold">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>❌ Ca đã đóng</span>
+                </div>
+              )}
+            </div>
+
             {/* Dropdown khu vực */}
-            <CustomSelect
-              value={selectedArea || ''}
-              onChange={value => setSelectedArea(value ? parseInt(value) : null)}
-              options={[
-                { value: '', label: '📍 Tất cả khu vực' },
-                ...areas.map(area => ({
-                  value: area.id,
-                  label: area.ten
-                }))
-              ]}
-              placeholder="📍 Tất cả khu vực"
-              className="min-w-[200px] max-w-[300px]"
-            />
+            <div className="relative min-w-[200px] max-w-[300px]">
+              <select
+                value={selectedArea || ''}
+                onChange={(e) => setSelectedArea(e.target.value ? parseInt(e.target.value) : null)}
+                className="w-full px-4 py-2.5 pr-10 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#c9975b] focus:outline-none focus:border-[#c9975b] focus:ring-2 focus:ring-[#c9975b]/20 transition-all duration-200 appearance-none cursor-pointer shadow-sm"
+              >
+                <option value="">
+                  Tất cả khu vực
+                </option>
+                {areas.map(area => (
+                  <option key={area.id} value={area.id}>
+                    {area.ten}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải...</p>
+        <div className="text-center py-20">
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-gray-600 font-medium text-lg">Đang tải dữ liệu...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-6">
           <KitchenColumn
-            title="📋 Chờ làm"
+            title="Chờ làm"
+            icon={
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            }
             data={queued}
-            bgColor="bg-gradient-to-br from-amber-600 to-amber-700"
+            bgColor="bg-[#c9975b]"
             actions={[
-              { label: '▶️ Bắt đầu', action: 'start', className: 'bg-amber-700 hover:bg-amber-800 text-white' }
+              {
+                label: (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Bắt đầu
+                  </span>
+                ),
+                action: 'start',
+                className: 'bg-[#c9975b] text-white border-2 border-[#c9975b] hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b]'
+              }
             ]}
           />
-          
+
           <KitchenColumn
-            title="🔥 Đang làm"
+            title="Đang làm"
+            icon={
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+              </svg>
+            }
             data={making}
-            bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
+            bgColor="bg-blue-500"
             actions={[
-              { label: '✅ Hoàn tất', action: 'done', className: 'bg-green-500 hover:bg-green-600 text-white' },
-              { label: '❌ Hủy', action: 'cancel', className: 'bg-red-500 hover:bg-red-600 text-white' }
+              {
+                label: (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Hoàn tất
+                  </span>
+                ),
+                action: 'done',
+                className: 'bg-green-500 text-white border-2 border-green-500 hover:bg-white hover:text-green-600 hover:border-green-500'
+              },
+              {
+                label: (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Hủy
+                  </span>
+                ),
+                action: 'cancel',
+                className: 'bg-red-500 text-white border-2 border-red-500 hover:bg-white hover:text-red-600 hover:border-red-500'
+              }
             ]}
           />
         </div>

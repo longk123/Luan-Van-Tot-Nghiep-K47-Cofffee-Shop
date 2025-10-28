@@ -472,35 +472,42 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                 
                 {/* Shift info */}
                 {shift && shift.id && (
-                  <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-2 border-green-200 rounded-xl shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
-                        <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></div>
-                      </div>
-                      <span className="text-sm font-semibold text-green-800">
-                        Ca #{shift.id}
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-600">•</span>
-                    <span className="text-sm text-gray-700">
-                      {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
+                  <div className="mt-3 flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md font-bold">
+                      <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
+                      Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                     </span>
-                    <span className="text-sm text-gray-600">•</span>
-                    <span className="text-sm text-gray-500">
-                      {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        day: '2-digit',
-                        month: '2-digit'
-                      }) : 'Invalid Date'}
+                    <span className="text-[#8b6f47] font-medium">
+                      Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
                     </span>
                   </div>
                 )}
               </div>
 
               {/* Right: Action buttons - Redesigned with invert hover */}
-              <div className="flex flex-wrap gap-3 justify-end">
+              <div className="flex flex-col items-end gap-3">
+                {/* Warning badges */}
+                <div className="flex items-center gap-3">
+                  {!shift && (
+                    <div className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-lg font-bold">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>⚠️ Chưa mở ca</span>
+                    </div>
+                  )}
+                  {shift && shift.status !== 'OPEN' && (
+                    <div className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-2xl border-2 border-red-600 flex items-center gap-2 shadow-lg font-bold">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span>❌ Ca đã đóng</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3 justify-end">
               {/* Badge đơn từ ca trước */}
               {transferredOrders.length > 0 && (
                 <button
@@ -575,8 +582,9 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   <span>Mở ca</span>
                 </button>
               )}
+                </div>
+              </div>
             </div>
-          </div>
           </div>
           
           {/* Area Tabs - Improved */}

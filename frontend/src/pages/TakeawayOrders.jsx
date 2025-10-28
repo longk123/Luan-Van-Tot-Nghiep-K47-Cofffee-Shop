@@ -121,77 +121,77 @@ export default function TakeawayOrders() {
   const OrderCard = ({ order }) => {
     const allDone = order.items?.every(item => item.trang_thai_che_bien === 'DONE');
     const isPaid = order.trang_thai === 'PAID';
-    
+
     return (
-      <div 
-        className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-lg border-2 border-[#d4a574]/30 p-6 hover:shadow-2xl hover:border-[#c9975b] transition-all duration-300 cursor-pointer transform hover:scale-[1.02]"
+      <div
+        className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-xl hover:border-[#c9975b] transition-all duration-200 cursor-pointer"
         onClick={() => handleOpenOrder(order)}
       >
-        <div className="flex items-start justify-between mb-5">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-2xl font-bold text-[#8b6f47] flex items-center gap-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h3 className="text-xl font-bold text-[#8b6f47] flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
               Đơn #{order.id}
             </h3>
-            <p className="text-sm text-[#c9975b] font-medium mt-1">
-              {new Date(order.opened_at).toLocaleTimeString('vi-VN', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+            <p className="text-sm text-[#8b6f47] font-medium mt-1">
+              {new Date(order.opened_at).toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
               })}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <span className={`px-4 py-2 rounded-xl text-xs font-bold shadow-md ${
-              isPaid 
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                : 'bg-gradient-to-r from-amber-400 to-orange-400 text-white'
+            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+              isPaid
+                ? 'bg-green-500 text-white'
+                : 'bg-amber-500 text-white'
             }`}>
               {isPaid ? '✓ Đã thanh toán' : '⏳ Chưa thanh toán'}
             </span>
             {allDone && (
-              <span className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md">
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500 text-white">
                 ✅ Món đã xong
               </span>
             )}
           </div>
         </div>
 
-        {/* Danh sách món - ENHANCED */}
-        <div className="space-y-3 mb-5">
+        {/* Danh sách món */}
+        <div className="space-y-2 mb-4">
           {order.items?.map(item => (
-            <div key={item.id} className="flex items-center justify-between p-3 bg-gradient-to-br from-white to-[#fef7ed] rounded-2xl border-2 border-[#e7d4b8] shadow-sm">
+            <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex-1">
-                <span className="font-bold text-[#8b6f47]">
+                <span className="font-semibold text-gray-900">
                   {item.mon_ten} {item.bien_the_ten && `• ${item.bien_the_ten}`}
                 </span>
                 {item.ghi_chu && (
-                  <p className="text-xs text-[#c9975b] mt-1 font-medium">📝 {item.ghi_chu}</p>
+                  <p className="text-xs text-gray-600 mt-1">📝 {item.ghi_chu}</p>
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[#8b6f47] font-bold text-lg">×{item.so_luong}</span>
-                <span className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm ${
-                  item.trang_thai_che_bien === 'DONE' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' :
-                  item.trang_thai_che_bien === 'MAKING' ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white' :
-                  item.trang_thai_che_bien === 'QUEUED' ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white' :
-                  'bg-gradient-to-r from-amber-400 to-orange-400 text-white'
+                <span className="text-gray-700 font-semibold">×{item.so_luong}</span>
+                <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
+                  item.trang_thai_che_bien === 'DONE' ? 'bg-green-100 text-green-700' :
+                  item.trang_thai_che_bien === 'MAKING' ? 'bg-blue-100 text-blue-700' :
+                  item.trang_thai_che_bien === 'QUEUED' ? 'bg-gray-200 text-gray-700' :
+                  'bg-amber-100 text-amber-700'
                 }`}>
-                  {item.trang_thai_che_bien === 'DONE' ? 'Hoàn thành' :
+                  {item.trang_thai_che_bien === 'DONE' ? 'Xong' :
                    item.trang_thai_che_bien === 'MAKING' ? 'Đang làm' :
-                   item.trang_thai_che_bien === 'QUEUED' ? 'Chờ làm' : 'Chưa xác nhận'}
+                   item.trang_thai_che_bien === 'QUEUED' ? 'Chờ' : 'Chưa xác nhận'}
                 </span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Tổng tiền - ENHANCED */}
-        <div className="border-t-2 border-[#e7d4b8] pt-4 mb-4">
-          <div className="flex items-center justify-between bg-gradient-to-r from-[#fef7ed] to-[#e7d4b8] rounded-2xl p-4">
-            <span className="text-[#8b6f47] font-bold text-lg">Tổng cộng:</span>
-            <span className="text-3xl font-bold text-[#c9975b]">
+        {/* Tổng tiền */}
+        <div className="border-t border-gray-200 pt-4 mb-4">
+          <div className="flex items-center justify-between bg-[#c9975b] rounded-xl p-4">
+            <span className="text-white font-bold text-base">Tổng cộng:</span>
+            <span className="text-2xl font-bold text-white">
               {(order.grand_total || 0).toLocaleString()}₫
             </span>
           </div>
@@ -231,20 +231,20 @@ export default function TakeawayOrders() {
           </div>
         ) : (
           /* Món chưa xong → Tổng kết ưu tiên */
-          <div className="text-center py-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200">
+          <div className="text-center py-3 bg-amber-50 rounded-lg border border-amber-200">
             {order.items?.some(i => i.trang_thai_che_bien === 'PENDING') ? (
-              <p className="text-sm text-amber-700 font-bold flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                ⏸️ Chưa xác nhận đơn
-              </p>
-            ) : (
-              <p className="text-sm text-[#c9975b] font-bold flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <p className="text-sm text-amber-700 font-semibold flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                ⏳ Đơn chưa làm món xong
+                Đơn chưa làm món xong
+              </p>
+            ) : (
+              <p className="text-sm text-amber-700 font-semibold flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Đơn chưa làm món xong
               </p>
             )}
           </div>
@@ -260,28 +260,41 @@ export default function TakeawayOrders() {
       {!drawer.open ? (
         /* Chế độ xem danh sách */
         <>
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
+          {/* Header Card - Improved to match Dashboard style */}
+          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6 backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-6">
+              {/* Left: Title and Shift info */}
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-4">
                   <button
                     onClick={() => navigate('/dashboard')}
-                    className="inline-flex items-center gap-2 px-6 py-3 text-base font-bold text-[#8b6f47] bg-gradient-to-r from-white to-[#fef7ed] border-2 border-[#d4a574] rounded-2xl
-                    hover:bg-gradient-to-r hover:from-[#c9975b] hover:to-[#d4a574] hover:text-white hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#8b6f47] bg-white border-2 border-[#d4a574] rounded-xl hover:bg-gradient-to-r hover:from-[#c9975b] hover:to-[#d4a574] hover:text-white hover:scale-105 active:scale-95 transition-all duration-200 shadow-md"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Trở lại Dashboard
+                    Trở lại
                   </button>
-                  <h2 className="text-3xl font-bold bg-gradient-to-r from-[#8b6f47] to-[#c9975b] bg-clip-text text-transparent flex items-center gap-2">
-                    <svg className="w-8 h-8 text-[#c9975b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    Đơn mang đi
-                  </h2>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
+                    <div className="relative w-12 h-12 bg-gradient-to-br from-[#8b6f47] via-[#c9975b] to-[#d4a574] rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Đơn mang đi</h2>
+                    <p className="text-sm text-gray-600 font-medium flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 bg-[#c9975b] rounded-full animate-pulse"></span>
+                      Quản lý đơn takeaway
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-[#c9975b] font-medium">Quản lý đơn takeaway</p>
+
+                {/* Shift info */}
                 {shift && shift.id && (
                   <div className="mt-3 flex items-center gap-4 text-sm">
                     <span className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md font-bold">
@@ -294,7 +307,8 @@ export default function TakeawayOrders() {
                   </div>
                 )}
               </div>
-              
+
+              {/* Right: Warning badges */}
               <div className="flex items-center gap-3">
                 {!shift && (
                   <div className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-lg font-bold">
