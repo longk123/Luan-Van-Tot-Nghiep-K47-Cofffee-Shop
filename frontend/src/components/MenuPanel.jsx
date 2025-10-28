@@ -44,43 +44,56 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
   if (!open || !item) return null;
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-        <div className="px-6 py-4 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
-          <h3 className="text-xl font-bold text-amber-900">{item.ten}</h3>
-          <p className="text-sm text-amber-700 mt-1">Chọn kích cỡ và số lượng</p>
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-2xl max-w-md w-full border-2 border-[#d4a574]/30 transform transition-all">
+        <div className="px-6 py-5 border-b-2 border-[#e7d4b8] bg-gradient-to-r from-[#c9975b] via-[#d4a574] to-[#c9975b] shadow-lg rounded-t-3xl">
+          <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            {item.ten}
+          </h3>
+          <p className="text-sm text-white/90 mt-1 font-medium">Chọn kích cỡ và số lượng</p>
         </div>
 
         <div className="p-6 space-y-6">
           {loading ? (
             <div className="py-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#e7d4b8] border-t-[#c9975b] mx-auto mb-3"></div>
+              <p className="text-[#8b6f47] font-semibold">Đang tải...</p>
             </div>
           ) : (
             <>
-              {/* Size selection */}
+              {/* Size selection - ENHANCED */}
               {variants.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-amber-900 mb-3">Chọn kích cỡ</h4>
-                  <div className="grid grid-cols-1 gap-2">
+                  <h4 className="font-bold text-[#8b6f47] mb-4 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#c9975b] to-[#d4a574] flex items-center justify-center shadow-sm">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                      </svg>
+                    </div>
+                    Chọn kích cỡ
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3">
                     {variants.map((variant) => (
                       <button
                         key={variant.id}
                         onClick={() => setVariantId(variant.id)}
-                        className={`p-4 rounded-xl border-2 transition-all text-left outline-none focus:outline-none ${
+                        className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left outline-none focus:outline-none transform ${
                           variantId === variant.id
-                            ? 'border-amber-500 bg-gradient-to-r from-amber-50 to-orange-50 shadow-md'
-                            : 'border-amber-200 bg-white hover:border-amber-400 hover:bg-amber-50'
+                            ? 'border-[#c9975b] bg-gradient-to-br from-[#fef7ed] to-[#e7d4b8] shadow-xl scale-[1.02]' 
+                            : 'border-[#e7d4b8] bg-white hover:border-[#c9975b] hover:bg-[#fef7ed] hover:shadow-lg hover:scale-[1.02]'
                         }`}
                       >
                         <div className="flex justify-between items-center">
-                          <span className={`font-semibold ${
-                            variantId === variant.id ? 'text-amber-900' : 'text-amber-700'
+                          <span className={`font-bold text-base ${
+                            variantId === variant.id ? 'text-[#8b6f47]' : 'text-[#c9975b]'
                           }`}>{variant.ten_bien_the}</span>
                           <span className={`text-lg font-bold ${
-                            variantId === variant.id ? 'text-amber-700' : 'text-amber-600'
+                            variantId === variant.id ? 'text-[#c9975b]' : 'text-[#d4a574]'
                           }`}>
-                            {(variant.gia || 0).toLocaleString()}đ
+                            {(variant.gia || 0).toLocaleString()}₫
                           </span>
                         </div>
                       </button>
@@ -89,14 +102,21 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                 </div>
               )}
 
-              {/* Quantity */}
+              {/* Quantity - ENHANCED */}
               <div>
-                <h4 className="font-semibold text-amber-900 mb-3">Số lượng</h4>
+                <h4 className="font-bold text-[#8b6f47] mb-4 flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#c9975b] to-[#d4a574] flex items-center justify-center shadow-sm">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                  </div>
+                  Số lượng
+                </h4>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setQty(Math.max(1, qty - 1))}
                     disabled={qty <= 1}
-                    className="w-12 h-12 flex items-center justify-center bg-amber-100 hover:bg-amber-200 rounded-xl text-xl font-bold text-amber-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors outline-none focus:outline-none"
+                    className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-[#e7d4b8] to-[#fef7ed] hover:from-[#d4a574] hover:to-[#e7d4b8] disabled:from-gray-100 disabled:to-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed rounded-2xl font-bold text-2xl text-[#c9975b] outline-none focus:outline-none transition-all duration-200 shadow-md hover:shadow-xl hover:scale-110 active:scale-95 disabled:scale-100 border-2 border-[#d4a574]/30 disabled:border-gray-200"
                   >
                     −
                   </button>
@@ -104,12 +124,12 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                     type="number"
                     value={qty}
                     onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="flex-1 text-center text-xl font-bold py-3 border-2 border-amber-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-amber-900"
+                    className="flex-1 text-center text-2xl font-bold py-4 border-2 border-[#d4a574] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#c9975b] focus:border-[#c9975b] text-[#8b6f47] bg-white shadow-md transition-all"
                     min="1"
                   />
                   <button
                     onClick={() => setQty(qty + 1)}
-                    className="w-12 h-12 flex items-center justify-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 rounded-xl text-xl font-bold text-white transition-all shadow-md outline-none focus:outline-none"
+                    className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-[#c9975b] to-[#d4a574] hover:from-[#b88749] hover:to-[#c9975b] rounded-2xl font-bold text-2xl text-white outline-none focus:outline-none transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 border-2 border-[#b88749]"
                   >
                     +
                   </button>
@@ -119,18 +139,21 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-amber-200 bg-amber-50 flex gap-3">
+        <div className="px-6 py-4 border-t-2 border-[#e7d4b8] bg-gradient-to-r from-[#fef7ed] to-[#e7d4b8]/50 flex gap-3 rounded-b-3xl">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 bg-white border-2 border-amber-300 text-amber-700 rounded-xl font-semibold hover:bg-amber-50 transition-colors outline-none focus:outline-none"
+            className="flex-1 py-3.5 px-4 bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 text-gray-700 rounded-xl font-bold transition-all duration-200 shadow-sm hover:shadow-md outline-none focus:outline-none hover:scale-105 active:scale-95"
           >
             Hủy
           </button>
           <button
             onClick={() => onConfirm({ qty, variantId })}
             disabled={variants.length > 0 && !variantId}
-            className="flex-[2] py-3 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none"
+            className="flex-[2] py-3.5 px-4 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl font-bold transition-all duration-200 shadow-lg hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none hover:scale-105 active:scale-95 disabled:scale-100 flex items-center justify-center gap-2"
           >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
             Tiếp tục
           </button>
         </div>

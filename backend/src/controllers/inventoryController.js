@@ -311,3 +311,46 @@ export async function getIngredientById(req, res, next) {
     next(error);
   }
 }
+
+/**
+ * POST /api/v1/inventory/import
+ * Nhập kho mới
+ */
+export async function importInventory(req, res, next) {
+  try {
+    const { nguyen_lieu_id, so_luong, don_gia, nha_cung_cap, ghi_chu } = req.body;
+    
+    if (!nguyen_lieu_id || !so_luong || !don_gia) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Missing required fields: nguyen_lieu_id, so_luong, don_gia'
+      });
+    }
+    
+    const result = await inventoryRepository.createImport({
+      nguyenLieuId: parseInt(nguyen_lieu_id),
+      soLuong: parseFloat(so_luong),
+      donGia: parseFloat(don_gia),
+      nhaCungCap: nha_cung_cap || null,
+      ghiChu: ghi_chu || null,
+      nguoiNhapId: req.user?.user_id || null
+    });
+    
+    res.json({
+      ok: true,
+      message: 'Nhập kho thành công',
+      data: {
+        id: result.id,
+        ingredientId: result.nguyen_lieu_id,
+        quantity: parseFloat(result.so_luong),
+        price: parseFloat(result.don_gia),
+        total: parseFloat(result.thanh_tien),
+        supplier: result.nha_cung_cap,
+        note: result.ghi_chu,
+        importDate: result.ngay_nhap
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}

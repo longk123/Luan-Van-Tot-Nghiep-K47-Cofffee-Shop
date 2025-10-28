@@ -265,5 +265,60 @@ export const inventoryRepository = {
     
     const { rows } = await query(sql);
     return rows;
+  },
+
+  /**
+   * Tạo phiếu nhập kho mới
+   */
+  async createImport({ nguyenLieuId, soLuong, donGia, nhaCungCap, ghiChu, nguoiNhapId = null }) {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Insert vào bảng nhap_kho (không insert thanh_tien - để DB tự tính)
+      const insertSql = `
+        INSERT INTO nhap_kho (
+          nguyen_lieu_id,
+          so_luong,
+          don_gia,
+          nha_cung_cap,
+          ghi_chu,
+          nguoi_nhap_id,
+          ngay_nhap
+        ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        RETURNING *
+      `;
+      
+      const { rows } = await client.query(insertSql, [
+        nguyenLieuId,
+        soLuong,
+        donGia,
+        nhaCungCap,
+        ghiChu,
+        nguoiNhapId
+      ]);
+      
+      // Cập nhật tồn kho và giá nhập
+      const updateSql = `
+        UPDATE nguyen_lieu
+        SET 
+          ton_kho = ton_kho + $1,
+          gia_nhap_moi_nhat = $2
+        WHERE id = $3
+      `;
+      
+      await client.query(updateSql, [soLuong, donGia, nguyenLieuId]);
+      
+      await client.query('COMMIT');
+      
+      return rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 };
+

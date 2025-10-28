@@ -64,4 +64,11 @@ router.get('/ingredients', inventoryCtrl.getIngredients);
  */
 router.get('/ingredients/:id', inventoryCtrl.getIngredientById);
 
+/**
+ * POST /api/v1/inventory/import
+ * Nhập kho mới
+ * Body: { nguyen_lieu_id, so_luong, don_gia, nha_cung_cap, ghi_chu }
+ */
+router.post('/import', inventoryCtrl.importInventory);
+
 export default router;
