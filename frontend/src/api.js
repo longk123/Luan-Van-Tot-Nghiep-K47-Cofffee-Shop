@@ -231,7 +231,19 @@ export const api = {
   // KPI tổng quan
   getOverviewKPIs: (date) => request('GET', `/analytics/overview${date ? `?date=${date}` : ''}`),
   // Biểu đồ doanh thu
-  getRevenueChart: (days = 7) => request('GET', `/analytics/revenue-chart?days=${days}`),
+  getRevenueChart: (params = {}) => {
+    // params có thể là { startDate, endDate } hoặc { days }
+    const queryParams = new URLSearchParams();
+    if (params.startDate && params.endDate) {
+      queryParams.set('startDate', params.startDate);
+      queryParams.set('endDate', params.endDate);
+    } else if (params.days) {
+      queryParams.set('days', params.days);
+    } else {
+      queryParams.set('days', 7); // Default
+    }
+    return request('GET', `/analytics/revenue-chart?${queryParams.toString()}`);
+  },
   // Danh sách hóa đơn toàn thời gian
   getAllInvoices: (filters = {}) => {
     const params = new URLSearchParams();

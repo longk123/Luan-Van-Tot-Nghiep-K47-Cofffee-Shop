@@ -44,17 +44,18 @@ class AnalyticsService {
 
   /**
    * Lấy dữ liệu biểu đồ doanh thu
+   * @param {Object} params - { startDate, endDate } hoặc { days }
    */
-  async getRevenueChart(days = 7) {
+  async getRevenueChart(params = {}) {
     try {
-      const data = await analyticsRepository.getRevenueChart(days);
-      
+      const data = await analyticsRepository.getRevenueChart(params);
+
       return {
         labels: data.map(row => {
           const date = new Date(row.date);
-          return date.toLocaleDateString('vi-VN', { 
-            month: 'short', 
-            day: 'numeric' 
+          return date.toLocaleDateString('vi-VN', {
+            month: 'short',
+            day: 'numeric'
           });
         }),
         datasets: [

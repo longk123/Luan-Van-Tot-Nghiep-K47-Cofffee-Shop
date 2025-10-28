@@ -9,40 +9,52 @@ export default {
    */
   async getOverviewKPIs(date = null) {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    // Tạo timestamp string với format: YYYY-MM-DD 00:00:00
-    const targetTimestamp = `${targetDate} 00:00:00`;
-    
+
     const sql = `
-      WITH today_stats AS (
-        SELECT 
-          COUNT(*) FILTER (WHERE o.trang_thai = 'PAID') AS paid_orders,
+      WITH today_revenue AS (
+        -- Doanh thu hôm nay: chỉ tính đơn PAID, dùng closed_at
+        SELECT
+          COUNT(*) AS paid_orders,
+          COALESCE(SUM(
+            (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
+             FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+          ), 0) AS today_revenue
+        FROM don_hang o
+        WHERE o.trang_thai = 'PAID'
+          AND o.closed_at IS NOT NULL
+          AND to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') = $1
+      ),
+      today_orders AS (
+        -- Số đơn open/cancelled: tính từ opened_at
+        SELECT
           COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN') AS open_orders,
           COUNT(*) FILTER (WHERE o.trang_thai = 'CANCELLED') AS cancelled_orders,
-          COALESCE(SUM(
-            CASE WHEN o.trang_thai = 'PAID' THEN 
-              (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
-               FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
-            ELSE 0 END
-          ), 0) AS today_revenue,
-          COUNT(DISTINCT o.ban_id) FILTER (WHERE o.trang_thai IN ('OPEN', 'PAID') AND o.ban_id IS NOT NULL) AS active_tables,
           COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN' AND o.order_type = 'DINE_IN') AS dine_in_orders,
           COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN' AND o.order_type = 'TAKEAWAY') AS takeaway_orders
         FROM don_hang o
-        WHERE o.opened_at >= timezone('Asia/Ho_Chi_Minh', $1::timestamp)
-          AND o.opened_at < timezone('Asia/Ho_Chi_Minh', $1::timestamp + INTERVAL '1 day')
+        WHERE o.opened_at >= timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp)
+          AND o.opened_at < timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp + INTERVAL '1 day')
+      ),
+      active_tables_now AS (
+        -- Bàn đang dùng: tính theo thời gian thực
+        SELECT COUNT(DISTINCT o.ban_id) AS active_tables
+        FROM don_hang o
+        WHERE o.trang_thai IN ('OPEN', 'PAID')
+          AND o.ban_id IS NOT NULL
       ),
       yesterday_stats AS (
-        SELECT 
+        SELECT
           COALESCE(SUM(
-            CASE WHEN o.trang_thai = 'PAID' THEN 
+            CASE WHEN o.trang_thai = 'PAID' THEN
               (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
                FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
             ELSE 0 END
           ), 0) AS yesterday_revenue,
           COUNT(*) FILTER (WHERE o.trang_thai = 'PAID') AS yesterday_orders
         FROM don_hang o
-        WHERE o.opened_at >= timezone('Asia/Ho_Chi_Minh', $1::timestamp - INTERVAL '1 day')
-          AND o.opened_at < timezone('Asia/Ho_Chi_Minh', $1::timestamp)
+        WHERE o.trang_thai = 'PAID'
+          AND o.closed_at IS NOT NULL
+          AND to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') = to_char(($1::date - INTERVAL '1 day'), 'YYYY-MM-DD')
       ),
       kitchen_queue AS (
         SELECT COUNT(*) AS queue_count
@@ -56,59 +68,74 @@ export default {
         FROM ban
         WHERE trang_thai != 'KHOA'
       )
-      SELECT 
-        ts.paid_orders,
-        ts.open_orders,
-        ts.cancelled_orders,
-        ts.today_revenue,
-        ts.active_tables,
-        ts.dine_in_orders,
-        ts.takeaway_orders,
+      SELECT
+        tr.paid_orders,
+        tod.open_orders,
+        tod.cancelled_orders,
+        tr.today_revenue,
+        atn.active_tables,
+        tod.dine_in_orders,
+        tod.takeaway_orders,
         ys.yesterday_revenue,
         ys.yesterday_orders,
         kq.queue_count,
         tt.total_tables,
-        CASE 
-          WHEN ys.yesterday_revenue > 0 THEN 
-            ROUND(((ts.today_revenue - ys.yesterday_revenue) / ys.yesterday_revenue * 100)::numeric, 1)
-          ELSE 0 
+        CASE
+          WHEN ys.yesterday_revenue > 0 THEN
+            ROUND(((tr.today_revenue - ys.yesterday_revenue) / ys.yesterday_revenue * 100)::numeric, 1)
+          ELSE 0
         END AS revenue_change_percent,
-        CASE 
-          WHEN ys.yesterday_orders > 0 THEN 
-            ROUND(((ts.paid_orders - ys.yesterday_orders) / ys.yesterday_orders * 100)::numeric, 1)
-          ELSE 0 
+        CASE
+          WHEN ys.yesterday_orders > 0 THEN
+            ROUND(((tr.paid_orders - ys.yesterday_orders) / ys.yesterday_orders * 100)::numeric, 1)
+          ELSE 0
         END AS orders_change_percent
-      FROM today_stats ts
+      FROM today_revenue tr
+      CROSS JOIN today_orders tod
+      CROSS JOIN active_tables_now atn
       CROSS JOIN yesterday_stats ys
       CROSS JOIN kitchen_queue kq
       CROSS JOIN total_tables tt
     `;
-    
-    const { rows } = await query(sql, [targetTimestamp]);
+
+    const { rows } = await query(sql, [targetDate]);
     return rows[0] || {};
   },
 
   /**
-   * Lấy dữ liệu doanh thu theo ngày (7 ngày gần nhất)
+   * Lấy dữ liệu doanh thu theo ngày
+   * @param {Object} params - { startDate, endDate } hoặc { days }
    */
-  async getRevenueChart(days = 7) {
-    // Tính ngày bắt đầu
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (days - 1));
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const startTimestamp = `${startDateStr} 00:00:00`;
-    
+  async getRevenueChart(params = {}) {
+    let startDateStr, endDateStr;
+
+    // Nếu có startDate và endDate thì dùng
+    if (params.startDate && params.endDate) {
+      startDateStr = params.startDate;
+      endDateStr = params.endDate;
+    } else {
+      // Fallback: dùng days (mặc định 7 ngày gần nhất)
+      const days = params.days || 7;
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - (days - 1));
+      startDateStr = startDate.toISOString().split('T')[0];
+      endDateStr = endDate.toISOString().split('T')[0];
+    }
+
     const sql = `
       WITH date_series AS (
-        SELECT generate_series(
-          CURRENT_DATE - INTERVAL '${days - 1} days',
-          CURRENT_DATE,
+        -- Generate date series using text representation to avoid timezone issues
+        SELECT d::date AS date
+        FROM generate_series(
+          $1::text::date,
+          $2::text::date,
           '1 day'::interval
-        )::date AS date
+        ) AS d
       ),
       daily_revenue AS (
-        SELECT 
-          (o.closed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS date,
+        SELECT
+          to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS date_str,
           COUNT(*) AS total_orders,
           SUM(
             CASE WHEN o.order_type = 'DINE_IN' THEN 1 ELSE 0 END
@@ -133,12 +160,13 @@ export default {
             ELSE 0 END
           ), 0) AS takeaway_revenue
         FROM don_hang o
-        WHERE o.trang_thai = 'PAID' 
+        WHERE o.trang_thai = 'PAID'
           AND o.closed_at IS NOT NULL
-          AND o.closed_at >= timezone('Asia/Ho_Chi_Minh', $1::timestamp)
-        GROUP BY (o.closed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
+          AND to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') >= $1
+          AND to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') <= $2
+        GROUP BY to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD')
       )
-      SELECT 
+      SELECT
         ds.date,
         COALESCE(dr.total_orders, 0) AS total_orders,
         COALESCE(dr.dine_in_orders, 0) AS dine_in_orders,
@@ -147,11 +175,11 @@ export default {
         COALESCE(dr.dine_in_revenue, 0) AS dine_in_revenue,
         COALESCE(dr.takeaway_revenue, 0) AS takeaway_revenue
       FROM date_series ds
-      LEFT JOIN daily_revenue dr ON ds.date = dr.date
+      LEFT JOIN daily_revenue dr ON to_char(ds.date, 'YYYY-MM-DD') = dr.date_str
       ORDER BY ds.date
     `;
-    
-    const { rows } = await query(sql, [startTimestamp]);
+
+    const { rows } = await query(sql, [startDateStr, endDateStr]);
     return rows;
   },
 
@@ -188,13 +216,15 @@ export default {
     if (fromDate) {
       paramCount++;
       params.push(fromDate);
-      whereConditions.push(`DATE(o.opened_at) >= $${paramCount}`);
+      // Sử dụng closed_at thay vì opened_at để khớp với logic tính doanh thu
+      whereConditions.push(`to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') >= $${paramCount}`);
     }
-    
+
     if (toDate) {
       paramCount++;
       params.push(toDate);
-      whereConditions.push(`DATE(o.opened_at) <= $${paramCount}`);
+      // Sử dụng closed_at thay vì opened_at để khớp với logic tính doanh thu
+      whereConditions.push(`to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') <= $${paramCount}`);
     }
     
     if (search) {

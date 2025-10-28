@@ -325,6 +325,19 @@ export default function TakeawayOrders() {
                     </svg>
                     <span>Quay lại Dashboard</span>
                   </button>
+
+                  {/* Nút Quay lại Manager Dashboard - Chỉ hiển thị cho Manager */}
+                  {isManagerViewMode && (
+                    <button
+                      onClick={() => navigate('/manager')}
+                      className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-blue-600 hover:border-blue-500 hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                      <span>Quay lại Manager Dashboard</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

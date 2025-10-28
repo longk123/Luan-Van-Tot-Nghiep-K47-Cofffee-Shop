@@ -20,12 +20,22 @@ class AnalyticsController {
   /**
    * GET /api/v1/analytics/revenue-chart
    * Lấy dữ liệu biểu đồ doanh thu
+   * Query params: ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD hoặc ?days=7
    */
   getRevenueChart = asyncHandler(async (req, res) => {
-    const { days = 7 } = req.query;
-    
-    const chartData = await analyticsService.getRevenueChart(parseInt(days));
-    
+    const { days, startDate, endDate } = req.query;
+
+    let params = {};
+    if (startDate && endDate) {
+      params = { startDate, endDate };
+    } else if (days) {
+      params = { days: parseInt(days) };
+    } else {
+      params = { days: 7 }; // Default
+    }
+
+    const chartData = await analyticsService.getRevenueChart(params);
+
     res.json({
       success: true,
       data: chartData
