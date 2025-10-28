@@ -333,88 +333,20 @@ export default function ManagerDashboard() {
       setSelectedInvoice(invoice);
       setLoadingInvoiceDetail(true);
       setShowInvoiceDetail(true);
-      
-      // Gọi API lấy chi tiết hoá đơn
-      const response = await api.getInvoiceData(invoice.id);
-      console.log('🔍 Invoice API response:', response);
-      
-      // Backend trả về { success: true, data: { header, lines, payments, totals } }
-      // api.js request() trả về toàn bộ response object
-      let detail;
-      if (response.data) {
-        // Nếu có nested .data
-        detail = response.data;
-      } else if (response.header || response.lines) {
-        // Nếu response trực tiếp là bundle
-        detail = response;
-      } else {
-        // Fallback
-        detail = response;
-      }
-      
-      console.log('🔍 Invoice detail:', detail);
-      console.log('🔍 Header:', detail.header);
-      console.log('🔍 Lines:', detail.lines);
-      console.log('🔍 Payments:', detail.payments);
-      console.log('🔍 Totals:', detail.totals);
-      
-      setInvoiceDetail(detail);
-      
     } catch (error) {
-      console.error('❌ Error loading invoice detail:', error);
-      alert('Không thể tải chi tiết hoá đơn.');
-      setShowInvoiceDetail(false);
+      console.error('Error loading invoice:', error);
+      alert('Không thể tải chi tiết hoá đơn. Vui lòng thử lại sau.');
     } finally {
       setLoadingInvoiceDetail(false);
     }
   };
 
-  // Handler: Xác nhận in lại
-  const handleReprintConfirm = (invoice) => {
-    setSelectedInvoice(invoice);
-    setReprintReason('');
-    setShowReprintConfirm(true);
+  // Handler: Đóng chi tiết hoá đơn
+  const handleCloseInvoiceDetail = () => {
+    setSelectedInvoice(null);
+    setShowInvoiceDetail(false);
   };
-
-  // Handler: Thực hiện in lại
-  const handleReprint = async () => {
-    if (!selectedInvoice) return;
-    
-    try {
-      // Lấy PDF và mở print dialog
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/hoa-don/${selectedInvoice.id}/pdf`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch PDF');
-      
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      
-      // Mở cửa sổ mới để print
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.addEventListener('load', () => {
-          printWindow.print();
-        });
-      }
-      
-      // Gọi API ghi log in lại
-      await api.logInvoicePrint(selectedInvoice.id, {
-        printed_by: null, // Backend sẽ lấy từ token hoặc để null
-        note: reprintReason || 'Manager in lại hoá đơn'
-      });
-      
-      console.log('✅ Invoice reprinted:', selectedInvoice.id);
-      setShowReprintConfirm(false);
-      setSelectedInvoice(null);
-      
-    } catch (error) {
-      console.error('❌ Error reprinting invoice:', error);
-      alert('Không thể in lại hoá đơn. Vui lòng thử lại.');
-    }
-  };
+                {/* Đã ẩn 2 nút Xem PDF và In lại hóa đơn theo yêu cầu */}
 
   return (
     <AuthedLayout>
@@ -1457,7 +1389,7 @@ export default function ManagerDashboard() {
                         backgroundColor: '#c9975b',
                         color: 'white',
                         border: '2px solid #c9975b',
-                        borderRadius: '9999px',
+                        borderRadius: '50px',
                         cursor: 'pointer',
                         fontSize: '14px',
                         fontWeight: '600',
@@ -1465,7 +1397,8 @@ export default function ManagerDashboard() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}
                       onMouseEnter={(e) => {
                         e.target.style.backgroundColor = 'white';
@@ -1505,7 +1438,8 @@ export default function ManagerDashboard() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                       }}
                       onMouseEnter={(e) => {
                         e.target.style.backgroundColor = 'white';
