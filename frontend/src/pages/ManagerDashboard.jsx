@@ -617,29 +617,29 @@ export default function ManagerDashboard() {
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Doanh thu Card */}
-          <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-sm border-2 border-emerald-400 p-6 hover:shadow-xl hover:border-emerald-500 transition-all duration-200">
+          <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-2xl shadow-sm border-2 border-amber-300 p-6 hover:shadow-xl hover:border-amber-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-gray-700">
                 Doanh thu từ {getTimeRangeParams(timeRange, customDate).startDate} đến {getTimeRangeParams(timeRange, customDate).endDate}
               </h3>
             </div>
-            <p className="text-2xl font-bold text-white mb-2">
+            <p className="text-2xl font-bold text-amber-600 mb-2">
               {kpis ? `${kpis.revenue?.today?.toLocaleString('vi-VN')} đ` : '0 đ'}
             </p>
-            <p className="text-xs text-white/90 flex items-center gap-1">
+            <p className="text-xs text-gray-600 flex items-center gap-1">
               {kpis && kpis.revenue?.change_percent !== 0 ? (
                 <>
                   {kpis.revenue?.change_percent > 0 ? (
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
                     </svg>
                   )}
@@ -1260,18 +1260,37 @@ export default function ManagerDashboard() {
               <button
                 onClick={() => setShowInvoiceDetail(false)}
                 style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#ef4444',
+                  padding: '8px 16px',
+                  backgroundColor: '#c9975b',
                   color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}
-              >
-                ✕ Đóng
-              </button>
+                  border: '2px solid #c9975b',
+                borderRadius: '9999px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                overflow: 'hidden'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'white';
+                e.target.style.color = '#c9975b';
+                e.target.style.borderColor = '#c9975b';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#c9975b';
+                e.target.style.color = 'white';
+                e.target.style.borderColor = '#c9975b';
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Đóng
+            </button>
             </div>
 
             {loadingInvoiceDetail ? (
@@ -1380,7 +1399,7 @@ export default function ManagerDashboard() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '700', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
                     <span>TỔNG CỘNG:</span>
-                    <span style={{ color: selectedInvoice.status === 'CANCELLED' ? '#dc2626' : '#059669' }}>
+                    <span style={{ color: selectedInvoice.status === 'CANCELLED' ? '#dc2626' : '#8b6f47' }}>
                       {(invoiceDetail.totals?.grand_total || selectedInvoice.total_amount || 0).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
@@ -1435,16 +1454,38 @@ export default function ManagerDashboard() {
                       }}
                       style={{
                         padding: '10px 20px',
-                        backgroundColor: '#3b82f6',
+                        backgroundColor: '#c9975b',
                         color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
+                        border: '2px solid #c9975b',
+                        borderRadius: '9999px',
                         cursor: 'pointer',
                         fontSize: '14px',
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        overflow: 'hidden'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.color = '#c9975b';
+                        e.target.style.borderColor = '#c9975b';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#c9975b';
+                        e.target.style.color = 'white';
+                        e.target.style.borderColor = '#c9975b';
                       }}
                     >
-                      📄 Xem PDF
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10,9 9,9 8,9"></polyline>
+                      </svg>
+                      Xem PDF
                     </button>
                     <button
                       onClick={() => {
@@ -1453,16 +1494,36 @@ export default function ManagerDashboard() {
                       }}
                       style={{
                         padding: '10px 20px',
-                        backgroundColor: '#10b981',
+                        backgroundColor: '#8b6f47',
                         color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
+                        border: '2px solid #8b6f47',
+                        borderRadius: '9999px',
                         cursor: 'pointer',
                         fontSize: '14px',
-                        fontWeight: '600'
+                        fontWeight: '600',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        overflow: 'hidden'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'white';
+                        e.target.style.color = '#8b6f47';
+                        e.target.style.borderColor = '#8b6f47';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#8b6f47';
+                        e.target.style.color = 'white';
+                        e.target.style.borderColor = '#8b6f47';
                       }}
                     >
-                      🖨️ In lại hoá đơn
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                      </svg>
+                      In lại hoá đơn
                     </button>
                   </div>
                 )}
@@ -1539,11 +1600,26 @@ export default function ManagerDashboard() {
                   padding: '10px 20px',
                   backgroundColor: '#6b7280',
                   color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
+                  border: '2px solid #6b7280',
+                  borderRadius: '9999px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.color = '#6b7280';
+                  e.target.style.borderColor = '#6b7280';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#6b7280';
+                  e.target.style.color = 'white';
+                  e.target.style.borderColor = '#6b7280';
                 }}
               >
                 Hủy
@@ -1552,16 +1628,34 @@ export default function ManagerDashboard() {
                 onClick={handleReprint}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#10b981',
+                  backgroundColor: '#8b6f47',
                   color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
+                  border: '2px solid #8b6f47',
+                  borderRadius: '9999px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.color = '#8b6f47';
+                  e.target.style.borderColor = '#8b6f47';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = '#8b6f47';
+                  e.target.style.color = 'white';
+                  e.target.style.borderColor = '#8b6f47';
                 }}
               >
-                ✅ Xác nhận in
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Xác nhận in
               </button>
             </div>
           </div>

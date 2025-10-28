@@ -315,17 +315,6 @@ export default function TakeawayOrders() {
               <div className="flex flex-col items-end gap-3">
                 {/* Action buttons */}
                 <div className="flex flex-wrap gap-3 justify-end">
-                  {/* Nút Quay lại Dashboard - Hiển thị cho cả Cashier và Manager */}
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    <span>Quay lại Dashboard</span>
-                  </button>
-
                   {/* Nút Quay lại Manager Dashboard - Chỉ hiển thị cho Manager */}
                   {isManagerViewMode && (
                     <button
@@ -338,6 +327,17 @@ export default function TakeawayOrders() {
                       <span>Quay lại Manager Dashboard</span>
                     </button>
                   )}
+
+                  {/* Nút Quay lại Dashboard - Hiển thị cho cả Cashier và Manager */}
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span>Quay lại Dashboard</span>
+                  </button>
                 </div>
               </div>
             </div>

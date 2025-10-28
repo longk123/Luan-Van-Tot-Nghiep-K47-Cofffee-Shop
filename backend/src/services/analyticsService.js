@@ -103,6 +103,7 @@ class AnalyticsService {
         opened_at: invoice.opened_at,
         closed_at: invoice.closed_at,
         total_amount: Number(invoice.grand_total || 0),
+        total_discount: Number(invoice.total_discount || 0),
         item_count: Number(invoice.item_count || 0),
         table: {
           name: invoice.ten_ban,

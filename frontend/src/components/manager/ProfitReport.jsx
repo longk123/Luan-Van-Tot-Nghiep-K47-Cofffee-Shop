@@ -109,7 +109,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Doanh thu */}
-        <div className="bg-gradient-to-br from-[#d4a574] via-[#c9975b] to-[#b8864a] rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200">
+        <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-white text-opacity-90 text-sm font-medium flex items-center gap-2">
