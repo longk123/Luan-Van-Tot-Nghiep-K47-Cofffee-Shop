@@ -2,12 +2,13 @@
  * =====================================================================
  * BATCH INVENTORY CONTROLLER
  * =====================================================================
- * 
+ *
  * API endpoints cho quản lý lô hàng
- * 
+ *
  */
 
 import batchInventoryRepository from '../repositories/batchInventoryRepository.js';
+import pool from '../config/database.js';
 
 /**
  * GET /api/v1/batch-inventory/ingredient/:ingredientId
@@ -264,12 +265,141 @@ export async function getFEFOOrder(req, res, next) {
   }
 }
 
+/**
+ * GET /api/v1/batch-inventory/report
+ * Tạo báo cáo chi tiết batch inventory
+ */
+export async function getBatchInventoryReport(req, res, next) {
+  try {
+    const { ingredient_id, status, days_threshold } = req.query;
+
+    // Build query
+    let query = `
+      SELECT
+        bi.id,
+        bi.batch_code,
+        bi.nguyen_lieu_id,
+        nl.ten as nguyen_lieu_ten,
+        nl.ma as nguyen_lieu_ma,
+        bi.so_luong_nhap,
+        bi.so_luong_ton,
+        bi.don_vi,
+        bi.don_gia,
+        bi.gia_tri_ton,
+        bi.ngay_nhap,
+        bi.ngay_san_xuat,
+        bi.ngay_het_han,
+        CASE
+          WHEN bi.ngay_het_han IS NULL THEN NULL
+          ELSE EXTRACT(DAY FROM (bi.ngay_het_han - CURRENT_DATE))::INT
+        END as ngay_con_lai,
+        bi.trang_thai,
+        bi.nha_cung_cap,
+        bi.so_lo_nha_cung_cap,
+        bi.ghi_chu,
+        u.username as nguoi_nhap_ten,
+        -- Tính số lượng đã xuất
+        bi.so_luong_nhap - bi.so_luong_ton as so_luong_da_xuat,
+        -- Tính % còn lại
+        ROUND((bi.so_luong_ton / NULLIF(bi.so_luong_nhap, 0) * 100)::NUMERIC, 2) as phan_tram_con_lai
+      FROM batch_inventory bi
+      LEFT JOIN nguyen_lieu nl ON bi.nguyen_lieu_id = nl.id
+      LEFT JOIN users u ON bi.nguoi_nhap_id = u.user_id
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    // Filter by ingredient
+    if (ingredient_id) {
+      query += ` AND bi.nguyen_lieu_id = $${paramIndex}`;
+      params.push(parseInt(ingredient_id));
+      paramIndex++;
+    }
+
+    // Filter by status
+    if (status) {
+      query += ` AND bi.trang_thai = $${paramIndex}`;
+      params.push(status);
+      paramIndex++;
+    }
+
+    // Filter by expiry threshold
+    if (days_threshold) {
+      query += ` AND bi.ngay_het_han IS NOT NULL
+                 AND bi.ngay_het_han <= CURRENT_DATE + INTERVAL '${parseInt(days_threshold)} days'`;
+    }
+
+    query += ` ORDER BY
+      CASE
+        WHEN bi.ngay_het_han IS NULL THEN 2
+        ELSE 1
+      END,
+      bi.ngay_het_han ASC,
+      bi.ngay_nhap ASC
+    `;
+
+    const { rows } = await pool.query(query, params);
+
+    // Calculate summary statistics
+    const summary = {
+      totalBatches: rows.length,
+      totalValue: rows.reduce((sum, r) => sum + parseInt(r.gia_tri_ton || 0), 0),
+      totalQuantity: rows.reduce((sum, r) => sum + parseFloat(r.so_luong_ton || 0), 0),
+      byStatus: {
+        ACTIVE: rows.filter(r => r.trang_thai === 'ACTIVE').length,
+        EXPIRED: rows.filter(r => r.trang_thai === 'EXPIRED').length,
+        DEPLETED: rows.filter(r => r.trang_thai === 'DEPLETED').length,
+        BLOCKED: rows.filter(r => r.trang_thai === 'BLOCKED').length
+      },
+      byExpiry: {
+        expired: rows.filter(r => r.ngay_con_lai !== null && r.ngay_con_lai < 0).length,
+        expiring7Days: rows.filter(r => r.ngay_con_lai !== null && r.ngay_con_lai >= 0 && r.ngay_con_lai <= 7).length,
+        expiring30Days: rows.filter(r => r.ngay_con_lai !== null && r.ngay_con_lai > 7 && r.ngay_con_lai <= 30).length,
+        safe: rows.filter(r => r.ngay_con_lai === null || r.ngay_con_lai > 30).length
+      }
+    };
+
+    res.json({
+      ok: true,
+      summary,
+      data: rows.map(r => ({
+        id: r.id,
+        batchCode: r.batch_code,
+        ingredientId: r.nguyen_lieu_id,
+        ingredientName: r.nguyen_lieu_ten,
+        ingredientCode: r.nguyen_lieu_ma,
+        quantityImported: parseFloat(r.so_luong_nhap),
+        quantityRemaining: parseFloat(r.so_luong_ton),
+        quantityExported: parseFloat(r.so_luong_da_xuat),
+        percentageRemaining: parseFloat(r.phan_tram_con_lai),
+        unit: r.don_vi,
+        unitPrice: parseInt(r.don_gia),
+        totalValue: parseInt(r.gia_tri_ton),
+        importDate: r.ngay_nhap,
+        productionDate: r.ngay_san_xuat,
+        expiryDate: r.ngay_het_han,
+        daysRemaining: r.ngay_con_lai,
+        status: r.trang_thai,
+        supplier: r.nha_cung_cap,
+        supplierBatchCode: r.so_lo_nha_cung_cap,
+        note: r.ghi_chu,
+        importedBy: r.nguoi_nhap_ten
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   getBatchesByIngredient,
   getBatchById,
   getExpiringBatches,
   getBatchSummary,
   updateBatchStatus,
-  getFEFOOrder
+  getFEFOOrder,
+  getBatchInventoryReport
 };
 

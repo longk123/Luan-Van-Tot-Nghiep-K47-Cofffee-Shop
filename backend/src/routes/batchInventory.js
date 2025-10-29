@@ -31,6 +31,13 @@ router.get('/summary', managerAuth, batchInventoryController.getBatchSummary);
 router.get('/expiring', managerAuth, batchInventoryController.getExpiringBatches);
 
 /**
+ * GET /api/v1/batch-inventory/report
+ * Tạo báo cáo chi tiết batch inventory
+ * Query params: ?ingredient_id=1&status=ACTIVE&days_threshold=30
+ */
+router.get('/report', managerAuth, batchInventoryController.getBatchInventoryReport);
+
+/**
  * GET /api/v1/batch-inventory/ingredient/:ingredientId
  * Lấy danh sách batch của một nguyên liệu
  * Query params: ?include_empty=true

@@ -6,6 +6,7 @@ import ProfitReport from '../components/manager/ProfitReport';
 import { COLORS } from '../constants/colors';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { getUser } from '../auth.js';
+import BatchExpiryNotification from '../components/BatchExpiryNotification.jsx';
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -418,6 +419,9 @@ export default function ManagerDashboard() {
 
   return (
     <AuthedLayout>
+      {/* Batch Expiry Notification */}
+      <BatchExpiryNotification />
+
       {/* Header Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex items-center justify-between">
@@ -1573,6 +1577,33 @@ export default function ManagerDashboard() {
 
       {/* Floating Navigation Buttons */}
       <div className="fixed bottom-6 left-6 z-[1000] flex gap-4">
+        {/* Nút Cảnh báo Hết hạn */}
+        <div className="group">
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
+            <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
+              Cảnh báo Hết hạn
+              <div className="absolute top-full left-6 -mt-1">
+                <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Button */}
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
+            <button
+              onClick={() => navigate('/batch-expiry')}
+              className="relative w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 text-white rounded-full shadow-2xl hover:from-orange-500 hover:to-red-500 hover:shadow-orange-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
+              title="Cảnh báo Hết hạn"
+            >
+              <svg className="w-7 h-7 transition-transform group-hover:rotate-12 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
         {/* Nút Quản lý Kho */}
         <div className="group">
           {/* Tooltip */}

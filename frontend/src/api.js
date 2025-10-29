@@ -307,6 +307,14 @@ export const api = {
   // Xem thứ tự FEFO
   getFEFOOrder: (ingredientId, quantity) =>
     request('GET', `/batch-inventory/fefo/${ingredientId}?quantity=${quantity}`),
+  // Lấy báo cáo batch inventory
+  getBatchInventoryReport: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.ingredientId) queryParams.append('ingredient_id', params.ingredientId);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.daysThreshold) queryParams.append('days_threshold', params.daysThreshold);
+    return request('GET', `/batch-inventory/report?${queryParams.toString()}`);
+  },
 
   // ===== MENU MANAGEMENT (CRUD) =====
   // Categories
