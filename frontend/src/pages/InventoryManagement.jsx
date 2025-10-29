@@ -36,8 +36,18 @@ export default function InventoryManagement() {
     quantity: '',
     price: '',
     supplier: '',
-    note: ''
+    note: '',
+    productionDate: '',
+    expiryDate: '',
+    supplierBatchCode: ''
   });
+
+  // Batch tracking
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [selectedIngredientForBatch, setSelectedIngredientForBatch] = useState(null);
+  const [batches, setBatches] = useState([]);
+  const [expiringBatches, setExpiringBatches] = useState([]);
+  const [batchSummary, setBatchSummary] = useState(null);
 
   // Load data when tab changes
   useEffect(() => {
@@ -144,19 +154,34 @@ export default function InventoryManagement() {
   const handleImportSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.importInventory({
+      const response = await api.importInventory({
         nguyen_lieu_id: parseInt(importForm.ingredientId),
         so_luong: parseFloat(importForm.quantity),
         don_gia: parseFloat(importForm.price),
         nha_cung_cap: importForm.supplier,
-        ghi_chu: importForm.note
+        ghi_chu: importForm.note,
+        ngay_san_xuat: importForm.productionDate || null,
+        ngay_het_han: importForm.expiryDate || null,
+        so_lo_nha_cung_cap: importForm.supplierBatchCode || null
       });
-      
+
       setShowImportForm(false);
-      setImportForm({ ingredientId: '', quantity: '', price: '', supplier: '', note: '' });
+      setImportForm({
+        ingredientId: '',
+        quantity: '',
+        price: '',
+        supplier: '',
+        note: '',
+        productionDate: '',
+        expiryDate: '',
+        supplierBatchCode: ''
+      });
       loadImportHistory();
       loadIngredients(); // Reload để cập nhật tồn kho
-      alert('✅ Nhập kho thành công!');
+
+      // Hiển thị thông tin batch
+      const batchCode = response.data?.batchCode || 'N/A';
+      alert(`✅ Nhập kho thành công!\nMã lô: ${batchCode}`);
     } catch (error) {
       alert(`❌ Lỗi: ${error.message}`);
     }
@@ -630,47 +655,82 @@ export default function InventoryManagement() {
                         <tr>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Thời gian</th>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nguyên liệu</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Mã lô</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Số lượng</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Đơn giá</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Thành tiền</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Hạn sử dụng</th>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nhà cung cấp</th>
-                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Ghi chú</th>
                           <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Hành động</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredImport.map((item, idx) => (
-                          <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.importDate)}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                              {item.ingredient}
-                              <div className="text-xs text-gray-500">{item.code}</div>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right text-green-600 font-semibold">
-                              +{item.quantity} {item.unit}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right text-gray-600">
-                              {formatCurrency(item.price)}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600">
-                              {formatCurrency(item.total)}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-700">{item.supplier || '-'}</td>
-                            <td className="px-4 py-3 text-sm text-gray-500">{item.note || '-'}</td>
-                            <td className="px-4 py-3 text-center">
-                              <button
-                                onClick={() => handlePrintImportReceipt(item.id)}
-                                className="px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs rounded hover:from-purple-600 hover:to-purple-700 font-medium transition-all duration-200 flex items-center gap-1"
-                                title="In phiếu nhập"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                </svg>
-                                In phiếu
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredImport.map((item, idx) => {
+                          const expiryDate = item.expiryDate ? new Date(item.expiryDate) : null;
+                          const today = new Date();
+                          const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24)) : null;
+
+                          let expiryClass = 'text-gray-600';
+                          let expiryBadge = null;
+
+                          if (daysUntilExpiry !== null) {
+                            if (daysUntilExpiry < 0) {
+                              expiryClass = 'text-red-600 font-semibold';
+                              expiryBadge = <span className="ml-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">Hết hạn</span>;
+                            } else if (daysUntilExpiry <= 7) {
+                              expiryClass = 'text-orange-600 font-semibold';
+                              expiryBadge = <span className="ml-1 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">{daysUntilExpiry} ngày</span>;
+                            } else if (daysUntilExpiry <= 30) {
+                              expiryClass = 'text-yellow-600';
+                              expiryBadge = <span className="ml-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">{daysUntilExpiry} ngày</span>;
+                            }
+                          }
+
+                          return (
+                            <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.importDate)}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {item.ingredient}
+                                <div className="text-xs text-gray-500">{item.code}</div>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                <span className="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                                  {item.batchCode || 'N/A'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-green-600 font-semibold">
+                                +{item.quantity} {item.unit}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-gray-600">
+                                {formatCurrency(item.price)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right font-semibold text-blue-600">
+                                {formatCurrency(item.total)}
+                              </td>
+                              <td className={`px-4 py-3 text-sm ${expiryClass}`}>
+                                {expiryDate ? (
+                                  <div className="flex items-center">
+                                    {formatDate(item.expiryDate)}
+                                    {expiryBadge}
+                                  </div>
+                                ) : '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700">{item.supplier || '-'}</td>
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  onClick={() => handlePrintImportReceipt(item.id)}
+                                  className="px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs rounded hover:from-purple-600 hover:to-purple-700 font-medium transition-all duration-200 flex items-center gap-1"
+                                  title="In phiếu nhập"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                  </svg>
+                                  In phiếu
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                     {filteredImport.length === 0 && (
@@ -759,6 +819,45 @@ export default function InventoryManagement() {
                     onChange={(e) => setImportForm({ ...importForm, supplier: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="VD: Công ty TNHH ABC"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ngày sản xuất
+                    </label>
+                    <input
+                      type="date"
+                      value={importForm.productionDate}
+                      onChange={(e) => setImportForm({ ...importForm, productionDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ngày hết hạn
+                    </label>
+                    <input
+                      type="date"
+                      value={importForm.expiryDate}
+                      onChange={(e) => setImportForm({ ...importForm, expiryDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Số lô nhà cung cấp
+                  </label>
+                  <input
+                    type="text"
+                    value={importForm.supplierBatchCode}
+                    onChange={(e) => setImportForm({ ...importForm, supplierBatchCode: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="VD: LOT-2025-001"
                   />
                 </div>
 

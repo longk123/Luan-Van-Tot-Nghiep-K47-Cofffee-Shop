@@ -198,7 +198,11 @@ export async function getImportHistory(req, res, next) {
         total: parseFloat(h.thanh_tien),
         supplier: h.nha_cung_cap,
         importDate: h.ngay_nhap,
-        note: h.ghi_chu
+        productionDate: h.ngay_san_xuat,
+        expiryDate: h.ngay_het_han,
+        note: h.ghi_chu,
+        batchId: h.batch_id,
+        batchCode: h.batch_code
       }))
     });
   } catch (error) {
@@ -314,40 +318,57 @@ export async function getIngredientById(req, res, next) {
 
 /**
  * POST /api/v1/inventory/import
- * Nhập kho mới
+ * Nhập kho mới (với batch tracking)
  */
 export async function importInventory(req, res, next) {
   try {
-    const { nguyen_lieu_id, so_luong, don_gia, nha_cung_cap, ghi_chu } = req.body;
-    
+    const {
+      nguyen_lieu_id,
+      so_luong,
+      don_gia,
+      nha_cung_cap,
+      ghi_chu,
+      ngay_san_xuat,
+      ngay_het_han,
+      so_lo_nha_cung_cap
+    } = req.body;
+
     if (!nguyen_lieu_id || !so_luong || !don_gia) {
       return res.status(400).json({
         ok: false,
         error: 'Missing required fields: nguyen_lieu_id, so_luong, don_gia'
       });
     }
-    
+
     const result = await inventoryRepository.createImport({
       nguyenLieuId: parseInt(nguyen_lieu_id),
       soLuong: parseFloat(so_luong),
       donGia: parseFloat(don_gia),
       nhaCungCap: nha_cung_cap || null,
       ghiChu: ghi_chu || null,
-      nguoiNhapId: req.user?.user_id || null
+      nguoiNhapId: req.user?.user_id || null,
+      ngaySanXuat: ngay_san_xuat || null,
+      ngayHetHan: ngay_het_han || null,
+      soLoNhaCungCap: so_lo_nha_cung_cap || null
     });
-    
+
     res.json({
       ok: true,
       message: 'Nhập kho thành công',
       data: {
         id: result.id,
+        batchId: result.batch_id,
+        batchCode: result.batch_code,
         ingredientId: result.nguyen_lieu_id,
         quantity: parseFloat(result.so_luong),
         price: parseFloat(result.don_gia),
         total: parseFloat(result.thanh_tien),
         supplier: result.nha_cung_cap,
         note: result.ghi_chu,
-        importDate: result.ngay_nhap
+        importDate: result.ngay_nhap,
+        productionDate: result.ngay_san_xuat,
+        expiryDate: result.ngay_het_han,
+        supplierBatchCode: result.so_lo_nha_cung_cap
       }
     });
   } catch (error) {

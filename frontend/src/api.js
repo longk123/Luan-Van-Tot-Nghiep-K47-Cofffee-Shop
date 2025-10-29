@@ -291,7 +291,23 @@ export const api = {
   },
   // Nhập kho mới
   importInventory: (data) => request('POST', '/inventory/import', data),
-  
+
+  // ===== BATCH INVENTORY =====
+  // Lấy danh sách batch của nguyên liệu
+  getBatchesByIngredient: (ingredientId, includeEmpty = false) =>
+    request('GET', `/batch-inventory/ingredient/${ingredientId}?include_empty=${includeEmpty}`),
+  // Lấy chi tiết batch
+  getBatchById: (batchId) => request('GET', `/batch-inventory/${batchId}`),
+  // Lấy batch sắp hết hạn
+  getExpiringBatches: (days = 30) => request('GET', `/batch-inventory/expiring?days=${days}`),
+  // Lấy tổng quan batch
+  getBatchSummary: () => request('GET', '/batch-inventory/summary'),
+  // Cập nhật trạng thái batch
+  updateBatchStatus: (batchId, data) => request('PUT', `/batch-inventory/${batchId}/status`, data),
+  // Xem thứ tự FEFO
+  getFEFOOrder: (ingredientId, quantity) =>
+    request('GET', `/batch-inventory/fefo/${ingredientId}?quantity=${quantity}`),
+
   // ===== MENU MANAGEMENT (CRUD) =====
   // Categories
   getMenuCategories2: () => request('GET', '/menu/categories'),

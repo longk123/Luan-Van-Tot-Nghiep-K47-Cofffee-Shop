@@ -128,7 +128,7 @@ export const inventoryRepository = {
    */
   async getImportHistory({ fromDate = null, toDate = null, limit = 100 }) {
     let sql = `
-      SELECT 
+      SELECT
         nk.id,
         nk.nguyen_lieu_id,
         nl.ten as nguyen_lieu,
@@ -139,30 +139,35 @@ export const inventoryRepository = {
         (nk.so_luong * nk.don_gia) as thanh_tien,
         nk.nha_cung_cap,
         nk.ngay_nhap,
-        nk.ghi_chu
+        nk.ngay_san_xuat,
+        nk.ngay_het_han,
+        nk.ghi_chu,
+        nk.batch_id,
+        bi.batch_code
       FROM nhap_kho nk
       JOIN nguyen_lieu nl ON nl.id = nk.nguyen_lieu_id
+      LEFT JOIN batch_inventory bi ON bi.id = nk.batch_id
       WHERE 1=1
     `;
-    
+
     const params = [];
     let paramIndex = 1;
-    
+
     if (fromDate) {
       sql += ` AND nk.ngay_nhap >= $${paramIndex}`;
       params.push(fromDate);
       paramIndex++;
     }
-    
+
     if (toDate) {
       sql += ` AND nk.ngay_nhap <= $${paramIndex}`;
       params.push(toDate);
       paramIndex++;
     }
-    
+
     sql += ` ORDER BY nk.ngay_nhap DESC LIMIT $${paramIndex}`;
     params.push(limit);
-    
+
     const { rows } = await query(sql, params);
     return rows;
   },
@@ -268,15 +273,75 @@ export const inventoryRepository = {
   },
 
   /**
-   * Tạo phiếu nhập kho mới
+   * Tạo phiếu nhập kho mới (với batch tracking)
    */
-  async createImport({ nguyenLieuId, soLuong, donGia, nhaCungCap, ghiChu, nguoiNhapId = null }) {
+  async createImport({
+    nguyenLieuId,
+    soLuong,
+    donGia,
+    nhaCungCap,
+    ghiChu,
+    nguoiNhapId = null,
+    ngaySanXuat = null,
+    ngayHetHan = null,
+    soLoNhaCungCap = null
+  }) {
     const client = await pool.connect();
-    
+
     try {
       await client.query('BEGIN');
-      
-      // Insert vào bảng nhap_kho (không insert thanh_tien - để DB tự tính)
+
+      // 1. Tạo batch mới
+      const batchSql = `
+        INSERT INTO batch_inventory (
+          batch_code,
+          nguyen_lieu_id,
+          so_luong_nhap,
+          so_luong_ton,
+          don_vi,
+          don_gia,
+          ngay_nhap,
+          ngay_san_xuat,
+          ngay_het_han,
+          nha_cung_cap,
+          so_lo_nha_cung_cap,
+          ghi_chu,
+          nguoi_nhap_id,
+          trang_thai
+        )
+        SELECT
+          generate_batch_code($1),
+          $1,
+          $2,
+          $2,
+          nl.don_vi,
+          $3,
+          NOW(),
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          'ACTIVE'
+        FROM nguyen_lieu nl
+        WHERE nl.id = $1
+        RETURNING *
+      `;
+
+      const { rows: [batch] } = await client.query(batchSql, [
+        nguyenLieuId,
+        soLuong,
+        donGia,
+        ngaySanXuat,
+        ngayHetHan,
+        nhaCungCap,
+        soLoNhaCungCap,
+        ghiChu,
+        nguoiNhapId
+      ]);
+
+      // 2. Insert vào bảng nhap_kho với batch_id
       const insertSql = `
         INSERT INTO nhap_kho (
           nguyen_lieu_id,
@@ -285,34 +350,44 @@ export const inventoryRepository = {
           nha_cung_cap,
           ghi_chu,
           nguoi_nhap_id,
-          ngay_nhap
-        ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+          ngay_nhap,
+          ngay_san_xuat,
+          ngay_het_han,
+          batch_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9)
         RETURNING *
       `;
-      
-      const { rows } = await client.query(insertSql, [
+
+      const { rows: [nhapKho] } = await client.query(insertSql, [
         nguyenLieuId,
         soLuong,
         donGia,
         nhaCungCap,
         ghiChu,
-        nguoiNhapId
+        nguoiNhapId,
+        ngaySanXuat,
+        ngayHetHan,
+        batch.id
       ]);
-      
-      // Cập nhật tồn kho và giá nhập
+
+      // 3. Cập nhật tồn kho và giá nhập
       const updateSql = `
         UPDATE nguyen_lieu
-        SET 
+        SET
           ton_kho = ton_kho + $1,
           gia_nhap_moi_nhat = $2
         WHERE id = $3
       `;
-      
+
       await client.query(updateSql, [soLuong, donGia, nguyenLieuId]);
-      
+
       await client.query('COMMIT');
-      
-      return rows[0];
+
+      return {
+        ...nhapKho,
+        batch_code: batch.batch_code,
+        batch_id: batch.id
+      };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
