@@ -8,7 +8,7 @@
  */
 
 import batchInventoryRepository from '../repositories/batchInventoryRepository.js';
-import pool from '../config/database.js';
+import { pool } from '../db.js';
 
 /**
  * GET /api/v1/batch-inventory/ingredient/:ingredientId
