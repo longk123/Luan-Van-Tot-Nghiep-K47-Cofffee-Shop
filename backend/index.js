@@ -106,6 +106,9 @@ app.use('/api/v1/analytics', analyticsRouter);
 import inventoryRouter from './src/routes/inventory.js'; // <— router quản lý tồn kho
 app.use('/api/v1/inventory', inventoryRouter);
 
+import uploadRouter from './src/routes/upload.js'; // <— router upload files (Supabase)
+app.use('/api/v1/upload', uploadRouter);
+
 import paymentSuccessRouter from './src/routes/paymentSuccess.js'; // <— router payment redirect
 app.use('/', paymentSuccessRouter);
 

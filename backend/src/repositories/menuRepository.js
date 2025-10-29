@@ -15,10 +15,13 @@ export async function getCategories() {
 
 export async function getItemsByCategory(categoryId) {
   const { rows } = await query(
-    `SELECT id, ten, ma, don_vi, gia_mac_dinh, thu_tu, active, hinh_anh
-     FROM mon
-     WHERE ($1::int IS NULL OR loai_id = $1) AND active = true
-     ORDER BY thu_tu, id`,
+    `SELECT m.id, m.ten, m.ma, m.loai_id, m.don_vi, 
+            m.gia_mac_dinh, m.thu_tu, m.active, m.hinh_anh,
+            lm.ten AS loai_ten
+     FROM mon m
+     LEFT JOIN loai_mon lm ON lm.id = m.loai_id
+     WHERE ($1::int IS NULL OR m.loai_id = $1) AND m.active = true
+     ORDER BY m.thu_tu, m.id`,
     [categoryId ?? null]
   );
   return rows;
@@ -61,7 +64,7 @@ export async function searchMenu(q) {
 // ✅ NEW: Lấy biến thể (size) theo mon_id
 export async function getItemVariants(itemId) {
   const { rows } = await query(
-    `SELECT id, mon_id, ten_bien_the AS ten, gia, thu_tu, active
+    `SELECT id, mon_id, ten_bien_the, gia, thu_tu, active
      FROM mon_bien_the
      WHERE mon_id = $1 AND (active IS TRUE OR active IS NULL)
      ORDER BY thu_tu, id`,

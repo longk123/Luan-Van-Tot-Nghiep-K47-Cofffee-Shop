@@ -3,6 +3,9 @@ import express from 'express';
 import Joi from 'joi';
 import service from '../services/menuService.js';
 import * as menuOptionsCtrl from '../controllers/menuOptionsController.js';
+import * as menuCRUDCtrl from '../controllers/menuCRUDController.js';
+import { authRequired } from '../middleware/auth.js';
+import { authorize } from '../middleware/authorize.js';
 
 const router = express.Router();
 
@@ -67,5 +70,31 @@ router.get('/options/:optId/levels', menuOptionsCtrl.listOptionLevels);
 // GET /api/v1/menu/items/:monId/options
 // Lấy các nhóm tùy chọn áp dụng cho món cụ thể
 router.get('/items/:monId/options', menuOptionsCtrl.listOptionGroupsForMon);
+
+// ===== CRUD ENDPOINTS CHO MENU MANAGEMENT =====
+
+// ===== CATEGORIES =====
+router.post('/categories', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.createCategory);
+router.put('/categories/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.updateCategory);
+router.delete('/categories/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.deleteCategory);
+
+// ===== ITEMS =====
+router.post('/items', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.createItem);
+router.put('/items/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.updateItem);
+router.delete('/items/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.deleteItem);
+
+// ===== VARIANTS =====
+router.post('/variants', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.createVariant);
+router.put('/variants/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.updateVariant);
+router.delete('/variants/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.deleteVariant);
+
+// ===== OPTIONS =====
+router.post('/options', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.createOption);
+router.put('/options/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.updateOption);
+
+// ===== OPTION LEVELS =====
+router.post('/option-levels', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.createOptionLevel);
+router.put('/option-levels/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.updateOptionLevel);
+router.delete('/option-levels/:id', authRequired, authorize(['manager', 'admin']), menuCRUDCtrl.deleteOptionLevel);
 
 export default router;

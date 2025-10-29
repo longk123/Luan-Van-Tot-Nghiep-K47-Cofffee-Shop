@@ -291,4 +291,43 @@ export const api = {
   },
   // Nhập kho mới
   importInventory: (data) => request('POST', '/inventory/import', data),
+  
+  // ===== MENU MANAGEMENT (CRUD) =====
+  // Categories
+  getMenuCategories2: () => request('GET', '/menu/categories'),
+  createCategory: (data) => request('POST', '/menu/categories', data),
+  updateCategory: (id, data) => request('PUT', `/menu/categories/${id}`, data),
+  deleteCategory: (id) => request('DELETE', `/menu/categories/${id}`),
+  
+  // Items
+  getAllMenuItems: () => request('GET', '/menu/categories/0/items'),
+  getMenuItem: (id) => request('GET', `/menu/items/${id}`),
+  createMenuItem: (data) => request('POST', '/menu/items', data),
+  updateMenuItem: (id, data) => request('PUT', `/menu/items/${id}`, data),
+  deleteMenuItem: (id) => request('DELETE', `/menu/items/${id}`),
+  
+  // Variants
+  getItemVariants2: (itemId) => request('GET', `/menu/items/${itemId}/variants`),
+  createVariant: (data) => request('POST', '/menu/variants', data),
+  updateVariant: (id, data) => request('PUT', `/menu/variants/${id}`, data),
+  deleteVariant: (id) => request('DELETE', `/menu/variants/${id}`),
+  
+  // Options
+  getAllOptions: () => request('GET', '/menu/options'),
+  getOption: (id) => request('GET', `/menu/options/${id}`),
+  createOption: (data) => request('POST', '/menu/options', data),
+  updateOption: (id, data) => request('PUT', `/menu/options/${id}`, data),
+  deleteOption: (id) => request('DELETE', `/menu/options/${id}`),
+  getOptionLevels2: (optionId) => request('GET', `/menu/options/${optionId}/levels`),
+  
+  // Option Levels
+  createOptionLevel: (data) => request('POST', '/menu/option-levels', data),
+  updateOptionLevel: (id, data) => request('PUT', `/menu/option-levels/${id}`, data),
+  deleteOptionLevel: (id) => request('DELETE', `/menu/option-levels/${id}`),
+  
+  // Topping Pricing
+  getToppingPricing: () => request('GET', '/menu/topping-pricing'),
+  createToppingPrice: (data) => request('POST', '/menu/topping-pricing', data),
+  updateToppingPrice: (id, data) => request('PUT', `/menu/topping-pricing/${id}`, data),
+  deleteToppingPrice: (id) => request('DELETE', `/menu/topping-pricing/${id}`),
 };
