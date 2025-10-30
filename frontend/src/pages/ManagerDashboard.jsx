@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ProfitReport from '../components/manager/ProfitReport';
+import ShiftManagement from '../components/manager/ShiftManagement';
 import { COLORS } from '../constants/colors';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { getUser } from '../auth.js';
@@ -599,6 +600,11 @@ export default function ManagerDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             )},
+            { id: 'shifts', name: 'Quản lý ca', icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )},
             { id: 'invoices', name: 'Hóa đơn', icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -623,7 +629,7 @@ export default function ManagerDashboard() {
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-32">
           {/* Doanh thu Card */}
           <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-2xl shadow-sm border-2 border-amber-300 p-6 hover:shadow-xl hover:border-amber-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
@@ -777,7 +783,7 @@ export default function ManagerDashboard() {
       )}
 
       {activeTab === 'revenue' && (
-  <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '150px' }}>
+  <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '150px', paddingBottom: '8rem' }}>
           <h3 style={{ margin: '0 0 20px 0', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <svg style={{ width: '24px', height: '24px', color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -882,14 +888,24 @@ export default function ManagerDashboard() {
       )}
 
       {activeTab === 'profit' && (
-        <ProfitReport 
-          startDate={getTimeRangeParams(timeRange, customDate).startDate}
-          endDate={getTimeRangeParams(timeRange, customDate).endDate}
+        <div className="pb-32">
+          <ProfitReport
+            startDate={getTimeRangeParams(timeRange, customDate).startDate}
+            endDate={getTimeRangeParams(timeRange, customDate).endDate}
+          />
+        </div>
+      )}
+
+      {activeTab === 'shifts' && (
+        <ShiftManagement
+          timeRange={timeRange}
+          customStartDate={getTimeRangeParams(timeRange, customDate).startDate}
+          customEndDate={getTimeRangeParams(timeRange, customDate).endDate}
         />
       )}
 
       {activeTab === 'invoices' && (
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '150px' }}>
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '150px', paddingBottom: '8rem' }}>
           <h3 style={{ margin: '0 0 20px 0', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <svg style={{ width: '24px', height: '24px', color: '#3b82f6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1582,12 +1598,12 @@ export default function ManagerDashboard() {
       {/* Floating Navigation Buttons */}
       <div className="fixed bottom-6 left-6 z-[1000] flex gap-4">
         {/* Nút Cảnh báo Hết hạn */}
-        <div className="group">
+        <div className="group relative">
           {/* Tooltip */}
-          <div className="absolute bottom-full left-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
             <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
-              Cảnh báo Hết hạn
-              <div className="absolute top-full left-6 -mt-1">
+              Quản lý lô hàng
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
                 <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
               </div>
             </div>
@@ -1612,12 +1628,12 @@ export default function ManagerDashboard() {
         </div>
 
         {/* Nút Quản lý Kho */}
-        <div className="group">
+        <div className="group relative">
           {/* Tooltip */}
-          <div className="absolute bottom-full left-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
             <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
               Quản lý Kho
-              <div className="absolute top-full left-6 -mt-1">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
                 <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
               </div>
             </div>
@@ -1639,12 +1655,12 @@ export default function ManagerDashboard() {
         </div>
 
         {/* Nút Quản lý Thực đơn */}
-        <div className="group">
+        <div className="group relative">
           {/* Tooltip */}
-          <div className="absolute bottom-full left-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
             <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
               Quản lý Thực đơn
-              <div className="absolute top-full left-6 -mt-1">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
                 <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
               </div>
             </div>

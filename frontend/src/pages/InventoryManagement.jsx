@@ -499,7 +499,7 @@ export default function InventoryManagement() {
                     <h2 className="text-2xl font-bold text-gray-800">Cảnh báo tồn kho</h2>
                     <button
                       onClick={loadWarnings}
-                      className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white border-2 border-orange-600 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-orange-600 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
+                      className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundImage = 'none';
                         e.currentTarget.style.backgroundColor = 'white';
@@ -583,17 +583,17 @@ export default function InventoryManagement() {
                         type="date"
                         value={exportDateFrom}
                         onChange={(e) => setExportDateFrom(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                       <input
                         type="date"
                         value={exportDateTo}
                         onChange={(e) => setExportDateTo(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                       <button
                         onClick={loadExportHistory}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white border-2 border-purple-600 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-purple-600 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
+                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-green-600 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundImage = 'none';
                           e.currentTarget.style.backgroundColor = 'white';
@@ -623,7 +623,7 @@ export default function InventoryManagement() {
                         placeholder="Tìm kiếm nguyên liệu, mã đơn..."
                         value={searchExport}
                         onChange={(e) => setSearchExport(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -1174,22 +1174,11 @@ export default function InventoryManagement() {
                             </select>
                           </div>
 
-                          <div className="flex items-end gap-3">
+                          <div className="flex items-end gap-2">
                             <button
                               onClick={() => loadBatchData()}
-                              className="px-6 py-2.5 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundImage = 'none';
-                                e.currentTarget.style.backgroundColor = 'white';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundImage = '';
-                                e.currentTarget.style.backgroundColor = '';
-                              }}
+                              className="flex-1 px-4 py-2 bg-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-white hover:text-green-600 transition-all duration-200 font-semibold whitespace-nowrap"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-                              </svg>
                               Áp dụng
                             </button>
                             <button
@@ -1197,19 +1186,8 @@ export default function InventoryManagement() {
                                 setBatchReportFilters({ ingredientId: '', status: '', daysThreshold: '' });
                                 setTimeout(() => loadBatchData(), 100);
                               }}
-                              className="px-6 py-2.5 bg-gradient-to-r from-gray-500 to-gray-600 text-white border-2 border-gray-600 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-gray-700 hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundImage = 'none';
-                                e.currentTarget.style.backgroundColor = 'white';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundImage = '';
-                                e.currentTarget.style.backgroundColor = '';
-                              }}
+                              className="px-4 py-2 bg-gray-500 text-white border-2 border-gray-500 rounded-lg hover:bg-white hover:text-gray-700 transition-all duration-200 font-semibold whitespace-nowrap"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
                               Reset
                             </button>
                             <button
@@ -1238,21 +1216,13 @@ export default function InventoryManagement() {
                                 link.download = `batch-inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
                                 link.click();
                               }}
-                              className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-green-600 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
+                              className="px-4 py-2 bg-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-white hover:text-green-600 transition-all duration-200 flex items-center gap-2 font-semibold whitespace-nowrap"
                               title="Xuất CSV"
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundImage = 'none';
-                                e.currentTarget.style.backgroundColor = 'white';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundImage = '';
-                                e.currentTarget.style.backgroundColor = '';
-                              }}
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
-                              Xuất CSV
+                              CSV
                             </button>
                           </div>
                         </div>

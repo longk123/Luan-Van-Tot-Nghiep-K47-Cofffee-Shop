@@ -256,6 +256,29 @@ export const api = {
   getTopMenuItems: (days = 7, limit = 10) => request('GET', `/analytics/top-menu-items?days=${days}&limit=${limit}`),
   // Thống kê ca làm việc
   getShiftStats: (days = 7) => request('GET', `/analytics/shift-stats?days=${days}`),
+  // Báo cáo lợi nhuận
+  getProfitReport: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate && params.endDate) {
+      queryParams.set('startDate', params.startDate);
+      queryParams.set('endDate', params.endDate);
+    } else if (params.days) {
+      queryParams.set('days', params.days);
+    }
+    return request('GET', `/analytics/profit-report?${queryParams.toString()}`);
+  },
+
+  // ===== SHIFT MANAGEMENT (QUẢN LÝ CA) =====
+  // Lấy tóm tắt ca (live preview)
+  getShiftSummary: (shiftId) => request('GET', `/shifts/${shiftId}/summary`),
+  // Lấy báo cáo chi tiết ca
+  getShiftReport: (shiftId) => request('GET', `/shifts/${shiftId}/report`),
+  // Đóng ca với thống kê đầy đủ
+  closeShiftEnhanced: (shiftId, data) => request('POST', `/shifts/${shiftId}/close-enhanced`, data),
+  // Force đóng ca (chuyển đơn OPEN sang ca sau)
+  forceCloseShift: (shiftId, data) => request('POST', `/shifts/${shiftId}/force-close`, data),
+  // Lấy danh sách đơn từ ca trước
+  getTransferredOrders: (shiftId) => request('GET', `/shifts/${shiftId}/transferred-orders`),
   
   // ===== INVENTORY MANAGEMENT =====
   // Lấy danh sách nguyên liệu
