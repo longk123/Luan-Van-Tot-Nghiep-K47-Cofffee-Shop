@@ -8,7 +8,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
   const [loading, setLoading] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [filterType, setFilterType] = useState('ALL'); // ALL, CASHIER, KITCHEN
+  const [filterType, setFilterType] = useState('CASHIER'); // CASHIER, KITCHEN (no ALL option)
   const [filterStatus, setFilterStatus] = useState('ALL'); // ALL, OPEN, CLOSED
 
   useEffect(() => {
@@ -36,9 +36,9 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
     setShowDetailModal(true);
   };
 
-  // Filter shifts
+  // Filter shifts - NO "ALL" option for type
   const filteredShifts = shifts.filter(shift => {
-    if (filterType !== 'ALL' && shift.type !== filterType) return false;
+    if (shift.type !== filterType) return false; // Always filter by type
     if (filterStatus !== 'ALL' && shift.status !== filterStatus) return false;
     return true;
   });
@@ -117,7 +117,6 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
               onChange={(e) => setFilterType(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
             >
-              <option value="ALL">Tất cả</option>
               <option value="CASHIER">Thu ngân</option>
               <option value="KITCHEN">Bếp</option>
             </select>
@@ -145,13 +144,22 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ca</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhân viên</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bắt đầu</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kết thúc</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn hàng</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Doanh thu</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Chênh lệch</th>
+                {filterType === 'CASHIER' && (
+                  <>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn hàng</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Doanh thu</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Chênh lệch</th>
+                  </>
+                )}
+                {filterType === 'KITCHEN' && (
+                  <>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Món đã làm</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">TG trung bình</th>
+                  </>
+                )}
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
@@ -190,9 +198,6 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                       {shift.staff?.full_name || shift.staff?.username || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {getTypeBadge(shift.type)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getStatusBadge(shift.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -201,18 +206,31 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDateTime(shift.closed_at)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                      {shift.type === 'KITCHEN' ? '-' : (shift.stats?.total_orders || 0)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-green-600">
-                      {shift.type === 'KITCHEN' ? '-' : formatCurrency(shift.stats?.net_amount || 0)}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
-                      shift.type === 'KITCHEN' ? 'text-gray-400' :
-                      (shift.stats?.cash_diff || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {shift.type === 'KITCHEN' ? '-' : formatCurrency(shift.stats?.cash_diff || 0)}
-                    </td>
+                    {filterType === 'CASHIER' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                          {shift.stats?.total_orders || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-green-600">
+                          {formatCurrency(shift.stats?.net_amount || 0)}
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
+                          (shift.stats?.cash_diff || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatCurrency(shift.stats?.cash_diff || 0)}
+                        </td>
+                      </>
+                    )}
+                    {filterType === 'KITCHEN' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                          {shift.stats?.total_items_made || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
+                          {shift.stats?.avg_prep_time_seconds ? `${Math.round(shift.stats.avg_prep_time_seconds / 60)}m` : '-'}
+                        </td>
+                      </>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                       <button
                         onClick={() => handleViewDetail(shift)}
