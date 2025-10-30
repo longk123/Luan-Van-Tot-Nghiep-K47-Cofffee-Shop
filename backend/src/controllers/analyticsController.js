@@ -201,11 +201,12 @@ class AnalyticsController {
    * So sánh lợi nhuận với kỳ trước
    */
   getProfitComparison = asyncHandler(async (req, res) => {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, timeRange = 'custom' } = req.query;
 
     const data = await analyticsService.getProfitComparison({
       startDate,
-      endDate
+      endDate,
+      timeRange
     });
 
     res.json({

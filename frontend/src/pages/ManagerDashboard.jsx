@@ -892,6 +892,7 @@ export default function ManagerDashboard() {
           <ProfitReport
             startDate={getTimeRangeParams(timeRange, customDate).startDate}
             endDate={getTimeRangeParams(timeRange, customDate).endDate}
+            timeRange={timeRange}
           />
         </div>
       )}

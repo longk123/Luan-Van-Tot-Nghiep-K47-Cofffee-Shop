@@ -395,18 +395,68 @@ class AnalyticsService {
   /**
    * So sánh lợi nhuận với kỳ trước
    */
-  async getProfitComparison({ startDate, endDate }) {
+  async getProfitComparison({ startDate, endDate, timeRange = 'custom' }) {
     try {
-      // Calculate period length in days
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const periodDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
-      // Calculate previous period dates
-      const prevEnd = new Date(start);
-      prevEnd.setDate(prevEnd.getDate() - 1);
-      const prevStart = new Date(prevEnd);
-      prevStart.setDate(prevStart.getDate() - periodDays + 1);
+      let prevStart, prevEnd;
+
+      // Calculate previous period based on timeRange type
+      switch (timeRange) {
+        case 'day':
+          // Previous day
+          prevEnd = new Date(start);
+          prevEnd.setDate(prevEnd.getDate() - 1);
+          prevStart = new Date(prevEnd);
+          break;
+
+        case 'week':
+          // Previous week (same day of week)
+          prevStart = new Date(start);
+          prevStart.setDate(prevStart.getDate() - 7);
+          prevEnd = new Date(end);
+          prevEnd.setDate(prevEnd.getDate() - 7);
+          break;
+
+        case 'month':
+          // Previous month (same dates)
+          prevStart = new Date(start);
+          prevStart.setMonth(prevStart.getMonth() - 1);
+          prevEnd = new Date(end);
+          prevEnd.setMonth(prevEnd.getMonth() - 1);
+          // Handle month-end edge cases
+          if (prevEnd.getDate() !== end.getDate()) {
+            prevEnd.setDate(0); // Last day of previous month
+          }
+          break;
+
+        case 'quarter':
+          // Previous quarter (3 months back)
+          prevStart = new Date(start);
+          prevStart.setMonth(prevStart.getMonth() - 3);
+          prevEnd = new Date(end);
+          prevEnd.setMonth(prevEnd.getMonth() - 3);
+          break;
+
+        case 'year':
+          // Previous year (same dates)
+          prevStart = new Date(start);
+          prevStart.setFullYear(prevStart.getFullYear() - 1);
+          prevEnd = new Date(end);
+          prevEnd.setFullYear(prevEnd.getFullYear() - 1);
+          break;
+
+        case 'custom':
+        default:
+          // For custom range, use same number of days
+          const periodDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+          prevEnd = new Date(start);
+          prevEnd.setDate(prevEnd.getDate() - 1);
+          prevStart = new Date(prevEnd);
+          prevStart.setDate(prevStart.getDate() - periodDays + 1);
+          break;
+      }
 
       const prevStartStr = prevStart.toISOString().split('T')[0];
       const prevEndStr = prevEnd.toISOString().split('T')[0];

@@ -3,7 +3,7 @@ import { api } from '../../api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import * as XLSX from 'xlsx';
 
-export default function ProfitReport({ startDate: propStartDate, endDate: propEndDate }) {
+export default function ProfitReport({ startDate: propStartDate, endDate: propEndDate, timeRange = 'custom' }) {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [chartData, setChartData] = useState(null);
@@ -64,7 +64,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
         api.get(`/analytics/profit-chart?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
         api.get(`/analytics/profit-by-item?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&limit=20`),
         api.get(`/analytics/profit-by-category?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
-        api.get(`/analytics/profit-comparison?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`)
+        api.get(`/analytics/profit-comparison?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&timeRange=${encodeURIComponent(timeRange)}`)
       ]);
 
       console.log('✅ All data loaded');
@@ -92,6 +92,19 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
   const formatPercent = (value) => {
     return `${(value || 0).toFixed(1)}%`;
+  };
+
+  // Get period name for comparison
+  const getPeriodName = () => {
+    switch (timeRange) {
+      case 'day': return 'ngày trước';
+      case 'week': return 'tuần trước';
+      case 'month': return 'tháng trước';
+      case 'quarter': return 'quý trước';
+      case 'year': return 'năm trước';
+      case 'custom': return 'kỳ trước (cùng số ngày)';
+      default: return 'kỳ trước';
+    }
   };
 
   // Export to Excel
@@ -268,7 +281,13 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
       {/* Comparison Cards */}
       {activeView === 'summary' && comparison && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md p-6 mb-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">📊 So sánh với kỳ trước ({comparison.previous.startDate} - {comparison.previous.endDate})</h3>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <h3 className="text-lg font-bold text-gray-800">📊 So sánh với {getPeriodName()}</h3>
+            <div className="text-sm bg-white px-3 py-1 rounded-lg border border-blue-200">
+              <span className="text-gray-600">Kỳ trước:</span>{' '}
+              <span className="font-medium text-gray-800">{comparison.previous.startDate} → {comparison.previous.endDate}</span>
+            </div>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-4">
               <p className="text-sm text-gray-600 mb-1">Doanh thu</p>
