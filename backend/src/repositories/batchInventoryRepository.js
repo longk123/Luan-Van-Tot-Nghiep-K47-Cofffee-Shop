@@ -208,11 +208,23 @@ export const batchInventoryRepository = {
    */
   async getExpiringBatches(daysThreshold = 30) {
     const sql = `
-      SELECT * FROM check_expired_batches()
-      WHERE ngay_con_lai <= $1
-      ORDER BY ngay_con_lai ASC
+      SELECT
+        bi.id as batch_id,
+        bi.batch_code,
+        bi.nguyen_lieu_id,
+        nl.ten as nguyen_lieu_ten,
+        bi.so_luong_ton,
+        bi.ngay_het_han,
+        (bi.ngay_het_han - CURRENT_DATE) AS ngay_con_lai
+      FROM batch_inventory bi
+      JOIN nguyen_lieu nl ON nl.id = bi.nguyen_lieu_id
+      WHERE bi.trang_thai = 'ACTIVE'
+        AND bi.so_luong_ton > 0
+        AND bi.ngay_het_han IS NOT NULL
+        AND bi.ngay_het_han <= CURRENT_DATE + ($1 || ' days')::INTERVAL
+      ORDER BY bi.ngay_het_han ASC
     `;
-    
+
     const { rows } = await query(sql, [daysThreshold]);
     return rows;
   },
