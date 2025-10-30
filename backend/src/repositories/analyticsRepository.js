@@ -346,9 +346,8 @@ export default {
    */
   async getShiftStats(days = 7) {
     const sql = `
-      SELECT 
+      SELECT
         ca.id,
-        ca.ten_ca_lam,
         ca.shift_type,
         ca.started_at,
         ca.closed_at,
@@ -360,13 +359,17 @@ export default {
         COALESCE(ca.cash_amount, 0) AS cash_amount,
         COALESCE(ca.card_amount, 0) AS card_amount,
         COALESCE(ca.online_amount, 0) AS online_amount,
-        COALESCE(ca.cash_diff, 0) AS cash_diff
+        COALESCE(ca.cash_diff, 0) AS cash_diff,
+        ca.opening_cash,
+        ca.actual_cash,
+        ca.expected_cash,
+        ca.note
       FROM ca_lam ca
       LEFT JOIN users u ON u.user_id = ca.opened_by
       WHERE ca.started_at >= CURRENT_DATE - INTERVAL '${days} days'
       ORDER BY ca.started_at DESC
     `;
-    
+
     const { rows } = await query(sql);
     return rows;
   },
