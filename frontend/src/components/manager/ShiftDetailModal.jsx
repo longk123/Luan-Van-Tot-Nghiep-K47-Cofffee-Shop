@@ -111,24 +111,58 @@ export default function ShiftDetailModal({ shift, onClose }) {
         {/* Tabs */}
         <div className="border-b border-gray-200 px-6">
           <div className="flex gap-4">
-            {[
-              { id: 'summary', name: 'Tổng quan', icon: '📊' },
-              ...(report.shift_type === 'CASHIER' ? [{ id: 'payments', name: 'Thanh toán', icon: '💰' }] : []),
-              { id: 'orders', name: report.shift_type === 'KITCHEN' ? 'Món đã làm' : 'Đơn hàng', icon: report.shift_type === 'KITCHEN' ? '🍵' : '📋' }
-            ].map((tab) => (
+            {/* Tab Tổng quan */}
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                activeTab === 'summary'
+                  ? 'border-[#c9975b] text-[#c9975b]'
+                  : 'border-transparent text-gray-600 hover:text-[#c9975b]'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Tổng quan
+            </button>
+            
+            {/* Tab Thanh toán (chỉ cho CASHIER) */}
+            {report.shift_type === 'CASHIER' && (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 ${
-                  activeTab === tab.id
+                onClick={() => setActiveTab('payments')}
+                className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                  activeTab === 'payments'
                     ? 'border-[#c9975b] text-[#c9975b]'
                     : 'border-transparent text-gray-600 hover:text-[#c9975b]'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.name}
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Thanh toán
               </button>
-            ))}
+            )}
+
+            {/* Tab Đơn hàng / Món đã làm */}
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                activeTab === 'orders'
+                  ? 'border-[#c9975b] text-[#c9975b]'
+                  : 'border-transparent text-gray-600 hover:text-[#c9975b]'
+              }`}
+            >
+              {report.shift_type === 'KITCHEN' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              )}
+              {report.shift_type === 'KITCHEN' ? 'Món đã làm' : 'Đơn hàng'}
+            </button>
           </div>
         </div>
 
@@ -257,22 +291,28 @@ export default function ShiftDetailModal({ shift, onClose }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">💵</span>
-                    <div className="text-sm text-gray-600">Tiền mặt</div>
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <div className="text-sm text-gray-600 font-semibold">Tiền mặt</div>
                   </div>
                   <div className="text-2xl font-bold text-green-700">{formatCurrency(report.cash_amount)}</div>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">💳</span>
-                    <div className="text-sm text-gray-600">Thẻ</div>
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <div className="text-sm text-gray-600 font-semibold">Thẻ</div>
                   </div>
                   <div className="text-2xl font-bold text-blue-700">{formatCurrency(report.card_amount)}</div>
                 </div>
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">📱</span>
-                    <div className="text-sm text-gray-600">Online</div>
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <div className="text-sm text-gray-600 font-semibold">Online</div>
                   </div>
                   <div className="text-2xl font-bold text-purple-700">{formatCurrency(report.online_amount)}</div>
                 </div>
@@ -298,8 +338,16 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 </div>
               ) : orders.length === 0 ? (
                 <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
-                  <span className="text-4xl mb-2 block">{report.shift_type === 'KITCHEN' ? '🍵' : '📋'}</span>
-                  <p>{report.shift_type === 'KITCHEN' ? 'Chưa làm món nào trong ca này' : 'Chưa có đơn hàng nào trong ca này'}</p>
+                  {report.shift_type === 'KITCHEN' ? (
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
+                  ) : (
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                  )}
+                  <p className="text-base">{report.shift_type === 'KITCHEN' ? 'Chưa làm món nào trong ca này' : 'Chưa có đơn hàng nào trong ca này'}</p>
                 </div>
               ) : report.shift_type === 'KITCHEN' ? (
                 // Kitchen: Hiển thị danh sách món đã làm

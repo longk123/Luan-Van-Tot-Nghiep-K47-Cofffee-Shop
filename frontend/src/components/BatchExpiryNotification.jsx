@@ -156,19 +156,27 @@ export default function BatchExpiryNotification() {
         </div>
         
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
+        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-200">
           <button
             onClick={() => navigate('/batch-expiry')}
-            className="text-sm font-semibold text-orange-600 hover:text-orange-700 transition-colors flex items-center gap-2"
+            className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white border-2 border-orange-500 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-orange-600 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 font-semibold"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundImage = 'none';
+              e.currentTarget.style.backgroundColor = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundImage = '';
+              e.currentTarget.style.backgroundColor = '';
+            }}
           >
             Xem chi tiết
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </button>
           <button
             onClick={loadExpiringBatches}
-            className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            className="px-3 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-[#c9975b] hover:text-[#c9975b] hover:shadow-md transition-all duration-200"
             title="Làm mới"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
