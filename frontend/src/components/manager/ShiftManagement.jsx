@@ -195,7 +195,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                       #{shift.id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {shift.staff?.full_name || shift.staff?.username || '-'}
+                      {typeof shift.staff === 'string' ? shift.staff : (shift.staff?.full_name || shift.staff?.username || '-')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {getStatusBadge(shift.status)}
