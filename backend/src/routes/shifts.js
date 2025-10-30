@@ -68,4 +68,7 @@ router.post('/:id/force-close', authMiddleware, shiftsController.forceCloseShift
 // GET /api/v1/shifts/:id/transferred-orders - Lấy danh sách đơn từ ca trước
 router.get('/:id/transferred-orders', authMiddleware, shiftsController.getTransferredOrders);
 
+// GET /api/v1/shifts/:id/orders - Lấy danh sách đơn hàng của ca
+router.get('/:id/orders', authMiddleware, shiftsController.getShiftOrders);
+
 export default router;

@@ -6,10 +6,18 @@ export default function ShiftDetailModal({ shift, onClose }) {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
   const [activeTab, setActiveTab] = useState('summary'); // summary, payments, orders
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   useEffect(() => {
     loadShiftReport();
   }, [shift.id]);
+
+  useEffect(() => {
+    if (activeTab === 'orders') {
+      loadOrders();
+    }
+  }, [activeTab, shift.id]);
 
   const loadShiftReport = async () => {
     setLoading(true);
@@ -20,6 +28,18 @@ export default function ShiftDetailModal({ shift, onClose }) {
       console.error('Error loading shift report:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const res = await api.getShiftOrders(shift.id);
+      setOrders(res?.data || res || []);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      setOrdersLoading(false);
     }
   };
 
@@ -93,7 +113,7 @@ export default function ShiftDetailModal({ shift, onClose }) {
           <div className="flex gap-4">
             {[
               { id: 'summary', name: 'Tổng quan', icon: '📊' },
-              { id: 'payments', name: 'Thanh toán', icon: '💰' },
+              ...(report.shift_type === 'CASHIER' ? [{ id: 'payments', name: 'Thanh toán', icon: '💰' }] : []),
               { id: 'orders', name: 'Đơn hàng', icon: '📋' }
             ].map((tab) => (
               <button
@@ -145,28 +165,48 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 </div>
               </div>
 
-              {/* Thống kê đơn hàng */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">Thống kê đơn hàng</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm text-gray-600">Tổng đơn</div>
-                    <div className="text-2xl font-bold text-blue-600">{report.total_orders || 0}</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm text-gray-600">Doanh thu gộp</div>
-                    <div className="text-lg font-bold text-gray-900">{formatCurrency(report.gross_amount)}</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm text-gray-600">Giảm giá</div>
-                    <div className="text-lg font-bold text-orange-600">-{formatCurrency(report.discount_amount)}</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm text-gray-600">Doanh thu thuần</div>
-                    <div className="text-lg font-bold text-green-600">{formatCurrency(report.net_amount)}</div>
+              {/* Thống kê đơn hàng / Kitchen stats */}
+              {report.shift_type === 'CASHIER' ? (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">Thống kê đơn hàng</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="text-sm text-gray-600">Tổng đơn</div>
+                      <div className="text-2xl font-bold text-blue-600">{report.total_orders || 0}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="text-sm text-gray-600">Doanh thu gộp</div>
+                      <div className="text-lg font-bold text-gray-900">{formatCurrency(report.gross_amount)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="text-sm text-gray-600">Giảm giá</div>
+                      <div className="text-lg font-bold text-orange-600">-{formatCurrency(report.discount_amount)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="text-sm text-gray-600">Doanh thu thuần</div>
+                      <div className="text-lg font-bold text-green-600">{formatCurrency(report.net_amount)}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
+                  <h3 className="font-semibold text-gray-900 mb-3">Hiệu suất pha chế</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <div className="text-sm text-gray-600 mb-1">Món đã làm</div>
+                      <div className="text-3xl font-bold text-blue-600">{shift.stats?.total_items_made || 0}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <div className="text-sm text-gray-600 mb-1">Thời gian TB/món</div>
+                      <div className="text-3xl font-bold text-cyan-600">
+                        {shift.stats?.avg_prep_time_seconds
+                          ? `${Math.round(shift.stats.avg_prep_time_seconds / 60)}m`
+                          : '--'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Tiền mặt (chỉ cho ca CASHIER) */}
               {report.shift_type === 'CASHIER' && (
@@ -242,14 +282,87 @@ export default function ShiftDetailModal({ shift, onClose }) {
 
           {activeTab === 'orders' && (
             <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Danh sách đơn hàng</h3>
-              <div className="text-gray-600 text-sm">
-                Tổng {report.total_orders || 0} đơn hàng trong ca này
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-900">Danh sách đơn hàng</h3>
+                <div className="text-sm text-gray-600">
+                  Tổng: <span className="font-semibold text-blue-600">{orders.length}</span> đơn
+                </div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500">
-                <p>Chi tiết đơn hàng sẽ được hiển thị ở đây</p>
-                <p className="text-sm mt-2">(Tính năng đang phát triển)</p>
-              </div>
+
+              {ordersLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#c9975b]"></div>
+                  <p className="text-gray-500 mt-2">Đang tải...</p>
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
+                  <span className="text-4xl mb-2 block">📋</span>
+                  <p>Chưa có đơn hàng nào trong ca này</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bàn</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhân viên</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số món</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {orders.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">#{order.id}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {order.order_type === 'DINE_IN' ? (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Tại bàn</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Mang đi</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {order.ten_ban || '-'}
+                            {order.khu_vuc_ten && <span className="text-xs text-gray-400 ml-1">({order.khu_vuc_ten})</span>}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{order.nhan_vien_ten || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{order.so_mon || 0}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(order.tong_tien)}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {order.trang_thai === 'PAID' ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Đã thanh toán</span>
+                            ) : order.trang_thai === 'CANCELLED' ? (
+                              <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">Đã hủy</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">Chưa thanh toán</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {order.closed_at
+                              ? new Date(order.closed_at).toLocaleString('vi-VN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  day: '2-digit',
+                                  month: '2-digit'
+                                })
+                              : new Date(order.opened_at).toLocaleString('vi-VN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  day: '2-digit',
+                                  month: '2-digit'
+                                })
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>

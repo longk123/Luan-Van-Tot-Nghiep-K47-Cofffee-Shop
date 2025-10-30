@@ -147,3 +147,13 @@ export const getTransferredOrders = asyncHandler(async (req, res) => {
   return res.json({ success: true, data });
 });
 
+/**
+ * GET /api/v1/shifts/:id/orders
+ * Lấy danh sách đơn hàng của ca
+ */
+export const getShiftOrders = asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id);
+  const data = await shiftsService.getShiftOrders(id);
+  return res.json({ success: true, data });
+});
+

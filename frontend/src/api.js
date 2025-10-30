@@ -109,6 +109,7 @@ export const api = {
   getOpenCashierShift: () => request('GET', '/shifts/open-cashier'),
   getShiftSummary: (shiftId) => request('GET', `/shifts/${shiftId}/summary`),
   getTransferredOrders: (shiftId) => request('GET', `/shifts/${shiftId}/transferred-orders`),
+  getShiftOrders: (shiftId) => request('GET', `/shifts/${shiftId}/orders`),
   closeShiftEnhanced: (shiftId, data) => request('POST', `/shifts/${shiftId}/close-enhanced`, data),
   forceCloseShift: (shiftId, data) => request('POST', `/shifts/${shiftId}/force-close`, data),
   getShiftReport: (shiftId) => request('GET', `/shifts/${shiftId}/report`),

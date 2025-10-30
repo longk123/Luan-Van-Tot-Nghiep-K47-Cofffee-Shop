@@ -306,6 +306,23 @@ export async function getTransferredOrders(shiftId) {
 }
 
 /**
+ * Get all orders for a specific shift
+ * Lấy danh sách đơn hàng của ca
+ */
+export async function getShiftOrders(shiftId) {
+  const shift = await getById(shiftId);
+  if (!shift) {
+    const err = new Error('Không tìm thấy ca làm.');
+    err.status = 404;
+    throw err;
+  }
+
+  const { default: posRepository } = await import('../repositories/posRepository.js');
+  const orders = await posRepository.getCurrentShiftOrders(shiftId);
+  return orders;
+}
+
+/**
  * Force close shift with open orders handling
  * Đóng ca khi còn đơn OPEN - chuyển đơn sang ca tiếp theo
  */
