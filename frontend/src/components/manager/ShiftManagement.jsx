@@ -80,7 +80,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
     if (type === 'CASHIER') {
       return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Thu ngân</span>;
     }
-    return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Bếp</span>;
+    return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Pha chế</span>;
   };
 
   return (
@@ -118,7 +118,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
             >
               <option value="CASHIER">Thu ngân</option>
-              <option value="KITCHEN">Bếp</option>
+              <option value="KITCHEN">Pha chế</option>
             </select>
           </div>
           <div>

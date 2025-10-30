@@ -117,26 +117,100 @@ class AnalyticsController {
     console.log('📊 Full request query:', req.query);
     console.log('📊 Full request params:', req.params);
     console.log('📊 Request URL:', req.url);
-    
-    const { startDate, endDate, includeTopping = true } = req.query;
-    
-    console.log('📊 Profit report request:', { startDate, endDate, includeTopping });
-    
+
+    const { startDate, endDate, includeTopping = true, orderType = null } = req.query;
+
+    console.log('📊 Profit report request:', { startDate, endDate, includeTopping, orderType });
+
     const report = await analyticsService.getProfitReport({
       startDate,
       endDate,
-      includeTopping: includeTopping === 'true'
+      includeTopping: includeTopping === 'true',
+      orderType: orderType || null
     });
-    
+
     console.log('📊 Profit report result:', {
       totalOrders: report.summary?.totalOrders,
       totalRevenue: report.summary?.totalRevenue,
       detailsCount: report.details?.length
     });
-    
+
     res.json({
       success: true,
       data: report
+    });
+  });
+
+  /**
+   * GET /api/v1/analytics/profit-chart
+   * Lấy biểu đồ lợi nhuận theo ngày
+   */
+  getProfitChart = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const chartData = await analyticsService.getProfitChart({
+      startDate,
+      endDate
+    });
+
+    res.json({
+      success: true,
+      data: chartData
+    });
+  });
+
+  /**
+   * GET /api/v1/analytics/profit-by-item
+   * Lấy phân tích lợi nhuận theo món
+   */
+  getProfitByItem = asyncHandler(async (req, res) => {
+    const { startDate, endDate, limit = 20 } = req.query;
+
+    const data = await analyticsService.getProfitByItem({
+      startDate,
+      endDate,
+      limit: parseInt(limit)
+    });
+
+    res.json({
+      success: true,
+      data
+    });
+  });
+
+  /**
+   * GET /api/v1/analytics/profit-by-category
+   * Lấy phân tích lợi nhuận theo danh mục
+   */
+  getProfitByCategory = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const data = await analyticsService.getProfitByCategory({
+      startDate,
+      endDate
+    });
+
+    res.json({
+      success: true,
+      data
+    });
+  });
+
+  /**
+   * GET /api/v1/analytics/profit-comparison
+   * So sánh lợi nhuận với kỳ trước
+   */
+  getProfitComparison = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const data = await analyticsService.getProfitComparison({
+      startDate,
+      endDate
+    });
+
+    res.json({
+      success: true,
+      data
     });
   });
 }

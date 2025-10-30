@@ -31,7 +31,7 @@ export default function ShiftStats({ data = [] }) {
   const getShiftTypeBadge = (type) => {
     const typeConfig = {
       'CASHIER': { color: 'bg-purple-100 text-purple-800', text: 'Thu ngân' },
-      'KITCHEN': { color: 'bg-orange-100 text-orange-800', text: 'Bếp' }
+      'KITCHEN': { color: 'bg-orange-100 text-orange-800', text: 'Pha chế' }
     };
     
     const config = typeConfig[type] || { color: 'bg-gray-100 text-gray-800', text: type };

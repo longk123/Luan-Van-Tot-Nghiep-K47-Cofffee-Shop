@@ -197,13 +197,14 @@ class AnalyticsService {
   /**
    * Lấy báo cáo lợi nhuận chi tiết
    */
-  async getProfitReport({ startDate, endDate, includeTopping = true }) {
+  async getProfitReport({ startDate, endDate, includeTopping = true, orderType = null }) {
     try {
       const data = await analyticsRepository.getProfitReport({
         startDate,
-        endDate
+        endDate,
+        orderType
       });
-      
+
       // Tính tổng
       const summary = {
         totalRevenue: 0,
@@ -217,9 +218,11 @@ class AnalyticsService {
         totalCost: 0,
         totalProfit: 0,
         totalOrders: data.length,
-        margin: 0
+        margin: 0,
+        dineInOrders: 0,
+        takeawayOrders: 0
       };
-      
+
       const details = data.map(order => {
         const originalRevenue = Number(order.doanh_thu_goc || 0);
         const discountLine = Number(order.giam_gia_line || 0);
@@ -232,7 +235,7 @@ class AnalyticsService {
         const totalCost = costMon + costTopping;
         const profit = revenue - totalCost;
         const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-        
+
         // Cộng dồn vào summary
         summary.totalOriginalRevenue += originalRevenue;
         summary.totalDiscountLine += discountLine;
@@ -244,10 +247,15 @@ class AnalyticsService {
         summary.totalCostTopping += costTopping;
         summary.totalCost += totalCost;
         summary.totalProfit += profit;
-        
+
+        // Count order types
+        if (order.order_type === 'DINE_IN') summary.dineInOrders++;
+        if (order.order_type === 'TAKEAWAY') summary.takeawayOrders++;
+
         return {
           orderId: order.order_id,
           closedAt: order.closed_at,
+          orderType: order.order_type,
           originalRevenue,
           discountLine,
           discountPromo,
@@ -261,15 +269,206 @@ class AnalyticsService {
           margin
         };
       });
-      
+
       // Tính margin tổng
-      summary.margin = summary.totalRevenue > 0 
-        ? (summary.totalProfit / summary.totalRevenue) * 100 
+      summary.margin = summary.totalRevenue > 0
+        ? (summary.totalProfit / summary.totalRevenue) * 100
         : 0;
-      
+
       return { summary, details };
     } catch (error) {
       console.error('Error getting profit report:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy biểu đồ lợi nhuận theo ngày
+   */
+  async getProfitChart({ startDate, endDate }) {
+    try {
+      const data = await analyticsRepository.getProfitChart({
+        startDate,
+        endDate
+      });
+
+      return {
+        labels: data.map(row => {
+          const date = new Date(row.date);
+          return date.toLocaleDateString('vi-VN', {
+            month: 'short',
+            day: 'numeric'
+          });
+        }),
+        datasets: [
+          {
+            label: 'Doanh thu',
+            data: data.map(row => Number(row.total_revenue)),
+            borderColor: 'rgb(251, 191, 36)',
+            backgroundColor: 'rgba(251, 191, 36, 0.1)',
+            tension: 0.4
+          },
+          {
+            label: 'Giá vốn',
+            data: data.map(row => Number(row.total_cost)),
+            borderColor: 'rgb(239, 68, 68)',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            tension: 0.4
+          },
+          {
+            label: 'Lợi nhuận',
+            data: data.map(row => Number(row.total_profit)),
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.4
+          }
+        ],
+        marginData: data.map(row => ({
+          date: row.date,
+          margin: Number(row.margin_percent)
+        }))
+      };
+    } catch (error) {
+      console.error('Error getting profit chart:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy phân tích lợi nhuận theo món
+   */
+  async getProfitByItem({ startDate, endDate, limit = 20 }) {
+    try {
+      const data = await analyticsRepository.getProfitByItem({
+        startDate,
+        endDate,
+        limit
+      });
+
+      return data.map(item => ({
+        itemId: item.item_id,
+        itemName: item.item_name,
+        categoryName: item.category_name,
+        orderCount: Number(item.order_count),
+        quantitySold: Number(item.quantity_sold),
+        totalRevenue: Number(item.total_revenue),
+        totalCostMon: Number(item.total_cost_mon),
+        totalCostTopping: Number(item.total_cost_topping),
+        totalCost: Number(item.total_cost),
+        totalProfit: Number(item.total_profit),
+        marginPercent: Number(item.margin_percent)
+      }));
+    } catch (error) {
+      console.error('Error getting profit by item:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy phân tích lợi nhuận theo danh mục
+   */
+  async getProfitByCategory({ startDate, endDate }) {
+    try {
+      const data = await analyticsRepository.getProfitByCategory({
+        startDate,
+        endDate
+      });
+
+      return data.map(category => ({
+        categoryId: category.category_id,
+        categoryName: category.category_name,
+        orderCount: Number(category.order_count),
+        quantitySold: Number(category.quantity_sold),
+        totalRevenue: Number(category.total_revenue),
+        totalCostMon: Number(category.total_cost_mon),
+        totalCostTopping: Number(category.total_cost_topping),
+        totalCost: Number(category.total_cost),
+        totalProfit: Number(category.total_profit),
+        marginPercent: Number(category.margin_percent)
+      }));
+    } catch (error) {
+      console.error('Error getting profit by category:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * So sánh lợi nhuận với kỳ trước
+   */
+  async getProfitComparison({ startDate, endDate }) {
+    try {
+      // Calculate period length in days
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const periodDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Calculate previous period dates
+      const prevEnd = new Date(start);
+      prevEnd.setDate(prevEnd.getDate() - 1);
+      const prevStart = new Date(prevEnd);
+      prevStart.setDate(prevStart.getDate() - periodDays + 1);
+
+      const prevStartStr = prevStart.toISOString().split('T')[0];
+      const prevEndStr = prevEnd.toISOString().split('T')[0];
+
+      // Fetch both periods
+      const [currentData, previousData] = await Promise.all([
+        analyticsRepository.getProfitReport({ startDate, endDate }),
+        analyticsRepository.getProfitReport({ startDate: prevStartStr, endDate: prevEndStr })
+      ]);
+
+      // Calculate summaries
+      const calculateSummary = (data) => {
+        const summary = {
+          totalRevenue: 0,
+          totalCost: 0,
+          totalProfit: 0,
+          totalOrders: data.length
+        };
+
+        data.forEach(order => {
+          summary.totalRevenue += Number(order.doanh_thu || 0);
+          summary.totalCost += Number(order.tong_gia_von || 0);
+          summary.totalProfit += Number(order.loi_nhuan || 0);
+        });
+
+        summary.margin = summary.totalRevenue > 0
+          ? (summary.totalProfit / summary.totalRevenue) * 100
+          : 0;
+
+        return summary;
+      };
+
+      const current = calculateSummary(currentData);
+      const previous = calculateSummary(previousData);
+
+      // Calculate changes
+      const calculateChange = (current, previous) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+      };
+
+      return {
+        current: {
+          startDate,
+          endDate,
+          ...current
+        },
+        previous: {
+          startDate: prevStartStr,
+          endDate: prevEndStr,
+          ...previous
+        },
+        changes: {
+          revenue: calculateChange(current.totalRevenue, previous.totalRevenue),
+          cost: calculateChange(current.totalCost, previous.totalCost),
+          profit: calculateChange(current.totalProfit, previous.totalProfit),
+          orders: calculateChange(current.totalOrders, previous.totalOrders),
+          margin: current.margin - previous.margin // Absolute difference for margin
+        }
+      };
+    } catch (error) {
+      console.error('Error getting profit comparison:', error);
       throw error;
     }
   }

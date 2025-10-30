@@ -395,27 +395,165 @@ export default {
   /**
    * Lấy báo cáo lợi nhuận từ view v_profit_with_topping_cost
    */
-  async getProfitReport({ startDate, endDate }) {
-    const sql = `
-      SELECT 
-        order_id,
-        closed_at,
-        doanh_thu_goc,
-        giam_gia_line,
-        giam_gia_khuyen_mai,
-        giam_gia_thu_cong,
-        tong_giam_gia,
-        doanh_thu,
-        gia_von_mon,
-        gia_von_topping,
-        tong_gia_von,
-        loi_nhuan
-      FROM v_profit_with_topping_cost
-      WHERE closed_at::date >= $1::date
-        AND closed_at::date <= $2::date
-      ORDER BY closed_at DESC
+  async getProfitReport({ startDate, endDate, orderType = null }) {
+    let sql = `
+      SELECT
+        p.order_id,
+        p.closed_at,
+        p.doanh_thu_goc,
+        p.giam_gia_line,
+        p.giam_gia_khuyen_mai,
+        p.giam_gia_thu_cong,
+        p.tong_giam_gia,
+        p.doanh_thu,
+        p.gia_von_mon,
+        p.gia_von_topping,
+        p.tong_gia_von,
+        p.loi_nhuan,
+        dh.order_type
+      FROM v_profit_with_topping_cost p
+      JOIN don_hang dh ON dh.id = p.order_id
+      WHERE p.closed_at::date >= $1::date
+        AND p.closed_at::date <= $2::date
     `;
-    
+
+    const params = [startDate, endDate];
+
+    if (orderType) {
+      sql += ` AND dh.order_type = $3`;
+      params.push(orderType);
+    }
+
+    sql += ` ORDER BY p.closed_at DESC`;
+
+    const { rows } = await query(sql, params);
+    return rows;
+  },
+
+  /**
+   * Lấy biểu đồ lợi nhuận theo ngày
+   */
+  async getProfitChart({ startDate, endDate }) {
+    const sql = `
+      SELECT
+        DATE(p.closed_at) AS date,
+        SUM(p.doanh_thu) AS total_revenue,
+        SUM(p.tong_gia_von) AS total_cost,
+        SUM(p.loi_nhuan) AS total_profit,
+        CASE
+          WHEN SUM(p.doanh_thu) > 0
+          THEN (SUM(p.loi_nhuan)::NUMERIC / SUM(p.doanh_thu) * 100)
+          ELSE 0
+        END AS margin_percent
+      FROM v_profit_with_topping_cost p
+      WHERE p.closed_at::date >= $1::date
+        AND p.closed_at::date <= $2::date
+      GROUP BY DATE(p.closed_at)
+      ORDER BY date ASC
+    `;
+
+    const { rows } = await query(sql, [startDate, endDate]);
+    return rows;
+  },
+
+  /**
+   * Lấy phân tích lợi nhuận theo món
+   */
+  async getProfitByItem({ startDate, endDate, limit = 20 }) {
+    const sql = `
+      SELECT
+        m.id AS item_id,
+        m.ten AS item_name,
+        lm.ten AS category_name,
+        COUNT(DISTINCT dhct.don_hang_id) AS order_count,
+        SUM(dhct.so_luong) AS quantity_sold,
+        SUM(dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0)) AS total_revenue,
+        SUM(dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0)) AS total_cost_mon,
+        SUM(dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)) AS total_cost_topping,
+        SUM(
+          dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0) +
+          dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)
+        ) AS total_cost,
+        SUM(
+          dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0) -
+          dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0) -
+          dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)
+        ) AS total_profit,
+        CASE
+          WHEN SUM(dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0)) > 0
+          THEN (
+            SUM(
+              dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0) -
+              dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0) -
+              dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)
+            )::NUMERIC /
+            SUM(dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0)) * 100
+          )
+          ELSE 0
+        END AS margin_percent
+      FROM don_hang_chi_tiet dhct
+      JOIN don_hang dh ON dh.id = dhct.don_hang_id
+      JOIN mon m ON m.id = dhct.mon_id
+      LEFT JOIN loai_mon lm ON lm.id = m.loai_id
+      LEFT JOIN v_line_topping_cost vtc ON vtc.line_id = dhct.id
+      WHERE dh.trang_thai = 'PAID'
+        AND dh.closed_at::date >= $1::date
+        AND dh.closed_at::date <= $2::date
+      GROUP BY m.id, m.ten, lm.ten
+      ORDER BY total_profit DESC
+      LIMIT $3
+    `;
+
+    const { rows } = await query(sql, [startDate, endDate, limit]);
+    return rows;
+  },
+
+  /**
+   * Lấy phân tích lợi nhuận theo danh mục
+   */
+  async getProfitByCategory({ startDate, endDate }) {
+    const sql = `
+      SELECT
+        lm.id AS category_id,
+        lm.ten AS category_name,
+        COUNT(DISTINCT dhct.don_hang_id) AS order_count,
+        SUM(dhct.so_luong) AS quantity_sold,
+        SUM(dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0)) AS total_revenue,
+        SUM(dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0)) AS total_cost_mon,
+        SUM(dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)) AS total_cost_topping,
+        SUM(
+          dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0) +
+          dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)
+        ) AS total_cost,
+        SUM(
+          dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0) -
+          dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0) -
+          dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)
+        ) AS total_profit,
+        CASE
+          WHEN SUM(dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0)) > 0
+          THEN (
+            SUM(
+              dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0) -
+              dhct.so_luong * COALESCE(dhct.gia_von_thuc_te, 0) -
+              dhct.so_luong * COALESCE(vtc.tong_gia_von_topping, 0)
+            )::NUMERIC /
+            SUM(dhct.so_luong * dhct.don_gia - COALESCE(dhct.giam_gia, 0)) * 100
+          )
+          ELSE 0
+        END AS margin_percent
+      FROM don_hang_chi_tiet dhct
+      JOIN don_hang dh ON dh.id = dhct.don_hang_id
+      JOIN mon m ON m.id = dhct.mon_id
+      LEFT JOIN loai_mon lm ON lm.id = m.loai_id
+      LEFT JOIN v_line_topping_cost vtc ON vtc.line_id = dhct.id
+      WHERE dh.trang_thai = 'PAID'
+        AND dh.closed_at::date >= $1::date
+        AND dh.closed_at::date <= $2::date
+      GROUP BY lm.id, lm.ten
+      ORDER BY total_profit DESC
+    `;
+
     const { rows } = await query(sql, [startDate, endDate]);
     return rows;
   }

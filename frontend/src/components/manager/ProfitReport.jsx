@@ -1,13 +1,21 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import * as XLSX from 'xlsx';
 
 export default function ProfitReport({ startDate: propStartDate, endDate: propEndDate }) {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [itemAnalysis, setItemAnalysis] = useState(null);
+  const [categoryAnalysis, setCategoryAnalysis] = useState(null);
+  const [comparison, setComparison] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20; // Hiển thị 20 đơn mỗi trang
   const [searchQuery, setSearchQuery] = useState(''); // State cho thanh tìm kiếm
+  const [orderTypeFilter, setOrderTypeFilter] = useState(null); // null, 'DINE_IN', 'TAKEAWAY'
+  const [activeView, setActiveView] = useState('summary'); // 'summary', 'chart', 'items', 'categories'
 
   // Sử dụng props từ parent component
   const startDate = propStartDate;
@@ -34,39 +42,40 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
   useEffect(() => {
     if (startDate && endDate) {
-      fetchReport();
+      fetchAllData();
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, orderTypeFilter]);
 
-  const fetchReport = async () => {
+  const fetchAllData = async () => {
     if (!startDate || !endDate) {
       console.warn('⚠️ startDate or endDate is empty, skipping fetch');
       return;
     }
-    
+
     setLoading(true);
     try {
-      console.log('🔍 Fetching profit report with params:', { startDate, endDate });
-      
-      // Gọi API lấy báo cáo lợi nhuận - gửi params trực tiếp trong URL
-      const url = `/analytics/profit-report?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&includeTopping=true`;
-      console.log('🔗 Full URL:', url);
-      
-      const response = await api.get(url);
-      
-      console.log('📊 Full API response:', response);
-      console.log('📊 response.data:', response.data);
-      
-      // Interceptor đã unwrap { success, data } thành chỉ còn data
-      const reportResult = response.data; // FIX: Không phải response.data.data
-      console.log('✅ Setting reportData to:', reportResult);
-      console.log('📋 Details count:', reportResult?.details?.length);
-      
-      setReportData(reportResult);
-      
-      console.log('✅ reportData set complete');
+      console.log('🔍 Fetching profit data with params:', { startDate, endDate, orderTypeFilter });
+
+      // Fetch all data in parallel
+      const orderTypeParam = orderTypeFilter ? `&orderType=${orderTypeFilter}` : '';
+
+      const [reportRes, chartRes, itemsRes, categoriesRes, comparisonRes] = await Promise.all([
+        api.get(`/analytics/profit-report?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&includeTopping=true${orderTypeParam}`),
+        api.get(`/analytics/profit-chart?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
+        api.get(`/analytics/profit-by-item?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&limit=20`),
+        api.get(`/analytics/profit-by-category?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
+        api.get(`/analytics/profit-comparison?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`)
+      ]);
+
+      console.log('✅ All data loaded');
+      setReportData(reportRes.data);
+      setChartData(chartRes.data);
+      setItemAnalysis(itemsRes.data);
+      setCategoryAnalysis(categoriesRes.data);
+      setComparison(comparisonRes.data);
+
     } catch (error) {
-      console.error('❌ Error fetching profit report:', error);
+      console.error('❌ Error fetching profit data:', error);
       console.error('❌ Error response:', error.response);
       alert('Lỗi tải báo cáo: ' + (error.response?.data?.message || error.message));
     } finally {
@@ -85,18 +94,90 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
     return `${(value || 0).toFixed(1)}%`;
   };
 
+  // Export to Excel
+  const exportToExcel = () => {
+    if (!reportData || !reportData.details) {
+      alert('Không có dữ liệu để xuất');
+      return;
+    }
+
+    const { summary, details } = reportData;
+
+    // Prepare summary data
+    const summaryData = [
+      ['BÁO CÁO LỢI NHUẬN'],
+      [`Từ ngày: ${startDate} đến ${endDate}`],
+      [],
+      ['Tổng quan'],
+      ['Tổng đơn hàng', summary.totalOrders],
+      ['Doanh thu', summary.totalRevenue],
+      ['Giá vốn món', summary.totalCostMon],
+      ['Giá vốn topping', summary.totalCostTopping],
+      ['Tổng giá vốn', summary.totalCost],
+      ['Lợi nhuận', summary.totalProfit],
+      ['Tỷ suất lợi nhuận (%)', summary.margin.toFixed(2)],
+      [],
+      ['Chi tiết đơn hàng'],
+      ['Mã đơn', 'Thời gian', 'Loại đơn', 'Doanh thu', 'Giảm giá', 'Giá vốn món', 'Giá vốn topping', 'Tổng giá vốn', 'Lợi nhuận', 'Tỷ suất (%)']
+    ];
+
+    // Add details
+    details.forEach(order => {
+      summaryData.push([
+        `#${order.orderId}`,
+        new Date(order.closedAt).toLocaleString('vi-VN'),
+        order.orderType === 'DINE_IN' ? 'Tại bàn' : 'Mang đi',
+        order.revenue,
+        order.totalDiscount,
+        order.costMon,
+        order.costTopping,
+        order.totalCost,
+        order.profit,
+        order.margin.toFixed(2)
+      ]);
+    });
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(summaryData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 15 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 12 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Báo cáo lợi nhuận');
+
+    // Export
+    const fileName = `Bao_cao_loi_nhuan_${startDate}_${endDate}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-500">Đang tải báo cáo...</div>
+      <div className="flex flex-col justify-center items-center h-64 space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-gray-600 font-medium">Đang tải báo cáo lợi nhuận...</div>
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-500">Đang tải dữ liệu...</div>
+      <div className="flex flex-col justify-center items-center h-64 space-y-4">
+        <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <div className="text-gray-500">Không có dữ liệu báo cáo</div>
       </div>
     );
   }
@@ -104,10 +185,122 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
   const { summary, details } = reportData;
 
   return (
-    <div className="space-y-6">{/* Bỏ header filter riêng - dùng chung filter ở đầu trang */}
+    <div className="space-y-6">
+      {/* Filter và Tabs */}
+      <div className="bg-white rounded-xl shadow-md p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Order Type Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Loại đơn:</label>
+            <select
+              value={orderTypeFilter || ''}
+              onChange={(e) => setOrderTypeFilter(e.target.value || null)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Tất cả</option>
+              <option value="DINE_IN">Tại bàn</option>
+              <option value="TAKEAWAY">Mang đi</option>
+            </select>
+            {summary && (
+              <span className="text-sm text-gray-600">
+                ({summary.dineInOrders || 0} tại bàn, {summary.takeawayOrders || 0} mang đi)
+              </span>
+            )}
+          </div>
+
+          {/* View Tabs */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setActiveView('summary')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeView === 'summary'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📊 Tổng quan
+            </button>
+            <button
+              onClick={() => setActiveView('chart')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeView === 'chart'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📈 Biểu đồ
+            </button>
+            <button
+              onClick={() => setActiveView('items')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeView === 'items'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🍵 Theo món
+            </button>
+            <button
+              onClick={() => setActiveView('categories')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeView === 'categories'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📂 Theo danh mục
+            </button>
+
+            {/* Export Button */}
+            <button
+              onClick={exportToExcel}
+              className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Xuất Excel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Comparison Cards */}
+      {activeView === 'summary' && comparison && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md p-6 mb-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">📊 So sánh với kỳ trước ({comparison.previous.startDate} - {comparison.previous.endDate})</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-1">Doanh thu</p>
+              <p className={`text-lg font-bold ${comparison.changes.revenue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {comparison.changes.revenue >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.revenue).toFixed(1)}%
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-1">Giá vốn</p>
+              <p className={`text-lg font-bold ${comparison.changes.cost <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {comparison.changes.cost >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.cost).toFixed(1)}%
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-1">Lợi nhuận</p>
+              <p className={`text-lg font-bold ${comparison.changes.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {comparison.changes.profit >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.profit).toFixed(1)}%
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4">
+              <p className="text-sm text-gray-600 mb-1">Tỷ suất</p>
+              <p className={`text-lg font-bold ${comparison.changes.margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {comparison.changes.margin >= 0 ? '↑' : '↓'} {Math.abs(comparison.changes.margin).toFixed(1)}%
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {activeView === 'summary' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Doanh thu */}
         <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200">
           <div className="flex justify-between items-start">
@@ -173,7 +366,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
           </div>
         </div>
 
-        {/* Margin */}
+        {/* Tỷ suất lợi nhuận */}
         <div className="bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200">
           <div className="flex justify-between items-start">
             <div>
@@ -181,7 +374,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
-                <span>Margin</span>
+                <span>Tỷ suất lợi nhuận</span>
               </p>
               <p className="text-3xl font-bold mt-2">{formatPercent(summary?.margin)}</p>
               <p className="text-white text-opacity-80 text-xs mt-2">
@@ -196,8 +389,155 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
           </div>
         </div>
       </div>
+      )}
+
+      {/* Chart View */}
+      {activeView === 'chart' && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">📈 Biểu đồ lợi nhuận theo thời gian</h3>
+          {chartData && chartData.labels && chartData.labels.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData.labels.map((label, idx) => ({
+                date: label,
+                revenue: chartData.datasets[0].data[idx],
+                cost: chartData.datasets[1].data[idx],
+                profit: chartData.datasets[2].data[idx]
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Line type="monotone" dataKey="revenue" stroke="#fbbf24" name="Doanh thu" strokeWidth={2} />
+                <Line type="monotone" dataKey="cost" stroke="#ef4444" name="Giá vốn" strokeWidth={2} />
+                <Line type="monotone" dataKey="profit" stroke="#22c55e" name="Lợi nhuận" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+              <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <p>Không có dữ liệu biểu đồ</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Items Analysis */}
+      {activeView === 'items' && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">🍵 Phân tích lợi nhuận theo món (Top 20)</h3>
+          {itemAnalysis && itemAnalysis.length > 0 ? (
+            <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Món</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Danh mục</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">SL bán</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Doanh thu</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Giá vốn</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Lợi nhuận</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tỷ suất</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {itemAnalysis.map((item, idx) => (
+                  <tr key={item.itemId} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.itemName}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{item.categoryName || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-900">{item.quantitySold}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-900">{formatCurrency(item.totalRevenue)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-600">{formatCurrency(item.totalCost)}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-green-600">{formatCurrency(item.totalProfit)}</td>
+                    <td className="px-4 py-3 text-sm text-right">
+                      <span className={`font-semibold ${item.marginPercent >= 50 ? 'text-green-600' : item.marginPercent >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {formatPercent(item.marginPercent)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+              <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p>Không có dữ liệu phân tích theo món</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Categories Analysis */}
+      {activeView === 'categories' && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">📂 Phân tích lợi nhuận theo danh mục</h3>
+          {categoryAnalysis && categoryAnalysis.length > 0 ? (
+            <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {categoryAnalysis.map((cat) => (
+              <div key={cat.categoryId} className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-bold text-lg text-gray-800 mb-3">{cat.categoryName}</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Số lượng bán:</span>
+                    <span className="font-semibold">{cat.quantitySold}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Doanh thu:</span>
+                    <span className="font-semibold text-blue-600">{formatCurrency(cat.totalRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Giá vốn:</span>
+                    <span className="font-semibold text-orange-600">{formatCurrency(cat.totalCost)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-gray-600">Lợi nhuận:</span>
+                    <span className="font-bold text-green-600">{formatCurrency(cat.totalProfit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tỷ suất:</span>
+                    <span className={`font-bold ${cat.marginPercent >= 50 ? 'text-green-600' : cat.marginPercent >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {formatPercent(cat.marginPercent)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bar Chart for Categories */}
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={categoryAnalysis}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="categoryName" />
+              <YAxis />
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Legend />
+              <Bar dataKey="totalRevenue" fill="#3b82f6" name="Doanh thu" />
+              <Bar dataKey="totalCost" fill="#f97316" name="Giá vốn" />
+              <Bar dataKey="totalProfit" fill="#22c55e" name="Lợi nhuận" />
+            </BarChart>
+          </ResponsiveContainer>
+          </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+              <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+              <p>Không có dữ liệu phân tích theo danh mục</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Details Toggle */}
+      {activeView === 'summary' && (
+        <>
       <div className="bg-white rounded-lg shadow p-4">
         <button
           onClick={() => setShowDetails(!showDetails)}
@@ -359,11 +699,11 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                     </div>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
-                      <span>Margin</span>
+                    <span>Tỷ suất lợi nhuận</span>
                     </div>
                   </th>
                 </tr>
@@ -415,6 +755,8 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
             </table>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

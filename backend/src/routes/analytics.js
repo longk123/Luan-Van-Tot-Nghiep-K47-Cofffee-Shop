@@ -51,4 +51,32 @@ router.get('/shift-stats', analyticsController.getShiftStats);
  */
 router.get('/profit-report', analyticsController.getProfitReport);
 
+/**
+ * @route GET /api/v1/analytics/profit-chart
+ * @desc Lấy biểu đồ lợi nhuận theo ngày
+ * @access Manager, Admin
+ */
+router.get('/profit-chart', analyticsController.getProfitChart);
+
+/**
+ * @route GET /api/v1/analytics/profit-by-item
+ * @desc Lấy phân tích lợi nhuận theo món
+ * @access Manager, Admin
+ */
+router.get('/profit-by-item', analyticsController.getProfitByItem);
+
+/**
+ * @route GET /api/v1/analytics/profit-by-category
+ * @desc Lấy phân tích lợi nhuận theo danh mục
+ * @access Manager, Admin
+ */
+router.get('/profit-by-category', analyticsController.getProfitByCategory);
+
+/**
+ * @route GET /api/v1/analytics/profit-comparison
+ * @desc So sánh lợi nhuận với kỳ trước
+ * @access Manager, Admin
+ */
+router.get('/profit-comparison', analyticsController.getProfitComparison);
+
 export default router;
