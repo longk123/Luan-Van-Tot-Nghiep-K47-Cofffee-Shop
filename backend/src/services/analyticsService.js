@@ -182,7 +182,10 @@ class AnalyticsService {
           cash_amount: Number(shift.cash_amount || 0),
           card_amount: Number(shift.card_amount || 0),
           online_amount: Number(shift.online_amount || 0),
-          cash_diff: Number(shift.cash_diff || 0)
+          cash_diff: Number(shift.cash_diff || 0),
+          // Kitchen stats
+          total_items_made: Number(shift.total_items_made || 0),
+          avg_prep_time_seconds: Number(shift.avg_prep_time_seconds || 0)
         }
       }));
     } catch (error) {

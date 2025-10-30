@@ -363,7 +363,25 @@ export default {
         ca.opening_cash,
         ca.actual_cash,
         ca.expected_cash,
-        ca.note
+        ca.note,
+        -- Kitchen stats
+        (
+          SELECT COUNT(*)
+          FROM don_hang_chi_tiet dhct
+          WHERE dhct.maker_id = ca.nhan_vien_id
+            AND dhct.trang_thai_che_bien = 'DONE'
+            AND dhct.started_at >= ca.started_at
+            AND dhct.started_at < COALESCE(ca.closed_at, NOW())
+        ) AS total_items_made,
+        (
+          SELECT AVG(EXTRACT(EPOCH FROM (dhct.finished_at - dhct.started_at)))
+          FROM don_hang_chi_tiet dhct
+          WHERE dhct.maker_id = ca.nhan_vien_id
+            AND dhct.trang_thai_che_bien = 'DONE'
+            AND dhct.started_at >= ca.started_at
+            AND dhct.started_at < COALESCE(ca.closed_at, NOW())
+            AND dhct.finished_at IS NOT NULL
+        ) AS avg_prep_time_seconds
       FROM ca_lam ca
       LEFT JOIN users u ON u.user_id = ca.opened_by
       WHERE ca.started_at >= CURRENT_DATE - INTERVAL '${days} days'
