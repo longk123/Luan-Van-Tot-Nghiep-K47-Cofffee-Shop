@@ -437,7 +437,7 @@ export default function ShiftDetailModal({ shift, onClose }) {
             Đóng
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={() => window.open(`/shift-report-print?shiftId=${shift.id}`, '_blank')}
             className="px-4 py-2 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white rounded-lg hover:shadow-lg transition-all"
           >
             <span className="flex items-center gap-2">

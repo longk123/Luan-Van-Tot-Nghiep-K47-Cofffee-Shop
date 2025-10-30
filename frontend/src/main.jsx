@@ -14,6 +14,7 @@ import ManagerDashboard from './pages/ManagerDashboard.jsx'
 import InventoryManagement from './pages/InventoryManagement.jsx'
 import MenuManagement from './pages/MenuManagement.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
+import ShiftReportPrint from './components/manager/ShiftReportPrint.jsx'
 
 const router = createBrowserRouter([
   { path: '/', element: <Login /> },
@@ -76,6 +77,14 @@ const router = createBrowserRouter([
   },
   { path: '/payment-success', element: <PaymentSuccess /> },
   { path: '/payment-cancel', element: <PaymentCancel /> },
+  {
+    path: '/shift-report-print',
+    element: (
+      <RoleGuard allowedRoles={['manager', 'admin']}>
+        <ShiftReportPrint />
+      </RoleGuard>
+    )
+  },
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
