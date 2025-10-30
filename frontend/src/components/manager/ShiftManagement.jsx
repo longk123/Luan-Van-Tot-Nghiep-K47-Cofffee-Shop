@@ -18,18 +18,9 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
   const loadShifts = async () => {
     setLoading(true);
     try {
-      // Tính số ngày dựa vào timeRange
-      let days = 7;
-      if (timeRange === 'day') days = 1;
-      else if (timeRange === 'week') days = 7;
-      else if (timeRange === 'month') days = 30;
-      else if (timeRange === 'quarter') days = 90;
-      else if (timeRange === 'year') days = 365;
-      else if (timeRange === 'custom' && customStartDate && customEndDate) {
-        const start = new Date(customStartDate);
-        const end = new Date(customEndDate);
-        days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-      }
+      // Luôn lấy ca trong 30 ngày gần đây (không phụ thuộc timeRange)
+      // Vì ca làm việc thường không nhiều, và user muốn xem tất cả ca
+      const days = 30;
 
       const res = await api.getShiftStats(days);
       setShifts(res?.data || res || []);
@@ -174,8 +165,17 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                 </tr>
               ) : filteredShifts.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="px-6 py-12 text-center text-gray-500">
-                    Không có ca làm việc nào
+                  <td colSpan="10" className="px-6 py-12 text-center">
+                    <div className="text-gray-500">
+                      <div className="text-lg font-medium mb-2">Không có ca làm việc nào</div>
+                      <div className="text-sm">
+                        {shifts.length === 0 ? (
+                          <>Chưa có ca làm việc nào trong 30 ngày gần đây. Hãy mở ca mới từ Dashboard.</>
+                        ) : (
+                          <>Không có ca nào phù hợp với bộ lọc hiện tại. Thử thay đổi bộ lọc.</>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
