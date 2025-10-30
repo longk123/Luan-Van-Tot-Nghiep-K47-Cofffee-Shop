@@ -6,8 +6,11 @@ import AuthedLayout from '../layouts/AuthedLayout.jsx';
 
 export default function InventoryManagement() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('stock'); // stock | export | import | warnings
+  const [activeTab, setActiveTab] = useState('stock'); // stock | export | import | warnings | batch
   const [loading, setLoading] = useState(false);
+
+  // Batch Management states
+  const [batchSubTab, setBatchSubTab] = useState('expiry'); // expiry | report
   
   // Stock data
   const [ingredients, setIngredients] = useState([]);
@@ -42,17 +45,38 @@ export default function InventoryManagement() {
     supplierBatchCode: ''
   });
 
-  // Batch tracking
+  // Batch tracking (for individual ingredient batches in stock tab)
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [selectedIngredientForBatch, setSelectedIngredientForBatch] = useState(null);
   const [batches, setBatches] = useState([]);
+
+  // Batch Management Tab - Expiry Dashboard states
   const [expiringBatches, setExpiringBatches] = useState([]);
   const [batchSummary, setBatchSummary] = useState(null);
+  const [batchDaysFilter, setBatchDaysFilter] = useState(30);
+  const [batchSearchTerm, setBatchSearchTerm] = useState('');
+  const [batchSortBy, setBatchSortBy] = useState('daysRemaining');
+
+  // Batch Management Tab - Report states
+  const [batchReportData, setBatchReportData] = useState([]);
+  const [batchReportSummary, setBatchReportSummary] = useState(null);
+  const [batchReportFilters, setBatchReportFilters] = useState({
+    ingredientId: '',
+    status: '',
+    daysThreshold: ''
+  });
 
   // Load data when tab changes
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  // Reload batch data when sub-tab or filters change
+  useEffect(() => {
+    if (activeTab === 'batch') {
+      loadBatchData();
+    }
+  }, [batchSubTab, batchDaysFilter, batchReportFilters]);
 
   // Load ingredients for import form
   useEffect(() => {
@@ -79,6 +103,8 @@ export default function InventoryManagement() {
         await loadImportHistory();
       } else if (activeTab === 'warnings') {
         await loadWarnings();
+      } else if (activeTab === 'batch') {
+        await loadBatchData();
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -149,6 +175,33 @@ export default function InventoryManagement() {
     const res = await api.get('/inventory/warnings');
     setWarnings(res?.warnings || []);
     setWarningsSummary(res?.summary || { total: 0, critical: 0, warning: 0, ok: 0 });
+  };
+
+  const loadBatchData = async () => {
+    try {
+      if (batchSubTab === 'expiry') {
+        // Load expiry dashboard data
+        const [batchesRes, summaryRes] = await Promise.all([
+          api.getExpiringBatches(batchDaysFilter),
+          api.getBatchSummary()
+        ]);
+        setExpiringBatches(batchesRes.data || []);
+        setBatchSummary(summaryRes.data || null);
+      } else if (batchSubTab === 'report') {
+        // Load report data
+        const params = {};
+        if (batchReportFilters.ingredientId) params.ingredientId = batchReportFilters.ingredientId;
+        if (batchReportFilters.status) params.status = batchReportFilters.status;
+        if (batchReportFilters.daysThreshold) params.daysThreshold = batchReportFilters.daysThreshold;
+
+        const reportRes = await api.getBatchInventoryReport(params);
+        setBatchReportData(reportRes.data?.batches || []);
+        setBatchReportSummary(reportRes.data?.summary || null);
+      }
+    } catch (error) {
+      console.error('Error loading batch data:', error);
+      alert(`❌ Lỗi: ${error.message}`);
+    }
   };
 
   const handleImportSubmit = async (e) => {
@@ -311,6 +364,11 @@ export default function InventoryManagement() {
             { id: 'warnings', name: 'Cảnh báo', icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            )},
+            { id: 'batch', name: 'Quản lý lô hàng', icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             )},
             { id: 'export', name: 'Lịch sử xuất', icon: (
@@ -739,6 +797,160 @@ export default function InventoryManagement() {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Batch Management Tab */}
+              {activeTab === 'batch' && (
+                <div>
+                  {/* Sub-tabs for Batch Management */}
+                  <div className="flex gap-2 mb-6 border-b border-gray-200">
+                    <button
+                      onClick={() => setBatchSubTab('expiry')}
+                      className={`px-6 py-3 font-medium text-sm transition-all duration-200 border-b-2 ${
+                        batchSubTab === 'expiry'
+                          ? 'border-[#c9975b] text-[#c9975b]'
+                          : 'border-transparent text-gray-600 hover:text-[#c9975b]'
+                      }`}
+                    >
+                      ⚠️ Cảnh báo hết hạn
+                    </button>
+                    <button
+                      onClick={() => setBatchSubTab('report')}
+                      className={`px-6 py-3 font-medium text-sm transition-all duration-200 border-b-2 ${
+                        batchSubTab === 'report'
+                          ? 'border-[#c9975b] text-[#c9975b]'
+                          : 'border-transparent text-gray-600 hover:text-[#c9975b]'
+                      }`}
+                    >
+                      📊 Báo cáo chi tiết
+                    </button>
+                  </div>
+
+                  {/* Batch Expiry Dashboard */}
+                  {batchSubTab === 'expiry' && (
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-800 mb-4">Cảnh báo Hàng Hết Hạn</h2>
+
+                      {/* Summary Cards */}
+                      {batchSummary && (
+                        <div className="grid grid-cols-4 gap-4 mb-6">
+                          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="text-xs text-blue-600 font-medium">Tổng batch</p>
+                                <p className="text-2xl font-bold text-blue-700">{batchSummary.totalBatches || 0}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="text-xs text-orange-600 font-medium">Hết hạn trong 7 ngày</p>
+                                <p className="text-2xl font-bold text-orange-700">{batchSummary.expiring7Days || 0}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="text-xs text-yellow-600 font-medium">Hết hạn trong 30 ngày</p>
+                                <p className="text-2xl font-bold text-yellow-700">{batchSummary.expiring30Days || 0}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="text-xs text-red-600 font-medium">Đã hết hạn</p>
+                                <p className="text-2xl font-bold text-red-700">{batchSummary.expired || 0}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Filters */}
+                      <div className="flex gap-4 mb-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Lọc theo thời gian</label>
+                          <select
+                            value={batchDaysFilter}
+                            onChange={(e) => setBatchDaysFilter(parseInt(e.target.value))}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b]"
+                          >
+                            <option value={7}>7 ngày tới</option>
+                            <option value={14}>14 ngày tới</option>
+                            <option value={30}>30 ngày tới</option>
+                            <option value={60}>60 ngày tới</option>
+                            <option value={90}>90 ngày tới</option>
+                          </select>
+                        </div>
+
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
+                          <input
+                            type="text"
+                            placeholder="Tìm nguyên liệu, mã lô..."
+                            value={batchSearchTerm}
+                            onChange={(e) => setBatchSearchTerm(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Sắp xếp theo</label>
+                          <select
+                            value={batchSortBy}
+                            onChange={(e) => setBatchSortBy(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b]"
+                          >
+                            <option value="daysRemaining">Ngày còn lại</option>
+                            <option value="quantity">Số lượng</option>
+                            <option value="value">Giá trị</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Batch List - Will be implemented */}
+                      <div className="text-center py-8 text-gray-500">
+                        Đang phát triển tính năng hiển thị danh sách batch...
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Batch Report */}
+                  {batchSubTab === 'report' && (
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-800 mb-4">Báo cáo Batch Inventory</h2>
+                      <div className="text-center py-8 text-gray-500">
+                        Đang phát triển tính năng báo cáo chi tiết...
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>

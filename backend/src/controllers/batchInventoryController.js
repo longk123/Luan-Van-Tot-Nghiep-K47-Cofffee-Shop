@@ -291,7 +291,7 @@ export async function getBatchInventoryReport(req, res, next) {
         bi.ngay_het_han,
         CASE
           WHEN bi.ngay_het_han IS NULL THEN NULL
-          ELSE EXTRACT(DAY FROM (bi.ngay_het_han - CURRENT_DATE))::INT
+          ELSE (DATE(bi.ngay_het_han) - CURRENT_DATE)::INT
         END as ngay_con_lai,
         bi.trang_thai,
         bi.nha_cung_cap,

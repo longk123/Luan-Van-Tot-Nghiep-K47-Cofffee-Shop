@@ -13,8 +13,6 @@ import PaymentCancel from './pages/PaymentCancel.jsx'
 import ManagerDashboard from './pages/ManagerDashboard.jsx'
 import InventoryManagement from './pages/InventoryManagement.jsx'
 import MenuManagement from './pages/MenuManagement.jsx'
-import BatchExpiryDashboard from './pages/BatchExpiryDashboard.jsx'
-import BatchInventoryReport from './pages/BatchInventoryReport.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
 
 const router = createBrowserRouter([
@@ -49,22 +47,6 @@ const router = createBrowserRouter([
     element: (
       <RoleGuard allowedRoles={['manager', 'admin']}>
         <MenuManagement />
-      </RoleGuard>
-    )
-  },
-  {
-    path: '/batch-expiry',
-    element: (
-      <RoleGuard allowedRoles={['manager', 'admin']}>
-        <BatchExpiryDashboard />
-      </RoleGuard>
-    )
-  },
-  {
-    path: '/batch-report',
-    element: (
-      <RoleGuard allowedRoles={['manager', 'admin']}>
-        <BatchInventoryReport />
       </RoleGuard>
     )
   },

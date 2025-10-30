@@ -209,8 +209,13 @@ export default function ManagerDashboard() {
         const dineInOrders = invoicesInRange.filter(inv => inv.order_type === 'DINE_IN' && inv.status === 'PAID').length;
         const takeawayOrders = invoicesInRange.filter(inv => inv.order_type === 'TAKEAWAY' && inv.status === 'PAID').length;
         
-        // Tính số bàn được sử dụng (unique table name) - bàn nào có đơn thì tính
-        const dineInInvoices = invoicesInRange.filter(inv => inv.table?.name && inv.order_type === 'DINE_IN');
+        // Tính số bàn được sử dụng trong khoảng thời gian - filter riêng theo opened_at
+        const invoicesOpenedInRange = allInvoices.filter(invoice => {
+          if (!invoice.opened_at) return false;
+          const invoiceDate = new Date(invoice.opened_at);
+          return invoiceDate >= startDate && invoiceDate <= endDate;
+        });
+        const dineInInvoices = invoicesOpenedInRange.filter(inv => inv.table?.name && inv.order_type === 'DINE_IN');
         const usedTables = new Set(dineInInvoices.map(inv => inv.table.name)).size;
         
         console.log('🔍 Used tables calculation:', {
@@ -228,10 +233,9 @@ export default function ManagerDashboard() {
         prevEndDate.setDate(prevEndDate.getDate() - daysDiff);
         
         const invoicesInPrevRange = allInvoices.filter(invoice => {
-          // Sử dụng closed_at thay vì opened_at để khớp với backend
-          // Chỉ tính đơn đã thanh toán (có closed_at)
-          if (!invoice.closed_at) return false;
-          const invoiceDate = new Date(invoice.closed_at);
+          // Sử dụng opened_at để lọc theo khoảng thời gian trước
+          if (!invoice.opened_at) return false;
+          const invoiceDate = new Date(invoice.opened_at);
           return invoiceDate >= prevStartDate && invoiceDate <= prevEndDate;
         });
         
@@ -239,7 +243,7 @@ export default function ManagerDashboard() {
         const prevRevenue = invoicesInPrevRange
           .filter(inv => inv.status === 'PAID')
           .reduce((sum, inv) => sum + (parseFloat(inv.total_amount) || 0), 0);
-        const prevDineInInvoices = invoicesInPrevRange.filter(inv => inv.table?.name && inv.order_type === 'DINE_IN');
+        const prevDineInInvoices = invoicesInPrevRange.filter(inv => inv.table?.name && inv.order_type === 'DINE_IN' && inv.opened_at);
         const prevUsedTables = new Set(prevDineInInvoices.map(inv => inv.table.name)).size;
         
         // Tính % thay đổi
@@ -1589,16 +1593,19 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
-          {/* Button */}
+          {/* Button - Navigate to Inventory with Batch tab */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
             <button
-              onClick={() => navigate('/batch-expiry')}
+              onClick={() => {
+                navigate('/inventory');
+                // Note: Will need to add URL param or state to auto-select batch tab
+              }}
               className="relative w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 text-white rounded-full shadow-2xl hover:from-orange-500 hover:to-red-500 hover:shadow-orange-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
-              title="Cảnh báo Hết hạn"
+              title="Quản lý lô hàng"
             >
               <svg className="w-7 h-7 transition-transform group-hover:rotate-12 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </button>
           </div>

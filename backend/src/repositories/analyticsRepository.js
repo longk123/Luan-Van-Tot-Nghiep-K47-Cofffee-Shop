@@ -36,11 +36,13 @@ export default {
           AND o.opened_at < timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp + INTERVAL '1 day')
       ),
       active_tables_now AS (
-        -- Bàn đang dùng: tính theo thời gian thực
+        -- Bàn được sử dụng trong ngày được chọn (dựa trên opened_at)
         SELECT COUNT(DISTINCT o.ban_id) AS active_tables
         FROM don_hang o
-        WHERE o.trang_thai IN ('OPEN', 'PAID')
-          AND o.ban_id IS NOT NULL
+        WHERE o.ban_id IS NOT NULL
+          AND o.order_type = 'DINE_IN'
+          AND o.opened_at >= timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp)
+          AND o.opened_at < timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp + INTERVAL '1 day')
       ),
       yesterday_stats AS (
         SELECT
