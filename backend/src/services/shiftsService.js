@@ -307,7 +307,7 @@ export async function getTransferredOrders(shiftId) {
 
 /**
  * Get all orders for a specific shift
- * Lấy danh sách đơn hàng của ca
+ * Lấy danh sách đơn hàng của ca (hoặc món đã làm nếu là ca KITCHEN)
  */
 export async function getShiftOrders(shiftId) {
   const shift = await getById(shiftId);
@@ -317,6 +317,50 @@ export async function getShiftOrders(shiftId) {
     throw err;
   }
 
+  const { pool } = await import('../db.js');
+
+  // Nếu là ca KITCHEN: trả về danh sách món đã làm
+  if (shift.shift_type === 'KITCHEN') {
+    const { rows } = await pool.query(
+      `SELECT
+         dhct.id,
+         dhct.don_hang_id,
+         dhct.mon_id,
+         dhct.bien_the_id,
+         dhct.so_luong,
+         dhct.ghi_chu,
+         dhct.trang_thai_che_bien,
+         dhct.started_at,
+         dhct.finished_at,
+         EXTRACT(EPOCH FROM (dhct.finished_at - dhct.started_at))::INT AS prep_time_seconds,
+         m.ten AS mon_ten,
+         m.ma AS mon_ma,
+         btm.ten_bien_the AS bien_the_ten,
+         dh.id AS order_id,
+         dh.order_type,
+         dh.ban_id,
+         dh.trang_thai AS order_status,
+         dh.opened_at AS order_opened_at,
+         dh.closed_at AS order_closed_at,
+         b.ten_ban,
+         kv.ten AS khu_vuc_ten
+       FROM don_hang_chi_tiet dhct
+       JOIN don_hang dh ON dh.id = dhct.don_hang_id
+       LEFT JOIN ban b ON b.id = dh.ban_id
+       LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
+       LEFT JOIN mon m ON m.id = dhct.mon_id
+       LEFT JOIN mon_bien_the btm ON btm.id = dhct.bien_the_id
+       WHERE dhct.maker_id = $1
+         AND dhct.trang_thai_che_bien = 'DONE'
+         AND dhct.started_at >= $2
+         AND dhct.started_at < COALESCE($3, NOW())
+       ORDER BY dhct.finished_at DESC`,
+      [shift.nhan_vien_id, shift.started_at, shift.closed_at]
+    );
+    return rows;
+  }
+
+  // Nếu là ca CASHIER: trả về danh sách đơn hàng
   const { default: posRepository } = await import('../repositories/posRepository.js');
   const orders = await posRepository.getCurrentShiftOrders(shiftId);
   return orders;

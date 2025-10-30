@@ -114,7 +114,7 @@ export default function ShiftDetailModal({ shift, onClose }) {
             {[
               { id: 'summary', name: 'Tổng quan', icon: '📊' },
               ...(report.shift_type === 'CASHIER' ? [{ id: 'payments', name: 'Thanh toán', icon: '💰' }] : []),
-              { id: 'orders', name: 'Đơn hàng', icon: '📋' }
+              { id: 'orders', name: report.shift_type === 'KITCHEN' ? 'Món đã làm' : 'Đơn hàng', icon: report.shift_type === 'KITCHEN' ? '🍵' : '📋' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -283,9 +283,11 @@ export default function ShiftDetailModal({ shift, onClose }) {
           {activeTab === 'orders' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Danh sách đơn hàng</h3>
+                <h3 className="font-semibold text-gray-900">
+                  {report.shift_type === 'KITCHEN' ? 'Danh sách món đã làm' : 'Danh sách đơn hàng'}
+                </h3>
                 <div className="text-sm text-gray-600">
-                  Tổng: <span className="font-semibold text-blue-600">{orders.length}</span> đơn
+                  Tổng: <span className="font-semibold text-blue-600">{orders.length}</span> {report.shift_type === 'KITCHEN' ? 'món' : 'đơn'}
                 </div>
               </div>
 
@@ -296,10 +298,69 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 </div>
               ) : orders.length === 0 ? (
                 <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
-                  <span className="text-4xl mb-2 block">📋</span>
-                  <p>Chưa có đơn hàng nào trong ca này</p>
+                  <span className="text-4xl mb-2 block">{report.shift_type === 'KITCHEN' ? '🍵' : '📋'}</span>
+                  <p>{report.shift_type === 'KITCHEN' ? 'Chưa làm món nào trong ca này' : 'Chưa có đơn hàng nào trong ca này'}</p>
+                </div>
+              ) : report.shift_type === 'KITCHEN' ? (
+                // Kitchen: Hiển thị danh sách món đã làm
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Món</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Biến thể</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SL</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đơn hàng</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bàn</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ghi chú</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TG làm</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hoàn thành</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {orders.map((item) => (
+                        <tr key={item.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.mon_ten}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{item.bien_the_ten || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900 font-semibold">{item.so_luong}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className="text-blue-600 font-medium">#{item.don_hang_id}</span>
+                            {item.order_type === 'DINE_IN' ? (
+                              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Tại bàn</span>
+                            ) : (
+                              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Mang đi</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {item.ten_ban || '-'}
+                            {item.khu_vuc_ten && <span className="text-xs text-gray-400 ml-1">({item.khu_vuc_ten})</span>}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{item.ghi_chu || '-'}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {item.prep_time_seconds ? (
+                              <span className="px-2 py-1 bg-cyan-100 text-cyan-800 rounded text-xs font-medium">
+                                {Math.floor(item.prep_time_seconds / 60)}m {item.prep_time_seconds % 60}s
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {item.finished_at
+                              ? new Date(item.finished_at).toLocaleString('vi-VN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  day: '2-digit',
+                                  month: '2-digit'
+                                })
+                              : '-'
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
+                // Cashier: Hiển thị danh sách đơn hàng
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
