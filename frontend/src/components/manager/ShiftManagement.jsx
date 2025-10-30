@@ -43,13 +43,15 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
     return true;
   });
 
-  // Tính tổng thống kê
-  const totalStats = filteredShifts.reduce((acc, shift) => ({
-    total_orders: acc.total_orders + (shift.stats?.total_orders || 0),
-    gross_amount: acc.gross_amount + (shift.stats?.gross_amount || 0),
-    net_amount: acc.net_amount + (shift.stats?.net_amount || 0),
-    cash_diff: acc.cash_diff + (shift.stats?.cash_diff || 0),
-  }), { total_orders: 0, gross_amount: 0, net_amount: 0, cash_diff: 0 });
+  // Tính tổng thống kê - CHỈ TÍNH CA CASHIER
+  const totalStats = filteredShifts
+    .filter(shift => shift.type === 'CASHIER')
+    .reduce((acc, shift) => ({
+      total_orders: acc.total_orders + (shift.stats?.total_orders || 0),
+      gross_amount: acc.gross_amount + (shift.stats?.gross_amount || 0),
+      net_amount: acc.net_amount + (shift.stats?.net_amount || 0),
+      cash_diff: acc.cash_diff + (shift.stats?.cash_diff || 0),
+    }), { total_orders: 0, gross_amount: 0, net_amount: 0, cash_diff: 0 });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -200,15 +202,16 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                       {formatDateTime(shift.closed_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                      {shift.stats?.total_orders || 0}
+                      {shift.type === 'KITCHEN' ? '-' : (shift.stats?.total_orders || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-green-600">
-                      {formatCurrency(shift.stats?.net_amount || 0)}
+                      {shift.type === 'KITCHEN' ? '-' : formatCurrency(shift.stats?.net_amount || 0)}
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
+                      shift.type === 'KITCHEN' ? 'text-gray-400' :
                       (shift.stats?.cash_diff || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {formatCurrency(shift.stats?.cash_diff || 0)}
+                      {shift.type === 'KITCHEN' ? '-' : formatCurrency(shift.stats?.cash_diff || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                       <button
