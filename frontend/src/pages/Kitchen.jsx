@@ -470,6 +470,31 @@ export default function Kitchen() {
                 </button>
               )}
 
+              {/* Nút Mở ca / Đóng ca - chỉ hiển thị khi KHÔNG phải Manager view */}
+              {!isManagerViewMode && (
+                shift && shift.status === 'OPEN' ? (
+                  <button
+                    onClick={() => setShowCloseShift(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-2 border-purple-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-700 hover:border-purple-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Đóng ca</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowOpenShift(true)}
+                    className="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-2 border-green-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-green-700 hover:border-green-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Bắt đầu ca</span>
+                  </button>
+                )
+              )}
+
               {/* Dropdown khu vực */}
               <div className="relative min-w-[200px] max-w-[300px]">
                 <select
