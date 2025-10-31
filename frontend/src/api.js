@@ -102,6 +102,26 @@ export const api = {
   lockTable: (tableId, ghi_chu = null) => request('PATCH', `/pos/tables/${tableId}/status`, { trang_thai: 'KHOA', ghi_chu }),
   unlockTable: (tableId) => request('PATCH', `/pos/tables/${tableId}/status`, { trang_thai: 'TRONG', ghi_chu: null }),
   closeTableAfterPaid: (tableId, toStatus = 'TRONG') => request('PATCH', `/pos/tables/${tableId}/close`, { to_status: toStatus }),
+
+  // === AREAS & TABLES MANAGEMENT ===
+  // Areas
+  getAreas: (includeCounts = false) => request('GET', `/areas?include_counts=${includeCounts ? '1' : '0'}`),
+  createArea: (data) => request('POST', '/areas', data),
+  updateArea: (id, data) => request('PUT', `/areas/${id}`, data),
+  deleteArea: (id) => request('DELETE', `/areas/${id}`),
+  getAreaTables: (areaId) => request('GET', `/areas/${areaId}/tables`),
+
+  // Tables
+  getTables: (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.khu_vuc) params.append('khu_vuc', filters.khu_vuc);
+    if (filters.trang_thai) params.append('trang_thai', filters.trang_thai);
+    if (filters.q) params.append('q', filters.q);
+    return request('GET', `/tables?${params.toString()}`);
+  },
+  createTable: (data) => request('POST', '/tables', data),
+  updateTable: (id, data) => request('PUT', `/tables/${id}`, data),
+  deleteTable: (id) => request('DELETE', `/tables/${id}`),
   // Shifts
   // ===== SHIFTS / CA LÀM =====
   getMyOpenShift: () => request('GET', '/shifts/current'),

@@ -13,7 +13,16 @@ export async function createTable(data) {
 export async function listTables({ khu_vuc, trang_thai, q }) {
   const where = [];
   const params = [];
-  if (khu_vuc) { params.push(khu_vuc); where.push(`khu_vuc = $${params.length}`); }
+  // Support both khu_vuc (TEXT - old) and khu_vuc_id (INT - new)
+  if (khu_vuc) {
+    params.push(khu_vuc);
+    // Try khu_vuc_id first (if it's a number), fallback to khu_vuc (TEXT)
+    if (!isNaN(khu_vuc)) {
+      where.push(`khu_vuc_id = $${params.length}`);
+    } else {
+      where.push(`khu_vuc = $${params.length}`);
+    }
+  }
   if (trang_thai) { params.push(trang_thai); where.push(`trang_thai = $${params.length}`); }
   if (q) { params.push(`%${q}%`); where.push(`ten_ban ILIKE $${params.length}`); }
   const sql = `SELECT * FROM ban ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY id ASC`;

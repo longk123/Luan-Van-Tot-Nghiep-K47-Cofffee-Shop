@@ -13,6 +13,7 @@ import PaymentCancel from './pages/PaymentCancel.jsx'
 import ManagerDashboard from './pages/ManagerDashboard.jsx'
 import InventoryManagement from './pages/InventoryManagement.jsx'
 import MenuManagement from './pages/MenuManagement.jsx'
+import AreaTableManagement from './pages/AreaTableManagement.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
 import ShiftReportPrint from './components/manager/ShiftReportPrint.jsx'
 
@@ -48,6 +49,14 @@ const router = createBrowserRouter([
     element: (
       <RoleGuard allowedRoles={['manager', 'admin']}>
         <MenuManagement />
+      </RoleGuard>
+    )
+  },
+  {
+    path: '/areas',
+    element: (
+      <RoleGuard allowedRoles={['manager', 'admin']}>
+        <AreaTableManagement />
       </RoleGuard>
     )
   },
