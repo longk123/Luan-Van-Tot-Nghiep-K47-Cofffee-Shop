@@ -73,6 +73,12 @@ export async function getAreaById(id) {
 }
 
 export async function deleteAreaSoft(id) {
+  // Kiểm tra khu vực có tồn tại và đang active không
+  const area = await getAreaById(id);
+  if (!area || !area.active) {
+    throw new Error('Không tìm thấy khu vực');
+  }
+
   // Kiểm tra có bàn đang dùng không
   const { rows: tablesInUse } = await query(
     `SELECT id, ten_ban FROM ban WHERE khu_vuc_id = $1 AND trang_thai = 'DANG_DUNG'`,
@@ -102,3 +108,4 @@ export async function listTablesByArea(areaId) {
   );
   return rows;
 }
+

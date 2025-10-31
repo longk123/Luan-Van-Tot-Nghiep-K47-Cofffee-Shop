@@ -101,7 +101,7 @@ export default function AreaTableManagement() {
       loadData();
     } catch (error) {
       console.error('Error deleting area:', error);
-      alert('Không thể xóa khu vực. Vui lòng thử lại.');
+      alert(error.message || 'Không thể xóa khu vực. Vui lòng thử lại.');
     }
   };
 
