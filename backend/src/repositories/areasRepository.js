@@ -6,12 +6,12 @@ const query = (text, params) => pool.query(text, params);
 export async function listAreas({ includeCounts = false }) {
   if (!includeCounts) {
     const { rows } = await query(
-      `SELECT id, ten, mo_ta, thu_tu, active FROM khu_vuc WHERE active=true ORDER BY thu_tu, ten`
+      `SELECT id, ten, mo_ta, thu_tu, active, hoat_dong FROM khu_vuc WHERE active=true ORDER BY thu_tu, ten`
     );
     return rows;
   }
   const { rows } = await query(
-    `SELECT kv.id, kv.ten, kv.mo_ta, kv.thu_tu, kv.active,
+    `SELECT kv.id, kv.ten, kv.mo_ta, kv.thu_tu, kv.active, kv.hoat_dong,
             COUNT(b.id)::int AS total_tables,
             COUNT(NULLIF(b.trang_thai <> 'TRONG', false))::int AS occupied_or_locked,
             COUNT(NULLIF(b.trang_thai = 'TRONG', false))::int AS free_tables
@@ -24,7 +24,7 @@ export async function listAreas({ includeCounts = false }) {
   return rows;
 }
 
-export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true }) {
+export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true, hoat_dong = true }) {
   // Kiểm tra thứ tự trùng
   const { rows: existing } = await query(
     `SELECT id, ten FROM khu_vuc WHERE thu_tu = $1`,
@@ -35,15 +35,15 @@ export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true 
   }
 
   const { rows } = await query(
-    `INSERT INTO khu_vuc (ten, mo_ta, thu_tu, active)
-     VALUES ($1, $2, $3::int, $4)
+    `INSERT INTO khu_vuc (ten, mo_ta, thu_tu, active, hoat_dong)
+     VALUES ($1, $2, $3::int, $4, $5)
      RETURNING *;`,
-    [ten, mo_ta, thu_tu, active]
+    [ten, mo_ta, thu_tu, active, hoat_dong]
   );
   return rows[0];
 }
 
-export async function updateArea(id, { ten, mo_ta, thu_tu, active }) {
+export async function updateArea(id, { ten, mo_ta, thu_tu, active, hoat_dong }) {
   // Kiểm tra thứ tự trùng (nếu có thay đổi thu_tu)
   if (thu_tu !== undefined && thu_tu !== null) {
     const { rows: existing } = await query(
@@ -60,10 +60,11 @@ export async function updateArea(id, { ten, mo_ta, thu_tu, active }) {
      SET ten = COALESCE($2, ten),
          mo_ta = COALESCE($3, mo_ta),
          thu_tu = COALESCE($4::int, thu_tu),
-         active = COALESCE($5, active)
+         active = COALESCE($5, active),
+         hoat_dong = COALESCE($6, hoat_dong)
      WHERE id = $1
      RETURNING *;`,
-    [id, ten, mo_ta, thu_tu, active]
+    [id, ten, mo_ta, thu_tu, active, hoat_dong]
   );
   return rows[0] || null;
 }
@@ -71,6 +72,20 @@ export async function updateArea(id, { ten, mo_ta, thu_tu, active }) {
 export async function getAreaById(id) {
   const { rows } = await query(`SELECT * FROM khu_vuc WHERE id=$1`, [id]);
   return rows[0] || null;
+}
+
+export async function toggleAreaStatus(id) {
+  // Kiểm tra khu vực có tồn tại và đang active không
+  const area = await getAreaById(id);
+  if (!area || !area.active) {
+    throw new Error('Không tìm thấy khu vực');
+  }
+
+  const { rows } = await query(
+    `UPDATE khu_vuc SET hoat_dong = NOT hoat_dong WHERE id=$1 RETURNING *`,
+    [id]
+  );
+  return rows[0];
 }
 
 export async function deleteAreaSoft(id) {

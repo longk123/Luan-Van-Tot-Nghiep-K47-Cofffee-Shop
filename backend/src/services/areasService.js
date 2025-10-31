@@ -1,5 +1,5 @@
 // src/services/areasService.js
-import { listAreas, createArea, updateArea, deleteAreaSoft, getAreaById, listTablesByArea } from '../repositories/areasRepository.js';
+import { listAreas, createArea, updateArea, deleteAreaSoft, getAreaById, listTablesByArea, toggleAreaStatus } from '../repositories/areasRepository.js';
 
 export default {
   list: (opts) => listAreas(opts),
@@ -12,6 +12,9 @@ export default {
       throw err;
     }
     return updateArea(id, payload);
+  },
+  async toggleStatus(id) {
+    return toggleAreaStatus(id);
   },
   async remove(id) {
     const ok = await deleteAreaSoft(id);

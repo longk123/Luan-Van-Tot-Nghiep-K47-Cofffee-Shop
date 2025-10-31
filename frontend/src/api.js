@@ -108,6 +108,7 @@ export const api = {
   getAreas: (includeCounts = false) => request('GET', `/areas?include_counts=${includeCounts ? '1' : '0'}`),
   createArea: (data) => request('POST', '/areas', data),
   updateArea: (id, data) => request('PUT', `/areas/${id}`, data),
+  toggleAreaStatus: (id) => request('PATCH', `/areas/${id}/toggle-status`),
   deleteArea: (id) => request('DELETE', `/areas/${id}`),
   getAreaTables: (areaId) => request('GET', `/areas/${areaId}/tables`),
 
