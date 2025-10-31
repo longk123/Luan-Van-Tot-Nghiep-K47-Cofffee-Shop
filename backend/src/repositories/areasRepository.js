@@ -24,6 +24,15 @@ export async function listAreas({ includeCounts = false }) {
 }
 
 export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true }) {
+  // Kiểm tra thứ tự trùng
+  const { rows: existing } = await query(
+    `SELECT id, ten FROM khu_vuc WHERE thu_tu = $1`,
+    [thu_tu]
+  );
+  if (existing.length > 0) {
+    throw new Error(`Thứ tự ${thu_tu} đã được sử dụng bởi khu vực "${existing[0].ten}"`);
+  }
+
   const { rows } = await query(
     `INSERT INTO khu_vuc (ten, mo_ta, thu_tu, active)
      VALUES ($1, $2, $3::int, $4)
@@ -34,6 +43,17 @@ export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true 
 }
 
 export async function updateArea(id, { ten, mo_ta, thu_tu, active }) {
+  // Kiểm tra thứ tự trùng (nếu có thay đổi thu_tu)
+  if (thu_tu !== undefined && thu_tu !== null) {
+    const { rows: existing } = await query(
+      `SELECT id, ten FROM khu_vuc WHERE thu_tu = $1 AND id != $2`,
+      [thu_tu, id]
+    );
+    if (existing.length > 0) {
+      throw new Error(`Thứ tự ${thu_tu} đã được sử dụng bởi khu vực "${existing[0].ten}"`);
+    }
+  }
+
   const { rows } = await query(
     `UPDATE khu_vuc
      SET ten = COALESCE($2, ten),
@@ -53,6 +73,16 @@ export async function getAreaById(id) {
 }
 
 export async function deleteAreaSoft(id) {
+  // Kiểm tra có bàn đang dùng không
+  const { rows: tablesInUse } = await query(
+    `SELECT id, ten_ban FROM ban WHERE khu_vuc_id = $1 AND trang_thai = 'DANG_DUNG'`,
+    [id]
+  );
+  if (tablesInUse.length > 0) {
+    const tableNames = tablesInUse.map(t => t.ten_ban).join(', ');
+    throw new Error(`Không thể xóa khu vực có bàn đang dùng: ${tableNames}`);
+  }
+
   const { rows } = await query(
     `UPDATE khu_vuc SET active=false WHERE id=$1 RETURNING id`,
     [id]
