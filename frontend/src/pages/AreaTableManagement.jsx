@@ -35,8 +35,14 @@ export default function AreaTableManagement() {
         api.getAreas(true),
         api.getTables()
       ]);
-      setAreas(areasRes.data || []);
-      setTables(tablesRes.data || tablesRes || []);
+
+      console.log('📊 Areas response:', areasRes);
+      console.log('📊 Tables response:', tablesRes);
+
+      // Backend areas trả về { ok: true, data: [...] }
+      // Backend tables trả về [...] trực tiếp
+      setAreas(areasRes.data || areasRes || []);
+      setTables(Array.isArray(tablesRes) ? tablesRes : (tablesRes.data || []));
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Không thể tải dữ liệu. Vui lòng thử lại.');
@@ -48,7 +54,9 @@ export default function AreaTableManagement() {
   // ===== AREA HANDLERS =====
   const handleCreateArea = () => {
     setEditingArea(null);
-    setAreaForm({ ten: '', mo_ta: '', thu_tu: areas.length, active: true });
+    // Tự động tính thứ tự tiếp theo (max + 1)
+    const maxThuTu = areas.length > 0 ? Math.max(...areas.map(a => a.thu_tu || 0)) : -1;
+    setAreaForm({ ten: '', mo_ta: '', thu_tu: maxThuTu + 1, active: true });
     setShowAreaModal(true);
   };
 
@@ -65,17 +73,21 @@ export default function AreaTableManagement() {
         return;
       }
 
+      console.log('💾 Saving area:', { editingArea, form: areaForm });
+
       if (editingArea) {
-        await api.updateArea(editingArea.id, areaForm);
+        const result = await api.updateArea(editingArea.id, areaForm);
+        console.log('✅ Area updated:', result);
       } else {
-        await api.createArea(areaForm);
+        const result = await api.createArea(areaForm);
+        console.log('✅ Area created:', result);
       }
 
       setShowAreaModal(false);
-      loadData();
+      await loadData();
     } catch (error) {
-      console.error('Error saving area:', error);
-      alert('Không thể lưu khu vực. Vui lòng thử lại.');
+      console.error('❌ Error saving area:', error);
+      alert(`Không thể lưu khu vực: ${error.message || 'Vui lòng thử lại.'}`);
     }
   };
 
@@ -134,21 +146,31 @@ export default function AreaTableManagement() {
         ghi_chu: tableForm.ghi_chu || null
       };
 
+      console.log('💾 Saving table:', { editingTable, payload });
+
       if (editingTable) {
-        await api.updateTable(editingTable.id, payload);
+        const result = await api.updateTable(editingTable.id, payload);
+        console.log('✅ Table updated:', result);
       } else {
-        await api.createTable(payload);
+        const result = await api.createTable(payload);
+        console.log('✅ Table created:', result);
       }
 
       setShowTableModal(false);
-      loadData();
+      await loadData();
     } catch (error) {
-      console.error('Error saving table:', error);
-      alert('Không thể lưu bàn. Vui lòng thử lại.');
+      console.error('❌ Error saving table:', error);
+      alert(`Không thể lưu bàn: ${error.message || 'Vui lòng thử lại.'}`);
     }
   };
 
   const handleDeleteTable = async (table) => {
+    // Kiểm tra bàn đang dùng
+    if (table.trang_thai === 'DANG_DUNG') {
+      alert('Không thể xóa bàn đang có khách!');
+      return;
+    }
+
     if (!confirm(`Bạn có chắc muốn xóa bàn "${table.ten_ban}"?`)) {
       return;
     }
@@ -479,6 +501,9 @@ function TableRow({ table, getAreaName, onEdit, onDelete }) {
     );
   };
 
+  // Bàn đang dùng không thể sửa/xóa
+  const isInUse = table.trang_thai === 'DANG_DUNG';
+
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
       <td className="px-4 py-3 text-sm font-semibold text-gray-900">{table.ten_ban}</td>
@@ -490,13 +515,25 @@ function TableRow({ table, getAreaName, onEdit, onDelete }) {
         <div className="flex gap-2 justify-end">
           <button
             onClick={onEdit}
-            className="px-3 py-1.5 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all duration-200 font-semibold text-xs"
+            disabled={isInUse}
+            className={`px-3 py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs ${
+              isInUse
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'
+            }`}
+            title={isInUse ? 'Không thể sửa bàn đang có khách' : 'Sửa bàn'}
           >
             Sửa
           </button>
           <button
             onClick={onDelete}
-            className="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all duration-200 font-semibold text-xs"
+            disabled={isInUse}
+            className={`px-3 py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs ${
+              isInUse
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-red-100 text-red-600 hover:bg-red-600 hover:text-white'
+            }`}
+            title={isInUse ? 'Không thể xóa bàn đang có khách' : 'Xóa bàn'}
           >
             Xóa
           </button>
