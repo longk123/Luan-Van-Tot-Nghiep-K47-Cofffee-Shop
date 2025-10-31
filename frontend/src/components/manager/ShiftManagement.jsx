@@ -43,15 +43,18 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
     return true;
   });
 
-  // Tính tổng thống kê - CHỈ TÍNH CA CASHIER
-  const totalStats = filteredShifts
-    .filter(shift => shift.type === 'CASHIER')
-    .reduce((acc, shift) => ({
-      total_orders: acc.total_orders + (shift.stats?.total_orders || 0),
-      gross_amount: acc.gross_amount + (shift.stats?.gross_amount || 0),
-      net_amount: acc.net_amount + (shift.stats?.net_amount || 0),
-      cash_diff: acc.cash_diff + (shift.stats?.cash_diff || 0),
-    }), { total_orders: 0, gross_amount: 0, net_amount: 0, cash_diff: 0 });
+  // Tính tổng thống kê - Tách riêng cho CASHIER và KITCHEN
+  const totalStats = filterType === 'CASHIER'
+    ? filteredShifts.reduce((acc, shift) => ({
+        total_orders: acc.total_orders + (shift.stats?.total_orders || 0),
+        gross_amount: acc.gross_amount + (shift.stats?.gross_amount || 0),
+        net_amount: acc.net_amount + (shift.stats?.net_amount || 0),
+        cash_diff: acc.cash_diff + (shift.stats?.cash_diff || 0),
+      }), { total_orders: 0, gross_amount: 0, net_amount: 0, cash_diff: 0 })
+    : filteredShifts.reduce((acc, shift) => ({
+        total_items_made: acc.total_items_made + (shift.stats?.total_items_made || 0),
+        avg_prep_time_seconds: shift.stats?.avg_prep_time_seconds || acc.avg_prep_time_seconds,
+      }), { total_items_made: 0, avg_prep_time_seconds: 0 });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -109,15 +112,23 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
           </div>
         </div>
       ) : (
-        // KITCHEN: Show only total shifts (no revenue/cash stats)
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        // KITCHEN: Show kitchen-specific metrics
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="text-sm text-gray-600 mb-1">Tổng ca</div>
             <div className="text-2xl font-bold text-gray-900">{filteredShifts.length}</div>
           </div>
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg shadow border border-purple-200">
-            <div className="text-sm text-purple-700 mb-1">💡 Lưu ý</div>
-            <div className="text-sm text-gray-700">Ca Pha chế không quản lý tiền mặt và đơn hàng</div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600 mb-1">☕ Tổng món đã làm</div>
+            <div className="text-2xl font-bold text-purple-600">{totalStats.total_items_made || 0}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600 mb-1">⏱️ Thời gian TB/món</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {totalStats.avg_prep_time_seconds > 0
+                ? `${Math.round(totalStats.avg_prep_time_seconds)}s`
+                : '-'}
+            </div>
           </div>
         </div>
       )}
