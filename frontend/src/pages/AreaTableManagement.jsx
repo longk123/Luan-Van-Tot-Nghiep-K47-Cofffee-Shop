@@ -195,7 +195,11 @@ export default function AreaTableManagement() {
     return true;
   });
 
-  const getAreaName = (areaId) => {
+  const getAreaName = (table) => {
+    // Ưu tiên khu_vuc_ten từ backend (đã JOIN), fallback về tìm theo ID
+    if (table.khu_vuc_ten) return table.khu_vuc_ten;
+
+    const areaId = table.khu_vuc_id || table.khu_vuc;
     const area = areas.find(a => a.id === areaId);
     return area?.ten || 'N/A';
   };
@@ -507,7 +511,7 @@ function TableRow({ table, getAreaName, onEdit, onDelete }) {
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
       <td className="px-4 py-3 text-sm font-semibold text-gray-900">{table.ten_ban}</td>
-      <td className="px-4 py-3 text-sm text-gray-600">{getAreaName(table.khu_vuc_id || table.khu_vuc)}</td>
+      <td className="px-4 py-3 text-sm text-gray-600">{getAreaName(table)}</td>
       <td className="px-4 py-3 text-sm text-gray-600">{table.suc_chua} người</td>
       <td className="px-4 py-3 text-sm">{getStatusBadge(table.trang_thai)}</td>
       <td className="px-4 py-3 text-sm text-gray-600">{table.ghi_chu || '-'}</td>
