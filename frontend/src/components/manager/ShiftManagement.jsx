@@ -85,27 +85,42 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
 
   return (
     <div className="pb-32">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-1">Tổng ca</div>
-          <div className="text-2xl font-bold text-gray-900">{filteredShifts.length}</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-1">Tổng đơn</div>
-          <div className="text-2xl font-bold text-blue-600">{totalStats.total_orders}</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-1">Doanh thu</div>
-          <div className="text-2xl font-bold text-green-600">{formatCurrency(totalStats.net_amount)}</div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-1">Chênh lệch tiền mặt</div>
-          <div className={`text-2xl font-bold ${totalStats.cash_diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(totalStats.cash_diff)}
+      {/* Summary Cards - Different for CASHIER vs KITCHEN */}
+      {filterType === 'CASHIER' ? (
+        // CASHIER: Show orders, revenue, cash difference
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600 mb-1">Tổng ca</div>
+            <div className="text-2xl font-bold text-gray-900">{filteredShifts.length}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600 mb-1">Tổng đơn</div>
+            <div className="text-2xl font-bold text-blue-600">{totalStats.total_orders}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600 mb-1">Doanh thu</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalStats.net_amount)}</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600 mb-1">Chênh lệch tiền mặt</div>
+            <div className={`text-2xl font-bold ${totalStats.cash_diff >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(totalStats.cash_diff)}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        // KITCHEN: Show only total shifts (no revenue/cash stats)
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="text-sm text-gray-600 mb-1">Tổng ca</div>
+            <div className="text-2xl font-bold text-gray-900">{filteredShifts.length}</div>
+          </div>
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg shadow border border-purple-200">
+            <div className="text-sm text-purple-700 mb-1">💡 Lưu ý</div>
+            <div className="text-sm text-gray-700">Ca Pha chế không quản lý tiền mặt và đơn hàng</div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">

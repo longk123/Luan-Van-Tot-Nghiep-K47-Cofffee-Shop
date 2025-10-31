@@ -51,7 +51,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
       console.warn('⚠️ startDate or endDate is empty, skipping fetch');
       return;
     }
-
+    
     setLoading(true);
     try {
       console.log('🔍 Fetching profit data with params:', { startDate, endDate, orderTypeFilter });
@@ -222,54 +222,66 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
           </div>
 
           {/* View Tabs */}
-          <div className="flex gap-2 flex-wrap">
+           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setActiveView('summary')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeView === 'summary'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+               className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
+                 activeView === 'summary'
+                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
+                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+               }`}
             >
-              📊 Tổng quan
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M7 10v6m5-10v10m5-6v6" />
+               </svg>
+               <span>Tổng quan</span>
             </button>
             <button
               onClick={() => setActiveView('chart')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeView === 'chart'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+               className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
+                 activeView === 'chart'
+                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
+                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+               }`}
             >
-              📈 Biểu đồ
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18M7 13l3-3 4 4 5-7" />
+               </svg>
+               <span>Biểu đồ</span>
             </button>
             <button
               onClick={() => setActiveView('items')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeView === 'items'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+               className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
+                 activeView === 'items'
+                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
+                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+               }`}
             >
-              🍵 Theo món
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 10h12a4 4 0 010 8H8a4 4 0 01-4-4v-4zm12 0V6" />
+               </svg>
+               <span>Theo món</span>
             </button>
             <button
               onClick={() => setActiveView('categories')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeView === 'categories'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+               className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
+                 activeView === 'categories'
+                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
+                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+               }`}
             >
-              📂 Theo danh mục
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h5l2 2h11v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+               </svg>
+               <span>Theo danh mục</span>
             </button>
 
             {/* Export Button */}
             <button
-              onClick={exportToExcel}
-              className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
+               onClick={exportToExcel}
+               className="group px-4 py-2 rounded-lg font-medium border border-green-600 bg-green-600 text-white hover:bg-white hover:text-green-600 transition-colors flex items-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <svg className="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Xuất Excel
@@ -280,9 +292,14 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
       {/* Comparison Cards */}
       {activeView === 'summary' && comparison && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h3 className="text-lg font-bold text-gray-800">📊 So sánh với {getPeriodName()}</h3>
+         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md p-6 mb-6">
+           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 19h16M7 10v6m5-10v10m5-6v6" />
+               </svg>
+               <span>So sánh với {getPeriodName()}</span>
+             </h3>
             <div className="text-sm bg-white px-3 py-1 rounded-lg border border-blue-200">
               <span className="text-gray-600">Kỳ trước:</span>{' '}
               <span className="font-medium text-gray-800">{comparison.previous.startDate} → {comparison.previous.endDate}</span>
@@ -319,7 +336,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
       {/* Summary Cards */}
       {activeView === 'summary' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Doanh thu */}
         <div className="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200">
           <div className="flex justify-between items-start">
@@ -412,8 +429,13 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
       {/* Chart View */}
       {activeView === 'chart' && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">📈 Biểu đồ lợi nhuận theo thời gian</h3>
+         <div className="bg-white rounded-xl shadow-md p-6">
+           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18M7 13l3-3 4 4 5-7" />
+             </svg>
+             <span>Biểu đồ lợi nhuận theo thời gian</span>
+           </h3>
           {chartData && chartData.labels && chartData.labels.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={chartData.labels.map((label, idx) => ({
@@ -445,8 +467,13 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
       {/* Items Analysis */}
       {activeView === 'items' && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">🍵 Phân tích lợi nhuận theo món (Top 20)</h3>
+         <div className="bg-white rounded-xl shadow-md p-6">
+           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 10h12a4 4 0 010 8H8a4 4 0 01-4-4v-4zm12 0V6" />
+             </svg>
+             <span>Phân tích lợi nhuận theo món (Top 20)</span>
+           </h3>
           {itemAnalysis && itemAnalysis.length > 0 ? (
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -493,8 +520,13 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
 
       {/* Categories Analysis */}
       {activeView === 'categories' && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">📂 Phân tích lợi nhuận theo danh mục</h3>
+         <div className="bg-white rounded-xl shadow-md p-6">
+           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h5l2 2h11v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+             </svg>
+             <span>Phân tích lợi nhuận theo danh mục</span>
+           </h3>
           {categoryAnalysis && categoryAnalysis.length > 0 ? (
             <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -560,11 +592,11 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
       <div className="bg-white rounded-lg shadow p-4">
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+          className="group flex items-center gap-2 text-blue-600 border border-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-colors font-medium"
         >
           <span>{showDetails ? 'Ẩn' : 'Xem'} chi tiết đơn hàng</span>
           <svg 
-            className={`w-5 h-5 transform transition-transform ${showDetails ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 transform transition-transform group-hover:rotate-6 group-hover:scale-110 ${showDetails ? 'rotate-180' : ''}`}
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -718,7 +750,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                     </div>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
