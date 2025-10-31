@@ -6,7 +6,7 @@ const query = (text, params) => pool.query(text, params);
 export async function listAreas({ includeCounts = false }) {
   if (!includeCounts) {
     const { rows } = await query(
-      `SELECT id, ten, mo_ta, thu_tu, active FROM khu_vuc ORDER BY thu_tu, ten`
+      `SELECT id, ten, mo_ta, thu_tu, active FROM khu_vuc WHERE active=true ORDER BY thu_tu, ten`
     );
     return rows;
   }
@@ -17,6 +17,7 @@ export async function listAreas({ includeCounts = false }) {
             COUNT(NULLIF(b.trang_thai = 'TRONG', false))::int AS free_tables
      FROM khu_vuc kv
      LEFT JOIN ban b ON b.khu_vuc_id = kv.id
+     WHERE kv.active=true
      GROUP BY kv.id
      ORDER BY kv.thu_tu, kv.ten;`
   );
