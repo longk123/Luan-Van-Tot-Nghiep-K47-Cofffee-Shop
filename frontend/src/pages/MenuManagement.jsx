@@ -370,6 +370,17 @@ export default function MenuManagement() {
     }
   };
 
+  const handleDeleteOption = async (id) => {
+    if (!confirm('Xác nhận xóa topping này?')) return;
+    try {
+      await api.deleteOption(id);
+      alert('✅ Xóa topping thành công!');
+      loadOptions();
+    } catch (error) {
+      alert('❌ Lỗi: ' + error.message);
+    }
+  };
+
   // ========== RENDER ==========
   const formatCurrency = (num) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
@@ -525,15 +536,21 @@ export default function MenuManagement() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleEditCategory(cat)}
-                                className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-blue-500 hover:ring-2 hover:ring-blue-500 transition-all duration-200"
+                                className="text-[#c9975b] hover:text-[#b8864a]"
+                                title="Sửa"
                               >
-                                Sửa
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
                               </button>
                               <button
                                 onClick={() => handleDeleteCategory(cat.id)}
-                                className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-red-500 hover:ring-2 hover:ring-red-500 transition-all duration-200"
+                                className="text-red-600 hover:text-red-800"
+                                title="Xóa"
                               >
-                                Xóa
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                               </button>
                             </div>
                           </td>
@@ -605,15 +622,21 @@ export default function MenuManagement() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleEditItem(item)}
-                                className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-blue-500 hover:ring-2 hover:ring-blue-500 transition-all duration-200"
+                                className="text-[#c9975b] hover:text-[#b8864a]"
+                                title="Sửa"
                               >
-                                Sửa
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
                               </button>
                               <button
                                 onClick={() => handleDeleteItem(item.id)}
-                                className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-red-500 hover:ring-2 hover:ring-red-500 transition-all duration-200"
+                                className="text-red-600 hover:text-red-800"
+                                title="Xóa"
                               >
-                                Xóa
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                               </button>
                             </div>
                           </td>
@@ -709,15 +732,21 @@ export default function MenuManagement() {
                               <div className="flex items-center justify-center gap-2">
                                 <button
                                   onClick={() => handleEditVariant(variant)}
-                                  className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-blue-500 hover:ring-2 hover:ring-blue-500 transition-all duration-200"
+                                  className="text-[#c9975b] hover:text-[#b8864a]"
+                                  title="Sửa"
                                 >
-                                  Sửa
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
                                 </button>
                                 <button
                                   onClick={() => handleDeleteVariant(variant.id)}
-                                  className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-red-500 hover:ring-2 hover:ring-red-500 transition-all duration-200"
+                                  className="text-red-600 hover:text-red-800"
+                                  title="Xóa"
                                 >
-                                  Xóa
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
                                 </button>
                               </div>
                             </td>
@@ -781,9 +810,13 @@ export default function MenuManagement() {
                                     setIsEditMode(false);
                                     loadOptionLevels(opt.id);
                                   }}
-                                  className="px-3 py-1.5 bg-purple-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-purple-500 hover:ring-2 hover:ring-purple-500 transition-all duration-200"
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title="Xem mức"
                                 >
-                                  Xem mức
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
                                 </button>
                                 <button
                                   onClick={() => {
@@ -791,9 +824,12 @@ export default function MenuManagement() {
                                     setIsEditMode(true);
                                     loadOptionLevels(opt.id);
                                   }}
-                                  className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-blue-500 hover:ring-2 hover:ring-blue-500 transition-all duration-200"
+                                  className="text-[#c9975b] hover:text-[#b8864a]"
+                                  title="Sửa"
                                 >
-                                  Sửa
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
                                 </button>
                               </div>
                             </td>
@@ -864,9 +900,21 @@ export default function MenuManagement() {
                                   });
                                   setShowOptionForm(true);
                                 }}
-                                className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-blue-500 hover:ring-2 hover:ring-blue-500 transition-all duration-200"
+                                className="text-[#c9975b] hover:text-[#b8864a]"
+                                title="Sửa"
                               >
-                                Sửa
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteOption(opt.id)}
+                                className="text-red-600 hover:text-red-800"
+                                title="Xóa"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                               </button>
                             </div>
                           </td>
@@ -1229,9 +1277,12 @@ export default function MenuManagement() {
                                 });
                                 setShowLevelForm(true);
                               }}
-                              className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-blue-500 hover:ring-2 hover:ring-blue-500 transition-all duration-200"
+                              className="text-[#c9975b] hover:text-[#b8864a]"
+                              title="Sửa"
                             >
-                              Sửa
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
                             </button>
                             <button
                               onClick={async () => {
@@ -1246,9 +1297,12 @@ export default function MenuManagement() {
                                   }
                                 }
                               }}
-                              className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-white hover:text-red-500 hover:ring-2 hover:ring-red-500 transition-all duration-200"
+                              className="text-red-600 hover:text-red-800"
+                              title="Xóa"
                             >
-                              Xóa
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                             </button>
                           </div>
                         </td>

@@ -28,6 +28,12 @@ export default function AreaTableManagement() {
     loadData();
   }, []);
 
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('🔄 Areas state updated:', areas.length, areas);
+    console.log('🔄 Tables state updated:', tables.length, tables);
+  }, [areas, tables]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -40,9 +46,34 @@ export default function AreaTableManagement() {
       console.log('📊 Tables response:', tablesRes);
 
       // Backend areas trả về { ok: true, data: [...] }
-      // Backend tables trả về [...] trực tiếp
-      setAreas(areasRes.data || areasRes || []);
-      setTables(Array.isArray(tablesRes) ? tablesRes : (tablesRes.data || []));
+      // Backend tables trả về array trực tiếp (hoặc { ok: true, data: [...] })
+      let areasData = [];
+      if (areasRes) {
+        if (Array.isArray(areasRes)) {
+          areasData = areasRes;
+        } else if (areasRes.data && Array.isArray(areasRes.data)) {
+          areasData = areasRes.data;
+        } else if (areasRes.ok && areasRes.data && Array.isArray(areasRes.data)) {
+          areasData = areasRes.data;
+        }
+      }
+
+      let tablesData = [];
+      if (tablesRes) {
+        if (Array.isArray(tablesRes)) {
+          tablesData = tablesRes;
+        } else if (tablesRes.data && Array.isArray(tablesRes.data)) {
+          tablesData = tablesRes.data;
+        } else if (tablesRes.ok && tablesRes.data && Array.isArray(tablesRes.data)) {
+          tablesData = tablesRes.data;
+        }
+      }
+
+      console.log('📊 Parsed areas:', areasData, 'Count:', areasData.length);
+      console.log('📊 Parsed tables:', tablesData, 'Count:', tablesData.length);
+
+      setAreas(areasData);
+      setTables(tablesData);
     } catch (error) {
       console.error('Error loading data:', error);
       alert('Không thể tải dữ liệu. Vui lòng thử lại.');
@@ -73,6 +104,27 @@ export default function AreaTableManagement() {
         return;
       }
 
+      // Kiểm tra ràng buộc: Nếu đang tắt khu vực có bàn đang dùng
+      if (editingArea && editingArea.active && !areaForm.active) {
+        const areaTables = tables.filter(t => 
+          (t.khu_vuc_id === editingArea.id || t.khu_vuc === editingArea.id)
+        );
+        
+        const tablesInUse = areaTables.filter(t => t.trang_thai === 'DANG_DUNG');
+        
+        if (tablesInUse.length > 0) {
+          const tableNames = tablesInUse.map(t => t.ten_ban).join(', ');
+          alert(
+            `⚠️ Không thể tắt khu vực "${editingArea.ten}"!\n\n` +
+            `Có ${tablesInUse.length} bàn đang có khách:\n${tableNames}\n\n` +
+            `Vui lòng đợi khách thanh toán hoặc chuyển bàn trước khi tắt khu vực.`
+          );
+          // Reset lại checkbox
+          setAreaForm({ ...areaForm, active: true });
+          return;
+        }
+      }
+
       console.log('💾 Saving area:', { editingArea, form: areaForm });
 
       if (editingArea) {
@@ -91,19 +143,49 @@ export default function AreaTableManagement() {
     }
   };
 
-  const handleToggleAreaStatus = async (area) => {
+  const handleToggleAreaActive = async (area) => {
+    // Kiểm tra ràng buộc trước khi tắt khu vực
+    if (area.active) {
+      // Kiểm tra nếu có bàn đang có khách
+      const areaTables = tables.filter(t => 
+        (t.khu_vuc_id === area.id || t.khu_vuc === area.id)
+      );
+      
+      const tablesInUse = areaTables.filter(t => t.trang_thai === 'DANG_DUNG');
+      
+      if (tablesInUse.length > 0) {
+        const tableNames = tablesInUse.map(t => t.ten_ban).join(', ');
+        alert(
+          `⚠️ Không thể tắt khu vực "${area.ten}"!\n\n` +
+          `Có ${tablesInUse.length} bàn đang có khách:\n${tableNames}\n\n` +
+          `Vui lòng đợi khách thanh toán hoặc chuyển bàn trước khi tắt khu vực.`
+        );
+        return;
+      }
+
+      // Xác nhận trước khi tắt
+      const confirmMessage = areaTables.length > 0
+        ? `Bạn có chắc muốn TẮT khu vực "${area.ten}"?\n\n` +
+          `Khu vực này có ${areaTables.length} bàn. Sau khi tắt, khách sẽ không thể chọn khu vực này khi đặt bàn.`
+        : `Bạn có chắc muốn TẮT khu vực "${area.ten}"?`;
+
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    }
+
     try {
-      const result = await api.toggleAreaStatus(area.id);
-      console.log('✅ Area status toggled:', result);
+      const result = await api.toggleAreaActive(area.id);
+      console.log('✅ Area active status toggled:', result);
       await loadData();
     } catch (error) {
-      console.error('❌ Error toggling area status:', error);
+      console.error('❌ Error toggling area active status:', error);
       alert(error.message || 'Không thể thay đổi trạng thái khu vực. Vui lòng thử lại.');
     }
   };
 
   const handleDeleteArea = async (area) => {
-    if (!confirm(`Bạn có chắc muốn xóa khu vực "${area.ten}"?\n\nLưu ý: Các bàn trong khu vực này sẽ không bị xóa.`)) {
+    if (!confirm(`Bạn có chắc muốn XÓA VĨNH VIỄN khu vực "${area.ten}"?\n\nLưu ý: Khu vực phải không có bàn nào mới có thể xóa.`)) {
       return;
     }
 
@@ -234,7 +316,7 @@ export default function AreaTableManagement() {
 
           <button
             onClick={() => navigate('/manager')}
-            className="px-4 py-2.5 bg-gray-600 text-white border-2 border-gray-600 rounded-full hover:bg-white hover:text-gray-600 hover:border-gray-600 hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+            className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -251,8 +333,8 @@ export default function AreaTableManagement() {
             onClick={() => setActiveTab('areas')}
             className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
               activeTab === 'areas'
-                ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md border-2 border-[#c9975b]'
-                : 'text-gray-600 border-2 border-transparent hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b]'
+                ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
+                : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
             }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,8 +346,8 @@ export default function AreaTableManagement() {
             onClick={() => setActiveTab('tables')}
             className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
               activeTab === 'tables'
-                ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md border-2 border-[#c9975b]'
-                : 'text-gray-600 border-2 border-transparent hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b]'
+                ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
+                : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
             }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,9 +367,10 @@ export default function AreaTableManagement() {
       ) : activeTab === 'areas' ? (
         <AreasTab
           areas={areas}
+          tables={tables}
           onCreateArea={handleCreateArea}
           onEditArea={handleEditArea}
-          onToggleStatus={handleToggleAreaStatus}
+          onToggleActive={handleToggleAreaActive}
           onDeleteArea={handleDeleteArea}
         />
       ) : (
@@ -311,6 +394,7 @@ export default function AreaTableManagement() {
           area={editingArea}
           form={areaForm}
           setForm={setAreaForm}
+          tables={tables}
           onSave={handleSaveArea}
           onClose={() => setShowAreaModal(false)}
         />
@@ -332,14 +416,14 @@ export default function AreaTableManagement() {
 }
 
 // ===== AREAS TAB COMPONENT =====
-function AreasTab({ areas, onCreateArea, onEditArea, onToggleStatus, onDeleteArea }) {
+function AreasTab({ areas, tables, onCreateArea, onEditArea, onToggleActive, onDeleteArea }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">Danh sách khu vực</h2>
         <button
           onClick={onCreateArea}
-          className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
+          className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -361,8 +445,9 @@ function AreasTab({ areas, onCreateArea, onEditArea, onToggleStatus, onDeleteAre
             <AreaCard
               key={area.id}
               area={area}
+              tables={tables}
               onEdit={() => onEditArea(area)}
-              onToggleStatus={() => onToggleStatus(area)}
+              onToggleActive={() => onToggleActive(area)}
               onDelete={() => onDeleteArea(area)}
             />
           ))}
@@ -373,7 +458,15 @@ function AreasTab({ areas, onCreateArea, onEditArea, onToggleStatus, onDeleteAre
 }
 
 // ===== AREA CARD COMPONENT =====
-function AreaCard({ area, onEdit, onToggleStatus, onDelete }) {
+function AreaCard({ area, tables, onEdit, onToggleActive, onDelete }) {
+  // Kiểm tra xem khu vực có bàn đang dùng không
+  const areaTables = tables?.filter(t => 
+    (t.khu_vuc_id === area.id || t.khu_vuc === area.id)
+  ) || [];
+  
+  const tablesInUse = areaTables.filter(t => t.trang_thai === 'DANG_DUNG');
+  const canDeactivate = area.active && tablesInUse.length === 0;
+
   return (
     <div className="bg-gradient-to-br from-[#fef7ed] to-[#faf5ef] rounded-xl border-2 border-[#d4a574] p-5 hover:shadow-lg transition-all duration-200">
       <div className="flex items-start justify-between mb-3">
@@ -386,6 +479,11 @@ function AreaCard({ area, onEdit, onToggleStatus, onDelete }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
               {area.total_tables || 0} bàn
+              {tablesInUse.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                  {tablesInUse.length} đang dùng
+                </span>
+              )}
             </span>
             <span className="flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,15 +493,15 @@ function AreaCard({ area, onEdit, onToggleStatus, onDelete }) {
             </span>
           </div>
         </div>
-        <div className={`px-2 py-1 rounded-full text-xs font-semibold ${area.hoat_dong ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {area.hoat_dong ? '🟢 Hoạt động' : '🔴 Đã tắt'}
+        <div className={`px-2 py-1 rounded-full text-xs font-semibold ${area.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {area.active ? '🟢 Hoạt động' : '🔴 Đã tắt'}
         </div>
       </div>
 
       <div className="flex gap-2 mt-4">
         <button
           onClick={onEdit}
-          className="flex-1 px-3 py-2 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-lg hover:bg-[#c9975b] hover:text-white transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-1"
+          className="flex-1 px-3 py-2 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-lg hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b] transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -411,14 +509,22 @@ function AreaCard({ area, onEdit, onToggleStatus, onDelete }) {
           Sửa
         </button>
         <button
-          onClick={onToggleStatus}
+          onClick={onToggleActive}
+          disabled={area.active && !canDeactivate}
           className={`flex-1 px-3 py-2 bg-white border-2 rounded-lg transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-1 ${
-            area.hoat_dong
-              ? 'text-orange-600 border-orange-300 hover:bg-orange-600 hover:text-white'
-              : 'text-green-600 border-green-300 hover:bg-green-600 hover:text-white'
+            area.active
+              ? canDeactivate
+                ? 'text-orange-600 border-orange-600 hover:bg-orange-600 hover:text-white hover:border-orange-600'
+                : 'text-gray-400 border-gray-300 bg-gray-50 cursor-not-allowed'
+              : 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white hover:border-green-600'
           }`}
+          title={area.active && !canDeactivate 
+            ? `Không thể tắt: Có ${tablesInUse.length} bàn đang có khách` 
+            : area.active 
+            ? 'Tắt khu vực' 
+            : 'Bật khu vực'}
         >
-          {area.hoat_dong ? (
+          {area.active ? (
             <>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -436,7 +542,7 @@ function AreaCard({ area, onEdit, onToggleStatus, onDelete }) {
         </button>
         <button
           onClick={onDelete}
-          className="flex-1 px-3 py-2 bg-white text-red-600 border-2 border-red-300 rounded-lg hover:bg-red-600 hover:text-white transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-1"
+          className="flex-1 px-3 py-2 bg-white text-red-600 border-2 border-red-600 rounded-lg hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 font-semibold text-sm flex items-center justify-center gap-1"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -456,7 +562,7 @@ function TablesTab({ tables, areas, filterArea, setFilterArea, searchQuery, setS
         <h2 className="text-xl font-bold text-gray-900">Danh sách bàn</h2>
         <button
           onClick={onCreateTable}
-          className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
+          className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -553,30 +659,26 @@ function TableRow({ table, getAreaName, onEdit, onDelete }) {
       <td className="px-4 py-3 text-sm">{getStatusBadge(table.trang_thai)}</td>
       <td className="px-4 py-3 text-sm text-gray-600">{table.ghi_chu || '-'}</td>
       <td className="px-4 py-3 text-right">
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-2 justify-end items-center">
           <button
             onClick={onEdit}
             disabled={isInUse}
-            className={`px-3 py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs ${
-              isInUse
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-[#fef7ed] text-[#c9975b] border-2 border-[#c9975b] hover:bg-[#c9975b] hover:text-white'
-            }`}
+            className={isInUse ? 'text-gray-400 cursor-not-allowed' : 'text-[#c9975b] hover:text-[#b8864a]'}
             title={isInUse ? 'Không thể sửa bàn đang có khách' : 'Sửa bàn'}
           >
-            Sửa
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
           </button>
           <button
             onClick={onDelete}
             disabled={isInUse}
-            className={`px-3 py-1.5 rounded-lg transition-all duration-200 font-semibold text-xs ${
-              isInUse
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-red-100 text-red-600 border-2 border-red-300 hover:bg-red-600 hover:text-white hover:border-red-600'
-            }`}
+            className={isInUse ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}
             title={isInUse ? 'Không thể xóa bàn đang có khách' : 'Xóa bàn'}
           >
-            Xóa
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
           </button>
         </div>
       </td>
@@ -585,7 +687,29 @@ function TableRow({ table, getAreaName, onEdit, onDelete }) {
 }
 
 // ===== AREA MODAL COMPONENT =====
-function AreaModal({ area, form, setForm, onSave, onClose }) {
+function AreaModal({ area, form, setForm, tables, onSave, onClose }) {
+  // Kiểm tra xem khu vực có bàn đang dùng không (nếu đang edit)
+  const areaTables = area ? (tables?.filter(t => 
+    (t.khu_vuc_id === area.id || t.khu_vuc === area.id)
+  ) || []) : [];
+  
+  const tablesInUse = areaTables.filter(t => t.trang_thai === 'DANG_DUNG');
+  const canToggleActive = !area || !form.active || tablesInUse.length === 0;
+
+  const handleCheckboxChange = (e) => {
+    // Nếu đang bỏ check và có bàn đang dùng, không cho phép
+    if (area && form.active && !e.target.checked && tablesInUse.length > 0) {
+      const tableNames = tablesInUse.map(t => t.ten_ban).join(', ');
+      alert(
+        `⚠️ Không thể tắt khu vực "${area.ten}"!\n\n` +
+        `Có ${tablesInUse.length} bàn đang có khách:\n${tableNames}\n\n` +
+        `Vui lòng đợi khách thanh toán hoặc chuyển bàn trước khi tắt khu vực.`
+      );
+      return;
+    }
+    setForm({ ...form, active: e.target.checked });
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
@@ -634,11 +758,24 @@ function AreaModal({ area, form, setForm, onSave, onClose }) {
               type="checkbox"
               id="area-active"
               checked={form.active}
-              onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              className="w-4 h-4 text-[#c9975b] border-gray-300 rounded focus:ring-[#c9975b]"
+              onChange={handleCheckboxChange}
+              disabled={!canToggleActive && form.active}
+              className={`w-4 h-4 text-[#c9975b] border-gray-300 rounded focus:ring-[#c9975b] ${
+                !canToggleActive && form.active ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             />
-            <label htmlFor="area-active" className="text-sm font-semibold text-gray-700">
+            <label 
+              htmlFor="area-active" 
+              className={`text-sm font-semibold ${
+                !canToggleActive && form.active ? 'text-gray-400' : 'text-gray-700'
+              }`}
+            >
               Khu vực đang hoạt động
+              {!canToggleActive && form.active && tablesInUse.length > 0 && (
+                <span className="ml-2 text-xs text-red-600 font-normal">
+                  (Không thể tắt: có {tablesInUse.length} bàn đang có khách)
+                </span>
+              )}
             </label>
           </div>
         </div>

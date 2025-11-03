@@ -108,7 +108,7 @@ export const api = {
   getAreas: (includeCounts = false) => request('GET', `/areas?include_counts=${includeCounts ? '1' : '0'}`),
   createArea: (data) => request('POST', '/areas', data),
   updateArea: (id, data) => request('PUT', `/areas/${id}`, data),
-  toggleAreaStatus: (id) => request('PATCH', `/areas/${id}/toggle-status`),
+  toggleAreaActive: (id) => request('PATCH', `/areas/${id}/toggle-active`),
   deleteArea: (id) => request('DELETE', `/areas/${id}`),
   getAreaTables: (areaId) => request('GET', `/areas/${areaId}/tables`),
 
@@ -134,6 +134,9 @@ export const api = {
   closeShiftEnhanced: (shiftId, data) => request('POST', `/shifts/${shiftId}/close-enhanced`, data),
   forceCloseShift: (shiftId, data) => request('POST', `/shifts/${shiftId}/force-close`, data),
   getShiftReport: (shiftId) => request('GET', `/shifts/${shiftId}/report`),
+  
+  // Users
+  getUserList: () => request('GET', '/auth/users'),
   
   // Aliases for compatibility
   getMenuCategoryItems: (categoryId) => request('GET', `/pos/menu/categories/${categoryId}/items`),
@@ -399,4 +402,75 @@ export const api = {
   createToppingPrice: (data) => request('POST', '/menu/topping-pricing', data),
   updateToppingPrice: (id, data) => request('PUT', `/menu/topping-pricing/${id}`, data),
   deleteToppingPrice: (id) => request('DELETE', `/menu/topping-pricing/${id}`),
+
+  // ===== EMPLOYEE MANAGEMENT =====
+  // Users
+  getAllUsers: () => request('GET', '/auth/users'),
+  getUserById: (id) => request('GET', `/auth/users/${id}`),
+  createUser: (data) => request('POST', '/auth/users', data),
+  updateUser: (id, data) => request('PUT', `/auth/users/${id}`, data),
+  deleteUser: (id) => request('DELETE', `/auth/users/${id}`),
+  checkUsername: (username) => request('GET', `/auth/check-username/${username}`),
+  
+  // Roles
+  getAllRoles: () => request('GET', '/auth/roles'),
+  
+  // Employee Stats
+  getUserShifts: (userId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.shiftType) queryParams.append('shiftType', params.shiftType);
+    if (params.status) queryParams.append('status', params.status);
+    return request('GET', `/auth/users/${userId}/shifts?${queryParams.toString()}`);
+  },
+  getUserStats: (userId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.shiftType) queryParams.append('shiftType', params.shiftType);
+    return request('GET', `/auth/users/${userId}/stats?${queryParams.toString()}`);
+  },
+
+  // ===== PROMOTION MANAGEMENT =====
+  // List and CRUD
+  getAllPromotions: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.status) queryParams.append('status', params.status);
+    if (params.type) queryParams.append('type', params.type);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.timeRange) queryParams.append('timeRange', params.timeRange);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    const url = queryParams.toString() ? `/promotions?${queryParams.toString()}` : '/promotions';
+    console.log('🌐 getAllPromotions URL:', url);
+    console.log('🌐 getAllPromotions params:', params);
+    return request('GET', url);
+  },
+  getPromotionById: (id) => request('GET', `/promotions/${id}`),
+  createPromotion: (data) => request('POST', '/promotions', data),
+  updatePromotion: (id, data) => request('PUT', `/promotions/${id}`, data),
+  deletePromotion: (id) => request('DELETE', `/promotions/${id}`),
+  togglePromotionActive: (id, active) => request('PATCH', `/promotions/${id}/toggle-active`, { active }),
+  
+  // Statistics
+  getPromotionStats: (id, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    return request('GET', `/promotions/${id}/stats?${queryParams.toString()}`);
+  },
+  getPromotionUsage: (id, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    const queryString = queryParams.toString();
+    const url = queryString ? `/promotions/${id}/usage?${queryString}` : `/promotions/${id}/usage`;
+    return request('GET', url);
+  },
+  getPromotionSummary: (date) => {
+    const queryParams = new URLSearchParams();
+    if (date) queryParams.append('date', date);
+    return request('GET', `/promotions/summary?${queryParams.toString()}`);
+  },
 };

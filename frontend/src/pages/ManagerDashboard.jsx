@@ -445,6 +445,28 @@ export default function ManagerDashboard() {
 
           {/* Right: Action Buttons */}
           <div className="flex flex-wrap gap-3 justify-end">
+            {/* Nút Quản lý Nhân viên */}
+            <button
+              onClick={() => navigate('/employees')}
+              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span>Quản lý Nhân viên</span>
+            </button>
+
+            {/* Nút Quản lý Khuyến mãi */}
+            <button
+              onClick={() => navigate('/promotion-management')}
+              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <span>Quản lý Khuyến mãi</span>
+            </button>
+
             {/* Nút Quản lý Khu vực */}
             <button
               onClick={() => navigate('/areas')}
@@ -600,7 +622,7 @@ export default function ManagerDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             )},
-            { id: 'shifts', name: 'Quản lý ca', icon: (
+            { id: 'shifts', name: 'Ca làm', icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -899,9 +921,18 @@ export default function ManagerDashboard() {
 
       {activeTab === 'shifts' && (
         <ShiftManagement
+          key={`${timeRange}-${customStartDate}-${customEndDate}-${customDate}`}
           timeRange={timeRange}
-          customStartDate={getTimeRangeParams(timeRange, customDate).startDate}
-          customEndDate={getTimeRangeParams(timeRange, customDate).endDate}
+          customStartDate={
+            timeRange === 'custom' 
+              ? customStartDate 
+              : getTimeRangeParams(timeRange, customDate).startDate
+          }
+          customEndDate={
+            timeRange === 'custom' 
+              ? customEndDate 
+              : getTimeRangeParams(timeRange, customDate).endDate
+          }
         />
       )}
 
@@ -1013,60 +1044,34 @@ export default function ManagerDashboard() {
             
             return filteredInvoices && filteredInvoices.length > 0 ? (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <div style={{ padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <svg style={{ width: '18px', height: '18px', color: '#166534' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#166534', fontWeight: '500' }}>
-                    Tổng số: {filteredInvoices.length} hóa đơn
-                  </p>
+              {/* Pagination info */}
+              <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                <div className="text-sm text-gray-700">
+                  <span>
+                    Hiển thị {Math.min((invoicePage - 1) * invoicesPerPage + 1, filteredInvoices.length)} - {Math.min(invoicePage * invoicesPerPage, filteredInvoices.length)} trong tổng số {filteredInvoices.length} hóa đơn
+                  </span>
                 </div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => setInvoicePage(prev => Math.max(1, prev - 1))}
+                    onClick={() => setInvoicePage(p => Math.max(1, p - 1))}
                     disabled={invoicePage === 1}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: invoicePage === 1 ? '#e5e7eb' : '#3b82f6',
-                      color: invoicePage === 1 ? '#9ca3af' : 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: invoicePage === 1 ? 'not-allowed' : 'pointer',
-                      fontWeight: '500',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.2s'
-                    }}
+                    className="px-4 py-2 text-sm font-medium border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors flex items-center gap-2"
                   >
-                    <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                     <span>Trước</span>
                   </button>
-                  <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151', padding: '8px 16px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+                  <span className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg">
                     Trang {invoicePage} / {totalPages}
                   </span>
                   <button
-                    onClick={() => setInvoicePage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={invoicePage === totalPages}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: invoicePage === totalPages ? '#e5e7eb' : '#3b82f6',
-                      color: invoicePage === totalPages ? '#9ca3af' : 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: invoicePage === totalPages ? 'not-allowed' : 'pointer',
-                      fontWeight: '500',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.2s'
-                    }}
+                    onClick={() => setInvoicePage(p => Math.min(totalPages, p + 1))}
+                    disabled={invoicePage >= totalPages}
+                    className="px-4 py-2 text-sm font-medium border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors flex items-center gap-2"
                   >
                     <span>Sau</span>
-                    <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
@@ -1194,49 +1199,45 @@ export default function ManagerDashboard() {
                      }) : 'Chưa thanh toán'}
                    </td>
                    <td style={{ padding: '12px', fontSize: '14px', textAlign: 'center' }}>
-                     {invoice.status === 'PAID' ? (
-                       <div className="flex gap-2 justify-center">
-                         <button
-                           onClick={() => handleViewInvoice(invoice)}
-                           className="px-3 py-1.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-lg font-bold transition-colors shadow-sm text-xs inline-flex items-center gap-1"
-                           onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.backgroundImage='none';e.currentTarget.style.color='#c9975b';e.currentTarget.style.borderColor='#c9975b';}}
-                           onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.backgroundImage='';e.currentTarget.style.color='';e.currentTarget.style.borderColor='#c9975b';}}
-                         >
-                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                           </svg>
-                           Xem
-                         </button>
-                         <button
-                           onClick={() => handleReprintConfirm(invoice)}
-                           className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-600 rounded-lg font-bold transition-colors shadow-sm text-xs inline-flex items-center gap-1"
-                           onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.backgroundImage='none';e.currentTarget.style.color='#16a34a';e.currentTarget.style.borderColor='#16a34a';}}
-                           onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.backgroundImage='';e.currentTarget.style.color='white';e.currentTarget.style.borderColor='#16a34a';}}
-                         >
-                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                           </svg>
-                           In lại
-                         </button>
+                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                       {/* Icon mắt - luôn ở cùng một vị trí với width cố định */}
+                       <div style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                         {(invoice.status === 'PAID' || invoice.status === 'CANCELLED') ? (
+                           <button
+                             onClick={() => handleViewInvoice(invoice)}
+                             className="text-blue-600 hover:text-blue-800"
+                             title="Xem chi tiết"
+                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
+                           >
+                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                             </svg>
+                           </button>
+                         ) : null}
                        </div>
-                     ) : invoice.status === 'CANCELLED' ? (
+                       {/* Nút In lại - luôn render nhưng ẩn khi không phải PAID để giữ vị trí */}
                        <button
-                         onClick={() => handleViewInvoice(invoice)}
-                         className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white border-2 border-red-600 rounded-lg font-bold transition-colors shadow-sm text-xs inline-flex items-center gap-1"
-                         onMouseEnter={(e)=>{e.currentTarget.style.background='white';e.currentTarget.style.backgroundImage='none';e.currentTarget.style.color='#dc2626';e.currentTarget.style.borderColor='#dc2626';}}
-                         onMouseLeave={(e)=>{e.currentTarget.style.background='';e.currentTarget.style.backgroundImage='';e.currentTarget.style.color='white';e.currentTarget.style.borderColor='#dc2626';}}
+                         onClick={() => invoice.status === 'PAID' && handleReprintConfirm(invoice)}
+                         className="text-green-600 hover:text-green-800 flex items-center gap-1"
+                         title="In lại"
+                         style={{ 
+                           visibility: invoice.status === 'PAID' ? 'visible' : 'hidden',
+                           pointerEvents: invoice.status === 'PAID' ? 'auto' : 'none'
+                         }}
                        >
-                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                          </svg>
-                         Xem chi tiết
+                         <span className="text-sm">In lại</span>
                        </button>
-                     ) : (
-                       <span style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' }}>
-                         Chưa thanh toán
-                       </span>
-                     )}
+                       {/* Text cho trạng thái khác */}
+                       {invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
+                         <span style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' }}>
+                           Chưa thanh toán
+                         </span>
+                       )}
+                     </div>
                    </td>
                     </tr>
                   ))}

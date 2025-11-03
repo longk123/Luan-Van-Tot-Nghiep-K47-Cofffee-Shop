@@ -66,12 +66,12 @@ export default function Toast({
         };
       case 'info':
         return {
-          bg: 'from-blue-50 to-blue-100',
-          border: 'border-blue-200',
-          icon: 'text-blue-500',
-          iconBg: 'bg-blue-100',
-          title: 'text-blue-800',
-          message: 'text-blue-700'
+          bg: 'from-amber-50 to-orange-100',
+          border: 'border-orange-200',
+          icon: 'text-orange-500',
+          iconBg: 'bg-orange-100',
+          title: 'text-orange-800',
+          message: 'text-orange-700'
         };
       default:
         return {

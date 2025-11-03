@@ -169,6 +169,7 @@ class AnalyticsService {
       
       return shifts.map(shift => ({
         id: shift.id,
+        nhan_vien_id: shift.nhan_vien_id,
         name: shift.ten_ca_lam,
         type: shift.shift_type,
         started_at: shift.started_at,

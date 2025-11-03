@@ -6,25 +6,24 @@ const query = (text, params) => pool.query(text, params);
 export async function listAreas({ includeCounts = false }) {
   if (!includeCounts) {
     const { rows } = await query(
-      `SELECT id, ten, mo_ta, thu_tu, active, hoat_dong FROM khu_vuc WHERE active=true ORDER BY thu_tu, ten`
+      `SELECT id, ten, mo_ta, thu_tu, active FROM khu_vuc ORDER BY thu_tu, ten`
     );
     return rows;
   }
   const { rows } = await query(
-    `SELECT kv.id, kv.ten, kv.mo_ta, kv.thu_tu, kv.active, kv.hoat_dong,
+    `SELECT kv.id, kv.ten, kv.mo_ta, kv.thu_tu, kv.active,
             COUNT(b.id)::int AS total_tables,
             COUNT(NULLIF(b.trang_thai <> 'TRONG', false))::int AS occupied_or_locked,
             COUNT(NULLIF(b.trang_thai = 'TRONG', false))::int AS free_tables
      FROM khu_vuc kv
      LEFT JOIN ban b ON b.khu_vuc_id = kv.id
-     WHERE kv.active=true
      GROUP BY kv.id
      ORDER BY kv.thu_tu, kv.ten;`
   );
   return rows;
 }
 
-export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true, hoat_dong = true }) {
+export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true }) {
   // Kiểm tra thứ tự trùng
   const { rows: existing } = await query(
     `SELECT id, ten FROM khu_vuc WHERE thu_tu = $1`,
@@ -35,15 +34,15 @@ export async function createArea({ ten, mo_ta = null, thu_tu = 0, active = true,
   }
 
   const { rows } = await query(
-    `INSERT INTO khu_vuc (ten, mo_ta, thu_tu, active, hoat_dong)
-     VALUES ($1, $2, $3::int, $4, $5)
+    `INSERT INTO khu_vuc (ten, mo_ta, thu_tu, active)
+     VALUES ($1, $2, $3::int, $4)
      RETURNING *;`,
-    [ten, mo_ta, thu_tu, active, hoat_dong]
+    [ten, mo_ta, thu_tu, active]
   );
   return rows[0];
 }
 
-export async function updateArea(id, { ten, mo_ta, thu_tu, active, hoat_dong }) {
+export async function updateArea(id, { ten, mo_ta, thu_tu, active }) {
   // Kiểm tra thứ tự trùng (nếu có thay đổi thu_tu)
   if (thu_tu !== undefined && thu_tu !== null) {
     const { rows: existing } = await query(
@@ -60,11 +59,10 @@ export async function updateArea(id, { ten, mo_ta, thu_tu, active, hoat_dong }) 
      SET ten = COALESCE($2, ten),
          mo_ta = COALESCE($3, mo_ta),
          thu_tu = COALESCE($4::int, thu_tu),
-         active = COALESCE($5, active),
-         hoat_dong = COALESCE($6, hoat_dong)
+         active = COALESCE($5, active)
      WHERE id = $1
      RETURNING *;`,
-    [id, ten, mo_ta, thu_tu, active, hoat_dong]
+    [id, ten, mo_ta, thu_tu, active]
   );
   return rows[0] || null;
 }
@@ -74,24 +72,12 @@ export async function getAreaById(id) {
   return rows[0] || null;
 }
 
-export async function toggleAreaStatus(id) {
-  // Kiểm tra khu vực có tồn tại và đang active không
-  const area = await getAreaById(id);
-  if (!area || !area.active) {
-    throw new Error('Không tìm thấy khu vực');
-  }
 
-  const { rows } = await query(
-    `UPDATE khu_vuc SET hoat_dong = NOT hoat_dong WHERE id=$1 RETURNING *`,
-    [id]
-  );
-  return rows[0];
-}
 
-export async function deleteAreaSoft(id) {
-  // Kiểm tra khu vực có tồn tại và đang active không
+export async function deleteAreaHard(id) {
+  // Kiểm tra khu vực có tồn tại không
   const area = await getAreaById(id);
-  if (!area || !area.active) {
+  if (!area) {
     throw new Error('Không tìm thấy khu vực');
   }
 
@@ -105,11 +91,34 @@ export async function deleteAreaSoft(id) {
     throw new Error(`Không thể xóa khu vực có bàn đang dùng: ${tableNames}`);
   }
 
+  // Kiểm tra có bàn nào thuộc khu vực này không
+  const { rows: tables } = await query(
+    `SELECT COUNT(*) as count FROM ban WHERE khu_vuc_id = $1`,
+    [id]
+  );
+  if (tables[0].count > 0) {
+    throw new Error(`Không thể xóa khu vực có ${tables[0].count} bàn. Vui lòng xóa hoặc chuyển bàn sang khu vực khác trước.`);
+  }
+
   const { rows } = await query(
-    `UPDATE khu_vuc SET active=false WHERE id=$1 RETURNING id`,
+    `DELETE FROM khu_vuc WHERE id=$1 RETURNING id`,
     [id]
   );
   return !!rows[0];
+}
+
+export async function toggleAreaActive(id) {
+  // Kiểm tra khu vực có tồn tại không
+  const area = await getAreaById(id);
+  if (!area) {
+    throw new Error('Không tìm thấy khu vực');
+  }
+
+  const { rows } = await query(
+    `UPDATE khu_vuc SET active = NOT active WHERE id=$1 RETURNING *`,
+    [id]
+  );
+  return rows[0];
 }
 
 export async function listTablesByArea(areaId) {

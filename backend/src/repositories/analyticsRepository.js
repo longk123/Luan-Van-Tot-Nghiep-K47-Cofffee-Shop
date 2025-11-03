@@ -348,6 +348,7 @@ export default {
     const sql = `
       SELECT
         ca.id,
+        ca.nhan_vien_id,
         ca.shift_type,
         ca.started_at,
         ca.closed_at,

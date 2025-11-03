@@ -112,6 +112,7 @@ export default {
       LEFT JOIN open_order oo ON oo.ban_id = b.id
       LEFT JOIN last_paid lp ON lp.ban_id = b.id
       WHERE ${where}
+        AND (kv.active = true OR kv.active IS NULL)
       ORDER BY kv.thu_tu, b.ten_ban
     `;
     const { rows } = await pool.query(sql, params);

@@ -116,8 +116,8 @@ export default function ShiftDetailModal({ shift, onClose }) {
               onClick={() => setActiveTab('summary')}
               className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
                 activeTab === 'summary'
-                  ? 'border-[#c9975b] text-[#c9975b]'
-                  : 'border-transparent text-gray-600 hover:text-[#c9975b]'
+                  ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] rounded-t-lg'
+                  : 'border-transparent text-gray-600 hover:bg-[#f5ebe0] hover:text-[#c9975b] rounded-t-lg'
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,8 +132,8 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 onClick={() => setActiveTab('payments')}
                 className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
                   activeTab === 'payments'
-                    ? 'border-[#c9975b] text-[#c9975b]'
-                    : 'border-transparent text-gray-600 hover:text-[#c9975b]'
+                    ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] rounded-t-lg'
+                    : 'border-transparent text-gray-600 hover:bg-[#f5ebe0] hover:text-[#c9975b] rounded-t-lg'
                 }`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,8 +148,8 @@ export default function ShiftDetailModal({ shift, onClose }) {
               onClick={() => setActiveTab('orders')}
               className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
                 activeTab === 'orders'
-                  ? 'border-[#c9975b] text-[#c9975b]'
-                  : 'border-transparent text-gray-600 hover:text-[#c9975b]'
+                  ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] rounded-t-lg'
+                  : 'border-transparent text-gray-600 hover:bg-[#f5ebe0] hover:text-[#c9975b] rounded-t-lg'
               }`}
             >
               {report.shift_type === 'KITCHEN' ? (
@@ -223,16 +223,16 @@ export default function ShiftDetailModal({ shift, onClose }) {
                   </div>
                 </div>
               ) : (
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
+                <div className="bg-gradient-to-br from-[#fef7ed] to-[#fffbf5] rounded-lg p-4 border border-[#d4a574]">
                   <h3 className="font-semibold text-gray-900 mb-3">Hiệu suất pha chế</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white rounded-lg p-4 shadow-sm">
                       <div className="text-sm text-gray-600 mb-1">Món đã làm</div>
-                      <div className="text-3xl font-bold text-blue-600">{shift.stats?.total_items_made || 0}</div>
+                      <div className="text-3xl font-bold text-[#c9975b]">{shift.stats?.total_items_made || 0}</div>
                     </div>
                     <div className="bg-white rounded-lg p-4 shadow-sm">
                       <div className="text-sm text-gray-600 mb-1">Thời gian TB/món</div>
-                      <div className="text-3xl font-bold text-cyan-600">
+                      <div className="text-3xl font-bold text-[#c9975b]">
                         {shift.stats?.avg_prep_time_seconds
                           ? `${Math.round(shift.stats.avg_prep_time_seconds / 60)}m`
                           : '--'}
@@ -298,23 +298,23 @@ export default function ShiftDetailModal({ shift, onClose }) {
                   </div>
                   <div className="text-2xl font-bold text-green-700">{formatCurrency(report.cash_amount)}</div>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-[#fef7ed] border border-[#d4a574] rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-[#c9975b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     <div className="text-sm text-gray-600 font-semibold">Thẻ</div>
                   </div>
-                  <div className="text-2xl font-bold text-blue-700">{formatCurrency(report.card_amount)}</div>
+                  <div className="text-2xl font-bold text-[#c9975b]">{formatCurrency(report.card_amount)}</div>
                 </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="bg-[#fef7ed] border border-[#d4a574] rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-[#c9975b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                     <div className="text-sm text-gray-600 font-semibold">Online</div>
                   </div>
-                  <div className="text-2xl font-bold text-purple-700">{formatCurrency(report.online_amount)}</div>
+                  <div className="text-2xl font-bold text-[#c9975b]">{formatCurrency(report.online_amount)}</div>
                 </div>
               </div>
             </div>
@@ -480,13 +480,13 @@ export default function ShiftDetailModal({ shift, onClose }) {
         <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+            className="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-300 hover:text-white hover:border-gray-300 transition-all duration-200 font-semibold"
           >
             Đóng
           </button>
           <button
             onClick={() => window.open(`/shift-report-print?shiftId=${shift.id}`, '_blank')}
-            className="px-4 py-2 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white rounded-lg hover:shadow-lg transition-all"
+            className="px-4 py-2 bg-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-white hover:text-green-600 transition-all duration-200 font-semibold"
           >
             <span className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -112,6 +112,9 @@ app.use('/api/v1/batch-inventory', batchInventoryRouter);
 import uploadRouter from './src/routes/upload.js'; // <— router upload files (Supabase)
 app.use('/api/v1/upload', uploadRouter);
 
+import promotionsRouter from './src/routes/promotions.js'; // <— router quản lý khuyến mãi
+app.use('/api/v1/promotions', promotionsRouter);
+
 import paymentSuccessRouter from './src/routes/paymentSuccess.js'; // <— router payment redirect
 app.use('/', paymentSuccessRouter);
 

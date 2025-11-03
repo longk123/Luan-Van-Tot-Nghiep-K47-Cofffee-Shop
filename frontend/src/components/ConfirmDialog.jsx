@@ -12,8 +12,8 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
       hover: 'from-amber-700 to-amber-800'
     },
     info: {
-      bg: 'from-blue-500 to-blue-600',
-      hover: 'from-blue-600 to-blue-700'
+      bg: 'from-[#d4a574] via-[#c9975b] to-[#d4a574]',
+      hover: 'from-[#c9975b] via-[#b8874f] to-[#c9975b]'
     },
     success: {
       bg: 'from-green-500 to-green-600',

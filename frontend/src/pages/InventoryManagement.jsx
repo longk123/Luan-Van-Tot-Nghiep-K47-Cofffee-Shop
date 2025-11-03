@@ -817,21 +817,13 @@ export default function InventoryManagement() {
                               <td className="px-4 py-3 text-center">
                                 <button
                                   onClick={() => handlePrintImportReceipt(item.id)}
-                                  className="inline-flex px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs border-2 border-purple-600 rounded hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-purple-600 hover:shadow-lg font-semibold transition-all duration-200 items-center gap-1"
+                                  className="text-green-600 hover:text-green-800 flex items-center gap-1 justify-center"
                                   title="In phiếu nhập"
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundImage = 'none';
-                                    e.currentTarget.style.backgroundColor = 'white';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundImage = '';
-                                    e.currentTarget.style.backgroundColor = '';
-                                  }}
                                 >
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                   </svg>
-                                  In phiếu
+                                  <span className="text-sm">In phiếu</span>
                                 </button>
                               </td>
                             </tr>

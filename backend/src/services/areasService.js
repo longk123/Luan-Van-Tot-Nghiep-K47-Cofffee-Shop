@@ -1,5 +1,5 @@
 // src/services/areasService.js
-import { listAreas, createArea, updateArea, deleteAreaSoft, getAreaById, listTablesByArea, toggleAreaStatus } from '../repositories/areasRepository.js';
+import { listAreas, createArea, updateArea, deleteAreaHard, getAreaById, listTablesByArea, toggleAreaActive } from '../repositories/areasRepository.js';
 
 export default {
   list: (opts) => listAreas(opts),
@@ -13,17 +13,18 @@ export default {
     }
     return updateArea(id, payload);
   },
-  async toggleStatus(id) {
-    return toggleAreaStatus(id);
-  },
   async remove(id) {
-    const ok = await deleteAreaSoft(id);
+    const ok = await deleteAreaHard(id);
     if (!ok) {
       const err = new Error('Không tìm thấy khu vực');
       err.status = 404;
       throw err;
     }
     return true;
+  },
+
+  async toggleActive(id) {
+    return toggleAreaActive(id);
   },
 
   tablesByArea: (id) => listTablesByArea(id),

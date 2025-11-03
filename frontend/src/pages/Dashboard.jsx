@@ -101,8 +101,10 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   async function loadAreas() {
     const res = await api.get('/areas');
     const data = res?.data || res || [];
-    setAreas(data);
-    if (!activeArea && data.length) setActiveArea(data[0].id);
+    // Chỉ lấy các khu vực đang active cho cashier dashboard
+    const activeAreas = data.filter(a => a.active !== false);
+    setAreas(activeAreas);
+    if (!activeArea && activeAreas.length) setActiveArea(activeAreas[0].id);
   }
 
   async function loadTables() {
@@ -214,16 +216,23 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     }
   }, [shift?.id]);
 
-  // Group tables by area
+  // Group tables by area - chỉ hiển thị areas active (backend đã filter bàn của area inactive)
   const tablesByArea = useMemo(() => {
     const map = new Map();
+    // Chỉ map các areas đang active (backend đã đảm bảo chỉ trả về bàn của area active)
     areas.forEach((a) => map.set(a.id, { ...a, tables: [] }));
     tables.forEach((t) => {
       const key = t.khu_vuc_id || 0;
-      if (!map.has(key)) map.set(key, { id: key, ten: t.khu_vuc || "Khác", tables: [] });
+      if (!map.has(key)) {
+        // Fallback cho trường hợp đặc biệt (không nên xảy ra nếu backend filter đúng)
+        map.set(key, { id: key, ten: t.khu_vuc_ten || t.khu_vuc || "Khác", tables: [] });
+      }
       map.get(key).tables.push(t);
     });
-    return Array.from(map.values()).sort((a, b) => (a.thu_tu || 0) - (b.thu_tu || 0));
+    // Chỉ trả về areas có bàn
+    return Array.from(map.values())
+      .filter(area => area.tables.length > 0)
+      .sort((a, b) => (a.thu_tu || 0) - (b.thu_tu || 0));
   }, [areas, tables]);
 
   // Current area tables

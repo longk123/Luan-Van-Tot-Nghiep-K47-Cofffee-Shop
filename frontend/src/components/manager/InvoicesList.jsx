@@ -93,7 +93,7 @@ export default function InvoicesList() {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c9975b]"></div>
         </div>
       </div>
     );
@@ -271,7 +271,7 @@ export default function InvoicesList() {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => window.open(`/api/v1/hoa-don/${invoice.id}`, '_blank')}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="text-[#c9975b] hover:text-[#b8874f]"
                       title="Xem hóa đơn"
                     >
                       <Eye className="h-4 w-4" />

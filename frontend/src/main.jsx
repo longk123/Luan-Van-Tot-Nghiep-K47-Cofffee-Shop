@@ -14,6 +14,8 @@ import ManagerDashboard from './pages/ManagerDashboard.jsx'
 import InventoryManagement from './pages/InventoryManagement.jsx'
 import MenuManagement from './pages/MenuManagement.jsx'
 import AreaTableManagement from './pages/AreaTableManagement.jsx'
+import EmployeeManagement from './pages/EmployeeManagement.jsx'
+import PromotionManagement from './pages/PromotionManagement.jsx'
 import RoleGuard from './components/RoleGuard.jsx'
 import ShiftReportPrint from './components/manager/ShiftReportPrint.jsx'
 
@@ -57,6 +59,22 @@ const router = createBrowserRouter([
     element: (
       <RoleGuard allowedRoles={['manager', 'admin']}>
         <AreaTableManagement />
+      </RoleGuard>
+    )
+  },
+  {
+    path: '/employees',
+    element: (
+      <RoleGuard allowedRoles={['manager', 'admin']}>
+        <EmployeeManagement />
+      </RoleGuard>
+    )
+  },
+  {
+    path: '/promotion-management',
+    element: (
+      <RoleGuard allowedRoles={['manager', 'admin']}>
+        <PromotionManagement />
       </RoleGuard>
     )
   },

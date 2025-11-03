@@ -178,7 +178,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#c9975b]"></div>
         <div className="text-gray-600 font-medium">Đang tải báo cáo lợi nhuận...</div>
       </div>
     );
@@ -227,8 +227,8 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
               onClick={() => setActiveView('summary')}
                className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
                  activeView === 'summary'
-                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
-                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+                   ? 'bg-[#c9975b] text-white border-[#c9975b] hover:bg-white hover:text-[#c9975b]'
+                   : 'bg-white text-[#c9975b] border-[#c9975b] hover:bg-[#c9975b] hover:text-white'
                }`}
             >
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -240,8 +240,8 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
               onClick={() => setActiveView('chart')}
                className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
                  activeView === 'chart'
-                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
-                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+                   ? 'bg-[#c9975b] text-white border-[#c9975b] hover:bg-white hover:text-[#c9975b]'
+                   : 'bg-white text-[#c9975b] border-[#c9975b] hover:bg-[#c9975b] hover:text-white'
                }`}
             >
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -253,8 +253,8 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
               onClick={() => setActiveView('items')}
                className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
                  activeView === 'items'
-                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
-                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+                   ? 'bg-[#c9975b] text-white border-[#c9975b] hover:bg-white hover:text-[#c9975b]'
+                   : 'bg-white text-[#c9975b] border-[#c9975b] hover:bg-[#c9975b] hover:text-white'
                }`}
             >
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -266,8 +266,8 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
               onClick={() => setActiveView('categories')}
                className={`group px-4 py-2 rounded-lg font-medium border transition-colors flex items-center gap-2 ${
                  activeView === 'categories'
-                   ? 'bg-blue-600 text-white border-blue-600 hover:bg-white hover:text-blue-600'
-                   : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white'
+                   ? 'bg-[#c9975b] text-white border-[#c9975b] hover:bg-white hover:text-[#c9975b]'
+                   : 'bg-white text-[#c9975b] border-[#c9975b] hover:bg-[#c9975b] hover:text-white'
                }`}
             >
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -288,11 +288,19 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
             </button>
           </div>
         </div>
+        {startDate && endDate && (
+          <div className="mt-3 text-xs text-gray-500 bg-blue-50 px-3 py-2 rounded-lg inline-flex items-center gap-2">
+            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>Hiển thị báo cáo từ {startDate} đến {endDate}</span>
+          </div>
+        )}
       </div>
 
       {/* Comparison Cards */}
       {activeView === 'summary' && comparison && (
-         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md p-6 mb-6">
+         <div className="bg-gradient-to-r from-[#fef7ed] to-[#fffbf5] rounded-xl shadow-md p-6 mb-6">
            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -300,7 +308,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                </svg>
                <span>So sánh với {getPeriodName()}</span>
              </h3>
-            <div className="text-sm bg-white px-3 py-1 rounded-lg border border-blue-200">
+            <div className="text-sm bg-white px-3 py-1 rounded-lg border border-[#d4a574]">
               <span className="text-gray-600">Kỳ trước:</span>{' '}
               <span className="font-medium text-gray-800">{comparison.previous.startDate} → {comparison.previous.endDate}</span>
             </div>
@@ -592,7 +600,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
       <div className="bg-white rounded-lg shadow p-4">
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="group flex items-center gap-2 text-blue-600 border border-blue-600 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-colors font-medium"
+          className="group flex items-center gap-2 text-[#c9975b] border border-[#c9975b] px-4 py-2 rounded-lg hover:bg-[#c9975b] hover:text-white transition-colors font-medium"
         >
           <span>{showDetails ? 'Ẩn' : 'Xem'} chi tiết đơn hàng</span>
           <svg 

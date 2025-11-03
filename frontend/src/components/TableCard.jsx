@@ -136,7 +136,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               <button
                 onClick={() => setUnlockConfirm(true)}
                 title="Mở khóa bàn"
-                className="flex-1 px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-2 border-amber-400 rounded-xl text-xs font-bold hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
+                className="flex-1 px-3 py-2.5 bg-white text-orange-600 border-2 border-orange-600 rounded-xl text-xs font-semibold hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -149,7 +149,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   setShowReasonDialog(true);
                 }}
                 title="Xem lý do khóa"
-                className="px-3 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-2 border-blue-400 rounded-xl text-xs font-bold hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
+                className="px-3 py-2.5 bg-white text-blue-600 border-2 border-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -167,7 +167,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                 <button
                   onClick={() => setShowReservationInfo(true)}
                   title="Thông tin xác nhận"
-                  className="px-3 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-2 border-indigo-400 rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-1.5"
+                  className="px-3 py-2 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl text-xs font-semibold hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center gap-1.5"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -189,7 +189,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                     }
                   }}
                   title="Tạo đơn hàng"
-                  className="w-full px-3 py-2.5 bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-600 hover:from-emerald-700 hover:via-green-700 hover:to-emerald-700 hover:shadow-xl hover:-translate-y-0.5 text-white rounded-xl text-xs font-semibold text-center transition-all duration-300 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5"
+                  className="w-full px-3 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -208,7 +208,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                     handleCardClick();
                   }}
                   title="Tạo đơn hàng mới"
-                  className="w-full px-3 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-300 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-xl hover:-translate-y-0.5"
+                  className="w-full px-3 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -251,7 +251,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                 handleCardClick();
               }}
               title="Xem đơn hàng và thanh toán"
-              className="w-full px-3 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-300 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-xl hover:-translate-y-0.5"
+              className="w-full px-3 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -269,7 +269,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   handleCardClick();
                 }}
                 title="Xem chi tiết đơn hàng"
-                className="flex-1 px-2.5 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:-translate-y-0.5"
+                className="flex-1 px-2.5 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -283,7 +283,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   <button
                     onClick={() => setCleanConfirm(true)}
                     title="Dọn bàn"
-                    className="flex-1 px-2.5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 hover:shadow-xl hover:-translate-y-0.5 text-white rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center"
+                    className="flex-1 px-2.5 py-2.5 bg-white text-green-600 border-2 border-green-600 rounded-xl text-xs font-semibold hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -295,7 +295,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                       setShowLockDialog(true);
                     }}
                     title="Khóa bàn"
-                    className="flex-1 px-2.5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 hover:shadow-xl hover:-translate-y-0.5 text-white rounded-xl text-xs font-semibold transition-all duration-300 outline-none focus:outline-none shadow-lg flex items-center justify-center"
+                    className="flex-1 px-2.5 py-2.5 bg-white text-red-600 border-2 border-red-600 rounded-xl text-xs font-semibold hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

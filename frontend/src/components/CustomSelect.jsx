@@ -52,10 +52,10 @@ export default function CustomSelect({
         disabled={disabled}
         className={`
           w-full px-4 py-2 bg-white border-2 border-gray-300 rounded-lg 
-          focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium
+          focus:outline-none focus:ring-2 focus:ring-[#c9975b] font-medium
           text-left flex items-center justify-between
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-gray-400'}
-          ${isOpen ? 'border-blue-500' : ''}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#c9975b]'}
+          ${isOpen ? 'border-[#c9975b]' : ''}
         `}
       >
         <span className="truncate">
@@ -80,8 +80,8 @@ export default function CustomSelect({
               type="button"
               onClick={() => handleSelect(option)}
               className={`
-                w-full px-4 py-2 text-left hover:bg-blue-50 transition-colors
-                ${option.value === value ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700'}
+                w-full px-4 py-2 text-left hover:bg-[#f5e6d3] transition-colors
+                ${option.value === value ? 'bg-[#fef7ed] text-[#c9975b] font-semibold' : 'text-gray-700'}
                 ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
               disabled={option.disabled}

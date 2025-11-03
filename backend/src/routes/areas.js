@@ -45,16 +45,16 @@ router.put('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// PATCH /api/v1/areas/:id/toggle-status (toggle hoat_dong)
-router.patch('/:id/toggle-status', async (req, res, next) => {
+// PATCH /api/v1/areas/:id/toggle-active (toggle active status)
+router.patch('/:id/toggle-active', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    const area = await service.toggleStatus(id);
+    const area = await service.toggleActive(id);
     res.json({ ok: true, data: area });
   } catch (e) { next(e); }
 });
 
-// DELETE /api/v1/areas/:id (soft delete -> active=false)
+// DELETE /api/v1/areas/:id (hard delete)
 router.delete('/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
