@@ -205,19 +205,19 @@ export default function ShiftDetailModal({ shift, onClose }) {
                   <h3 className="font-semibold text-gray-900 mb-3">Thống kê đơn hàng</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white rounded-lg p-3">
-                      <div className="text-sm text-gray-600">Tổng đơn</div>
+                      <div className="text-sm text-gray-600">Đơn đã thanh toán</div>
                       <div className="text-2xl font-bold text-blue-600">{report.total_orders || 0}</div>
                     </div>
                     <div className="bg-white rounded-lg p-3">
-                      <div className="text-sm text-gray-600">Doanh thu gộp</div>
+                      <div className="text-sm text-gray-600">Tổng tạm tính</div>
                       <div className="text-lg font-bold text-gray-900">{formatCurrency(report.gross_amount)}</div>
                     </div>
                     <div className="bg-white rounded-lg p-3">
-                      <div className="text-sm text-gray-600">Giảm giá</div>
+                      <div className="text-sm text-gray-600">Tổng giảm giá</div>
                       <div className="text-lg font-bold text-orange-600">-{formatCurrency(report.discount_amount)}</div>
                     </div>
                     <div className="bg-white rounded-lg p-3">
-                      <div className="text-sm text-gray-600">Doanh thu thuần</div>
+                      <div className="text-sm text-gray-600">Doanh thu</div>
                       <div className="text-lg font-bold text-green-600">{formatCurrency(report.net_amount)}</div>
                     </div>
                   </div>

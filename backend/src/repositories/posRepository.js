@@ -575,10 +575,14 @@ export default {
         b.ten_ban,
         kv.ten AS khu_vuc_ten,
         u.full_name AS nhan_vien_ten,
-        -- Tổng tiền đơn hàng
-        COALESCE(SUM(ct.so_luong * ct.don_gia - COALESCE(ct.giam_gia, 0)), 0) AS tong_tien,
+        -- Tổng tiền đơn hàng: dùng grand_total từ v_order_settlement để bao gồm topping và discount
+        -- Đơn đã hủy (CANCELLED) sẽ hiển thị 0 ₫
+        CASE 
+          WHEN dh.trang_thai = 'CANCELLED' THEN 0
+          ELSE COALESCE(settlement.grand_total, 0)
+        END AS tong_tien,
         -- Số lượng món
-        COUNT(ct.id) AS so_mon,
+        (SELECT COUNT(*) FROM don_hang_chi_tiet WHERE don_hang_id = dh.id) AS so_mon,
         -- Thông tin thanh toán
         CASE 
           WHEN dh.trang_thai = 'PAID' THEN 'Đã thanh toán'
@@ -595,24 +599,11 @@ export default {
       LEFT JOIN ban b ON b.id = dh.ban_id
       LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
       LEFT JOIN users u ON u.user_id = dh.nhan_vien_id
-      LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+      LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
       WHERE 
-        -- Đơn đã thanh toán (PAID): lọc theo thời gian thanh toán (closed_at) trong khoảng ca
-        (dh.trang_thai = 'PAID' 
-         AND dh.closed_at >= (SELECT started_at FROM ca_lam WHERE id = $1)
-         AND dh.closed_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1))
-        OR
-        -- Đơn chưa thanh toán (OPEN): hiển thị tất cả đơn mở trước hoặc trong ca hiện tại
-        -- (đơn được tạo trước khi ca kết thúc và chưa bị đóng/hủy)
-        (dh.trang_thai = 'OPEN'
-         AND dh.opened_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1))
-        OR
-        -- Đơn đã hủy (CANCELLED): lọc theo thời gian hủy (closed_at) trong khoảng ca
-        (dh.trang_thai = 'CANCELLED'
-         AND dh.closed_at >= (SELECT started_at FROM ca_lam WHERE id = $1)
-         AND dh.closed_at <= (SELECT COALESCE(ended_at, NOW()) FROM ca_lam WHERE id = $1))
-      GROUP BY dh.id, dh.ban_id, dh.order_type, dh.trang_thai, dh.opened_at, 
-               dh.closed_at, dh.ly_do_huy, b.ten_ban, kv.ten, u.full_name
+        -- Filter theo ca_lam_id để đồng bộ với tab "Tổng quan"
+        dh.ca_lam_id = $1
+        -- Vẫn hiển thị đơn đã hủy (nhưng tong_tien = 0)
       ORDER BY 
         CASE 
           WHEN dh.trang_thai = 'PAID' THEN dh.closed_at

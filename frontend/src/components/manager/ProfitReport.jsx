@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import * as XLSX from 'xlsx';
+import ExportButtons from '../reports/ExportButtons.jsx';
 
 export default function ProfitReport({ startDate: propStartDate, endDate: propEndDate, timeRange = 'custom' }) {
   const [loading, setLoading] = useState(false);
@@ -276,16 +277,18 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                <span>Theo danh mục</span>
             </button>
 
-            {/* Export Button */}
-            <button
-               onClick={exportToExcel}
-               className="group px-4 py-2 rounded-lg font-medium border border-green-600 bg-green-600 text-white hover:bg-white hover:text-green-600 transition-colors flex items-center gap-2"
-            >
-               <svg className="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Xuất Excel
-            </button>
+            {/* Export Buttons */}
+            <ExportButtons 
+              reportType="profit"
+              data={reportData}
+              filters={{ startDate, endDate }}
+              disabled={!reportData}
+              onExport={async (format) => {
+                if (format === 'excel') {
+                  exportToExcel(); // Use existing Excel export
+                }
+              }}
+            />
           </div>
         </div>
         {startDate && endDate && (

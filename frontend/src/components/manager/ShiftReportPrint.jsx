@@ -127,19 +127,19 @@ export default function ShiftReportPrint() {
             <h3 className="text-lg font-bold text-gray-900 mb-3 border-b border-gray-300 pb-2">THỐNG KÊ ĐƠN HÀNG</h3>
             <div className="grid grid-cols-4 gap-4">
               <div className="border border-gray-300 rounded p-3 text-center">
-                <p className="text-sm text-gray-600">Tổng đơn</p>
+                <p className="text-sm text-gray-600">Đơn đã thanh toán</p>
                 <p className="text-2xl font-bold text-blue-600">{report.total_orders || 0}</p>
               </div>
               <div className="border border-gray-300 rounded p-3 text-center">
-                <p className="text-sm text-gray-600">Doanh thu gộp</p>
-                <p className="text-lg font-bold">{formatCurrency(report.gross_amount)}</p>
+                <p className="text-sm text-gray-600">Tổng tạm tính</p>
+                <p className="text-lg font-bold text-gray-900">{formatCurrency(report.gross_amount)}</p>
               </div>
               <div className="border border-gray-300 rounded p-3 text-center">
-                <p className="text-sm text-gray-600">Giảm giá</p>
+                <p className="text-sm text-gray-600">Tổng giảm giá</p>
                 <p className="text-lg font-bold text-orange-600">-{formatCurrency(report.discount_amount)}</p>
               </div>
               <div className="border border-gray-300 rounded p-3 text-center">
-                <p className="text-sm text-gray-600">Doanh thu thuần</p>
+                <p className="text-sm text-gray-600">Doanh thu</p>
                 <p className="text-lg font-bold text-green-600">{formatCurrency(report.net_amount)}</p>
               </div>
             </div>

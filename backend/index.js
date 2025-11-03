@@ -115,6 +115,9 @@ app.use('/api/v1/upload', uploadRouter);
 import promotionsRouter from './src/routes/promotions.js'; // <— router quản lý khuyến mãi
 app.use('/api/v1/promotions', promotionsRouter);
 
+import exportsRouter from './src/routes/exports.js'; // <— router export báo cáo
+app.use('/api/v1/reports', exportsRouter);
+
 import paymentSuccessRouter from './src/routes/paymentSuccess.js'; // <— router payment redirect
 app.use('/', paymentSuccessRouter);
 
