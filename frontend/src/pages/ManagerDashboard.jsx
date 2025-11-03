@@ -8,6 +8,7 @@ import { COLORS } from '../constants/colors';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { getUser } from '../auth.js';
 import BatchExpiryNotification from '../components/BatchExpiryNotification.jsx';
+import ExportButtons from '../components/reports/ExportButtons.jsx';
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -605,7 +606,7 @@ export default function ManagerDashboard() {
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-200 overflow-x-auto">
           {[
             { id: 'overview', name: 'Tổng quan', icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -636,13 +637,13 @@ export default function ManagerDashboard() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
                   : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
               }`}
             >
-              {tab.icon}
+              {typeof tab.icon === 'string' ? <span className="text-lg">{tab.icon}</span> : tab.icon}
               <span>{tab.name}</span>
             </button>
           ))}
@@ -806,12 +807,23 @@ export default function ManagerDashboard() {
 
       {activeTab === 'revenue' && (
   <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '150px', paddingBottom: '8rem' }}>
-          <h3 style={{ margin: '0 0 20px 0', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg style={{ width: '24px', height: '24px', color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-            <span>Biểu đồ doanh thu từ {getTimeRangeParams(timeRange, customDate).startDate} đến {getTimeRangeParams(timeRange, customDate).endDate}</span>
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0, color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg style={{ width: '24px', height: '24px', color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Biểu đồ doanh thu từ {getTimeRangeParams(timeRange, customDate).startDate} đến {getTimeRangeParams(timeRange, customDate).endDate}</span>
+            </h3>
+            <ExportButtons 
+              reportType="revenue"
+              data={revenueChart}
+              filters={{
+                startDate: getTimeRangeParams(timeRange, customDate).startDate,
+                endDate: getTimeRangeParams(timeRange, customDate).endDate
+              }}
+              disabled={!revenueChart}
+            />
+          </div>
           {revenueChart ? (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
@@ -1415,6 +1427,29 @@ export default function ManagerDashboard() {
                       {(invoiceDetail.totals?.subtotal_after_lines || invoiceDetail.totals?.subtotal_before_lines || selectedInvoice.total_amount || 0).toLocaleString('vi-VN')} đ
                     </span>
                   </div>
+                  
+                  {/* Giảm giá nếu có */}
+                  {invoiceDetail.totals && (
+                    <>
+                      {invoiceDetail.totals.promo_total > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#dc2626' }}>
+                          <span>Khuyến mãi:</span>
+                          <span style={{ fontWeight: '600' }}>
+                            -{invoiceDetail.totals.promo_total.toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                      )}
+                      {invoiceDetail.totals.manual_discount > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#dc2626' }}>
+                          <span>Giảm giá thủ công:</span>
+                          <span style={{ fontWeight: '600' }}>
+                            -{invoiceDetail.totals.manual_discount.toLocaleString('vi-VN')} đ
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '700', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
                     <span>TỔNG CỘNG:</span>
                     <span style={{ color: selectedInvoice.status === 'CANCELLED' ? '#dc2626' : '#8b6f47' }}>
