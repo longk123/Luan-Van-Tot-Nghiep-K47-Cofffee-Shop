@@ -1,0 +1,63 @@
+[33mcommit d6dd9551530c6d3eb0eb8dd8487d5099983f3a44[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: Coffee Shop POS <pos@coffeeshop.com>
+Date:   Mon Nov 3 23:11:08 2025 +0700
+
+    chore: Add comprehensive documentation and export functionality - Add detailed documentation files for reporting, revenue analysis, and testing - Add export functionality with Excel and PDF support - Add various fix scripts and debug tools - Add comprehensive testing guides - Add revenue and discount analysis documents
+
+ ADVANCED_REPORTS_SPEC_DETAILED.md                  | 728 [32m++++++++++++++++++[m
+ CACH_TEST_BACKEND.md                               |  61 [32m++[m
+ COMPLETE_TESTING_GUIDE.md                          | 608 [32m+++++++++++++++[m
+ DETAILED_CHECKLIST_WHAT_I_HAVE_AND_NEED.md         | 835 [32m+++++++++++++++++++++[m
+ DINH_NGHIA_DOANH_THU_GROP.md                       | 134 [32m++++[m
+ EXPORT_FUNCTIONALITY_CHECKLIST.md                  | 420 [32m+++++++++++[m
+ EXPORT_IMPLEMENTATION_COMPLETE.md                  | 352 [32m+++++++++[m
+ EXPORT_TESTING_GUIDE.md                            | 310 [32m++++++++[m
+ EXPORT_USAGE_EXAMPLE.jsx                           |  62 [32m++[m
+ FIX_TAB_DON_HANG_VS_TONG_QUAN.md                   |  69 [32m++[m
+ FRONTEND_TESTING_STEPS.md                          | 236 [32m++++++[m
+ GIAI_THICH_CHENH_LECH_TINH_TOAN.md                 | 145 [32m++++[m
+ GIAI_THICH_GIAM_GIA_DONG.md                        | 162 [32m++++[m
+ HUONG_DAN_FIX_TAB_THANH_TOAN.md                    | 141 [32m++++[m
+ NEW_FEATURES_SUMMARY.md                            | 422 [32m+++++++++++[m
+ NEXT_FEATURES_TO_IMPLEMENT.md                      | 365 [32m+++++++++[m
+ PHAN_TICH_KHAC_BIET_2_TAB.md                       | 106 [32m+++[m
+ PHASE_1_REVENUE_REPORTS_COMPLETE.md                | 348 [32m+++++++++[m
+ QUICK_TEST_GUIDE.md                                |  88 [32m+++[m
+ README_TEST.md                                     |  46 [32m++[m
+ ROLLBACK_SUMMARY.md                                |  82 [32m++[m
+ TEST_HUONG_DAN_PHASE_1.md                          | 300 [32m++++++++[m
+ TEST_NHANH.md                                      |  62 [32m++[m
+ TEST_NHANH_PHASE_1.md                              | 185 [32m+++++[m
+ TEST_REPORT_AND_ISSUES.md                          | 370 [32m+++++++++[m
+ TEST_SUMMARY.md                                    |  81 [32m++[m
+ XAC_NHAN_GIAM_GIA_DONG.md                          | 106 [32m+++[m
+ backend/debug-shift-8-calculations.cjs             | 141 [32m++++[m
+ backend/debug-shift-8-detail.cjs                   | 201 [32m+++++[m
+ backend/fix-aggregate-shift-exclude-cancelled.cjs  | 125 [32m+++[m
+ backend/fix-aggregate-shift-no-cancelled.cjs       | 121 [32m+++[m
+ backend/fix-shift-47.cjs                           |  83 [32m++[m
+ backend/fix-shift-payment-aggregation.cjs          | 130 [32m++++[m
+ backend/index.js                                   |   3 [32m+[m
+ backend/package.json                               |   1 [32m+[m
+ backend/recalculate-shift-payments.cjs             |  81 [32m++[m
+ backend/src/controllers/exportController.js        | 361 [32m+++++++++[m
+ backend/src/repositories/posRepository.js          |  31 [32m+[m[31m-[m
+ backend/src/routes/exports.js                      |  14 [32m+[m
+ backend/src/services/exportService.js              | 470 [32m++++++++++++[m
+ backend/test-export-backend.js                     | 233 [32m++++++[m
+ backend/test-export-simple.js                      | 177 [32m+++++[m
+ frontend/src/components/manager/ProfitReport.jsx   |  23 [32m+[m[31m-[m
+ .../src/components/manager/ShiftDetailModal.jsx    |   8 [32m+[m[31m-[m
+ .../src/components/manager/ShiftReportPrint.jsx    |  10 [32m+[m[31m-[m
+ frontend/src/components/reports/ExportButtons.jsx  | 129 [32m++++[m
+ frontend/src/utils/exportHelpers.js                | 116 [32m+++[m
+ 47 files changed, 9243 insertions(+), 39 deletions(-)
+
+[33mcommit d0c31778accd96433f276d5b60550c9d4c7fff26[m
+Author: Coffee Shop POS <pos@coffeeshop.com>
+Date:   Mon Nov 3 23:09:50 2025 +0700
+
+    feat: Add discount section in invoice detail modal - Display Khuyến mãi and Giảm giá thủ công between Tạm tính and TỔNG CỘNG - Show discount items only when amounts > 0 - Styled in red for visibility - Matches PDF export format
+
+ frontend/src/pages/ManagerDashboard.jsx | 53 [32m+++++++++++++++++++++++++++[m[31m------[m
+ 1 file changed, 44 insertions(+), 9 deletions(-)

@@ -6,7 +6,7 @@ class PromotionRepository {
   async getAll(filters = {}) {
     const { status, type, search, timeRange, startDate, endDate } = filters;
     console.log('📊 Repository filters:', { status, type, search, timeRange, startDate, endDate });
-    let query = 'SELECT * FROM khuyen_mai WHERE 1=1';
+    let query = 'SELECT * FROM khuyen_mai WHERE 1=1 AND (deleted_at IS NULL)'; // ✅ Filter deleted promotions
     const params = [];
     let paramIndex = 1;
 
@@ -96,7 +96,7 @@ class PromotionRepository {
   // Get promotion by ID
   async getById(id) {
     const { rows } = await pool.query(
-      'SELECT * FROM khuyen_mai WHERE id = $1',
+      'SELECT * FROM khuyen_mai WHERE id = $1 AND (deleted_at IS NULL)',
       [id]
     );
     return rows[0] || null;
@@ -105,7 +105,7 @@ class PromotionRepository {
   // Get promotion by code
   async getByCode(code) {
     const { rows } = await pool.query(
-      'SELECT * FROM khuyen_mai WHERE ma = $1',
+      'SELECT * FROM khuyen_mai WHERE ma = $1 AND (deleted_at IS NULL)',
       [code]
     );
     return rows[0] || null;
@@ -150,10 +150,11 @@ class PromotionRepository {
     return rows[0];
   }
 
-  // Delete promotion
+  // Delete promotion (soft delete)
   async delete(id) {
+    // Soft delete: SET active = false and deleted_at = NOW()
     const { rows } = await pool.query(
-      'DELETE FROM khuyen_mai WHERE id = $1 RETURNING id',
+      'UPDATE khuyen_mai SET active = false, deleted_at = NOW() WHERE id = $1 RETURNING id',
       [id]
     );
     return rows[0];

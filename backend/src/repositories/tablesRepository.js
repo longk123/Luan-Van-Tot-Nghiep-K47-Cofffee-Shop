@@ -23,6 +23,9 @@ export async function listTables({ khu_vuc, trang_thai, q }) {
   const where = [];
   const params = [];
 
+  // Filter deleted tables
+  where.push(`(b.is_deleted = false OR b.is_deleted IS NULL)`);
+
   // Support both khu_vuc (TEXT - old) and khu_vuc_id (INT - new)
   if (khu_vuc) {
     params.push(khu_vuc);
@@ -44,7 +47,7 @@ export async function listTables({ khu_vuc, trang_thai, q }) {
       kv.id AS khu_vuc_id
     FROM ban b
     LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
-    ${where.length ? "WHERE " + where.join(" AND ") : ""}
+    WHERE ${where.join(" AND ")}
     ORDER BY b.id ASC
   `;
 
@@ -53,7 +56,10 @@ export async function listTables({ khu_vuc, trang_thai, q }) {
 }
 
 export async function getTable(id) {
-  const { rows } = await pool.query("SELECT * FROM ban WHERE id=$1", [id]);
+  const { rows } = await pool.query(
+    "SELECT * FROM ban WHERE id=$1 AND (is_deleted = false OR is_deleted IS NULL)", 
+    [id]
+  );
   return rows[0] || null;
 }
 
@@ -95,6 +101,21 @@ export async function updateStatus(id, trang_thai) {
 }
 
 export async function removeTable(id) {
-  const { rows } = await pool.query("DELETE FROM ban WHERE id=$1 RETURNING id", [id]);
+  // Kiểm tra bàn có tồn tại không
+  const table = await getTable(id);
+  if (!table) {
+    return null;
+  }
+  
+  // Kiểm tra bàn có đang dùng không
+  if (table.trang_thai === 'DANG_DUNG') {
+    throw new Error('Không thể xóa bàn đang được sử dụng');
+  }
+
+  // Soft delete: SET is_deleted = true
+  const { rows } = await pool.query(
+    "UPDATE ban SET is_deleted = true, deleted_at = NOW() WHERE id=$1 RETURNING id", 
+    [id]
+  );
   return rows[0]?.id || null;
 }

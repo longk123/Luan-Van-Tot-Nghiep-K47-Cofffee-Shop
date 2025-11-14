@@ -1,5 +1,5 @@
 // src/services/areasService.js
-import { listAreas, createArea, updateArea, deleteAreaHard, getAreaById, listTablesByArea, toggleAreaActive } from '../repositories/areasRepository.js';
+import { listAreas, createArea, updateArea, deleteAreaSoft, deleteAreaHard, getAreaById, listTablesByArea, toggleAreaActive } from '../repositories/areasRepository.js';
 
 export default {
   list: (opts) => listAreas(opts),
@@ -14,7 +14,7 @@ export default {
     return updateArea(id, payload);
   },
   async remove(id) {
-    const ok = await deleteAreaHard(id);
+    const ok = await deleteAreaSoft(id); // ✅ Đổi sang soft delete
     if (!ok) {
       const err = new Error('Không tìm thấy khu vực');
       err.status = 404;

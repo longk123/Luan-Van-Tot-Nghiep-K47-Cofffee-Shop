@@ -6,7 +6,10 @@ const query = (text, params) => pool.query(text, params);
 export async function listAreas({ includeCounts = false }) {
   if (!includeCounts) {
     const { rows } = await query(
-      `SELECT id, ten, mo_ta, thu_tu, active FROM khu_vuc ORDER BY thu_tu, ten`
+      `SELECT id, ten, mo_ta, thu_tu, active 
+       FROM khu_vuc 
+       WHERE active = true 
+       ORDER BY thu_tu, ten`
     );
     return rows;
   }
@@ -16,7 +19,8 @@ export async function listAreas({ includeCounts = false }) {
             COUNT(NULLIF(b.trang_thai <> 'TRONG', false))::int AS occupied_or_locked,
             COUNT(NULLIF(b.trang_thai = 'TRONG', false))::int AS free_tables
      FROM khu_vuc kv
-     LEFT JOIN ban b ON b.khu_vuc_id = kv.id
+     LEFT JOIN ban b ON b.khu_vuc_id = kv.id AND (b.is_deleted = false OR b.is_deleted IS NULL)
+     WHERE kv.active = true
      GROUP BY kv.id
      ORDER BY kv.thu_tu, kv.ten;`
   );
@@ -74,7 +78,7 @@ export async function getAreaById(id) {
 
 
 
-export async function deleteAreaHard(id) {
+export async function deleteAreaSoft(id) {
   // Kiểm tra khu vực có tồn tại không
   const area = await getAreaById(id);
   if (!area) {
@@ -83,7 +87,7 @@ export async function deleteAreaHard(id) {
 
   // Kiểm tra có bàn đang dùng không
   const { rows: tablesInUse } = await query(
-    `SELECT id, ten_ban FROM ban WHERE khu_vuc_id = $1 AND trang_thai = 'DANG_DUNG'`,
+    `SELECT id, ten_ban FROM ban WHERE khu_vuc_id = $1 AND trang_thai = 'DANG_DUNG' AND (is_deleted = false OR is_deleted IS NULL)`,
     [id]
   );
   if (tablesInUse.length > 0) {
@@ -91,20 +95,21 @@ export async function deleteAreaHard(id) {
     throw new Error(`Không thể xóa khu vực có bàn đang dùng: ${tableNames}`);
   }
 
-  // Kiểm tra có bàn nào thuộc khu vực này không
-  const { rows: tables } = await query(
-    `SELECT COUNT(*) as count FROM ban WHERE khu_vuc_id = $1`,
-    [id]
-  );
-  if (tables[0].count > 0) {
-    throw new Error(`Không thể xóa khu vực có ${tables[0].count} bàn. Vui lòng xóa hoặc chuyển bàn sang khu vực khác trước.`);
-  }
-
+  // Soft delete: SET active = false and deleted_at = NOW()
   const { rows } = await query(
-    `DELETE FROM khu_vuc WHERE id=$1 RETURNING id`,
+    `UPDATE khu_vuc 
+     SET active = false, deleted_at = NOW() 
+     WHERE id = $1 
+     RETURNING id`,
     [id]
   );
   return !!rows[0];
+}
+
+// Giữ lại function cũ để backward compatibility (deprecated)
+export async function deleteAreaHard(id) {
+  console.warn('⚠️ deleteAreaHard is deprecated. Use deleteAreaSoft instead.');
+  return deleteAreaSoft(id);
 }
 
 export async function toggleAreaActive(id) {
