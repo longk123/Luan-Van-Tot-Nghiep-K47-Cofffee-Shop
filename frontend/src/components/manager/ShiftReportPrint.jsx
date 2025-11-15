@@ -86,7 +86,7 @@ export default function ShiftReportPrint() {
 
       {/* Header */}
       <div className="text-center border-b-2 border-gray-300 pb-4 mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">QUÁN CÀ PHÊ</h1>
+        <h1 className="text-3xl font-bold text-gray-900">DEVCOFFEE</h1>
         <p className="text-sm text-gray-600 mt-1">Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM</p>
         <p className="text-sm text-gray-600">Điện thoại: 0123 456 789</p>
         <h2 className="text-xl font-bold text-[#c9975b] mt-4">BÁO CÁO CA LÀM VIỆC</h2>

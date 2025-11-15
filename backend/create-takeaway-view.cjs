@@ -39,7 +39,7 @@ async function create() {
         json_agg(
           json_build_object(
             'id', ct.id,
-            'mon_ten', ct.ten_mon_snapshot,
+            'mon_ten', COALESCE(ct.ten_mon_snapshot, m.ten),
             'bien_the_ten', btm.ten_bien_the,
             'so_luong', ct.so_luong,
             'trang_thai_che_bien', ct.trang_thai_che_bien,
@@ -48,6 +48,7 @@ async function create() {
         ) FILTER (WHERE ct.id IS NOT NULL) AS items
       FROM don_hang dh
       LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+      LEFT JOIN mon m ON m.id = ct.mon_id
       LEFT JOIN mon_bien_the btm ON btm.id = ct.bien_the_id
       LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
       WHERE dh.order_type = 'TAKEAWAY'

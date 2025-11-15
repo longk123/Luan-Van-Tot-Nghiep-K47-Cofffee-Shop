@@ -2,6 +2,8 @@ import { useState } from "react";
 import { saveToken } from "../auth";
 import { useNavigate } from "react-router-dom";
 
+const LOGO_URL = "https://ihmvdgqgfyjyeytkmpqc.supabase.co/storage/v1/object/public/system-images/logo/logo.png?v=" + Date.now();
+
 // SVG Icon Components
 const CoffeeIcon = ({ className = "w-6 h-6" }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,6 +103,8 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  const [headerLogoError, setHeaderLogoError] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
@@ -218,24 +222,33 @@ export default function Login() {
         >
           {/* LEFT – banner */}
           <div className="hidden lg:block">
-            <div className="h-full w-full bg-gradient-to-br from-primary-100 via-primary-50 to-cream-100 p-12 lg:p-16 flex flex-col justify-center">
+            <div className="h-full w-full bg-cream-200 p-12 lg:p-16 flex flex-col justify-center">
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-2xl bg-white/70 shadow flex items-center justify-center">
-                  <CoffeeIcon className="w-8 h-8 text-primary-700" />
+                <div className="h-16 w-16 rounded-2xl bg-white/70 shadow flex items-center justify-center overflow-hidden">
+                  {logoError ? (
+                    <CoffeeIcon className="w-8 h-8 text-primary-700" />
+                  ) : (
+                    <img 
+                      src={LOGO_URL}
+                      alt="Logo quán" 
+                      className="w-full h-full object-cover"
+                      onError={() => setLogoError(true)}
+                    />
+                  )}
                 </div>
                 <div>
-                  <h1 className="text-4xl font-extrabold tracking-tight text-primary-900">
-                    Coffee<span className="text-primary-600">POS</span>
+                  <h1 className="text-4xl font-black tracking-tight">
+                    <span className="text-black">Dev</span><span className="text-[#CC7F2B]">Coffee</span>
                   </h1>
-                  <p className="text-sm text-dark-600 mt-1">Hệ thống quản lý quán cà phê</p>
+                  <p className="text-sm font-semibold text-gray-700 mt-1.5">Hệ thống quản lý quán cà phê</p>
                 </div>
               </div>
 
-              <div className="mt-10">
-                <p className="text-2xl font-semibold text-primary-900">
+              <div className="mt-12">
+                <p className="text-2xl font-bold text-gray-800">
                   Quản lý dễ dàng • Vận hành mượt mà
                 </p>
-                <p className="mt-3 max-w-md text-dark-600">
+                <p className="mt-4 max-w-md text-base font-medium text-gray-700 leading-relaxed">
                   Đồng bộ order, bếp/pha chế, thanh toán và báo cáo doanh thu theo ca.
                 </p>
               </div>
@@ -246,16 +259,25 @@ export default function Login() {
           <div className="p-8 lg:p-12">
             {/* header */}
             <div className="rounded-2xl overflow-hidden ring-1 ring-gray-100 mb-6">
-              <div className="bg-gradient-to-r from-primary-200 via-primary-100 to-cream-100 px-6 py-5">
+              <div className="bg-cream-200 px-6 py-5 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center">
-                    <CoffeeIcon className="w-5 h-5 text-primary-700" />
+                  <div className="h-10 w-10 rounded-xl bg-white/80 flex items-center justify-center overflow-hidden">
+                    {headerLogoError ? (
+                      <CoffeeIcon className="w-5 h-5 text-primary-700" />
+                    ) : (
+                      <img 
+                        src={LOGO_URL}
+                        alt="Logo quán" 
+                        className="w-full h-full object-cover"
+                        onError={() => setHeaderLogoError(true)}
+                      />
+                    )}
                   </div>
                   <div>
-                    <p className="text-xs text-dark-600 uppercase">
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
                       Đăng nhập hệ thống để quản lý dễ dàng hơn
                     </p>
-                    <h2 className="text-base font-bold text-primary-900">QUẢN LÝ QUÁN CÀ PHÊ</h2>
+                    <h2 className="text-base font-black text-gray-900 mt-0.5">QUẢN LÝ DEVCOFFEE</h2>
                   </div>
                 </div>
               </div>
@@ -273,11 +295,11 @@ export default function Login() {
                     onClick={() => setSelectedRole(r.key)}
                     aria-pressed={active}
                     className={[
-                      "group h-24 rounded-2xl border transition-all duration-200 text-left p-4 focus:outline-none focus:ring-2",
+                      "group h-24 rounded-2xl border transition-colors duration-200 text-left p-4 focus:outline-none focus:ring-2",
                       colors.focusRing,
                       active
                         ? `${colors.border} ring-2 ${colors.ring}/30 ${colors.bg}`
-                        : `border-gray-200 ${colors.hoverBorder} hover:shadow-lg hover:-translate-y-0.5 bg-white`,
+                        : `border-gray-300 ${colors.hoverBorder} hover:shadow-md bg-white`,
                     ].join(" ")}
                   >
                     <div
@@ -292,8 +314,8 @@ export default function Login() {
                     </div>
                     <div
                       className={[
-                        "mt-2 text-sm font-medium transition-colors",
-                        active ? colors.text : `text-gray-700 ${colors.hoverText}`,
+                        "mt-2 text-sm font-semibold transition-colors",
+                        active ? colors.text : `text-gray-800 ${colors.hoverText}`,
                       ].join(" ")}
                     >
                       {r.label}
@@ -306,14 +328,14 @@ export default function Login() {
             {/* form */}
             {!selectedRole ? (
               <div className="space-y-3">
-                <p className="text-center text-sm text-accent-700 bg-accent-50 rounded-xl py-2">
-                  Vui lòng chọn <b>vai trò</b> để tiếp tục.
+                <p className="text-center text-sm font-semibold text-amber-700 bg-amber-50 rounded-xl py-2.5 px-4 border border-amber-200">
+                  Vui lòng chọn <span className="font-bold">vai trò</span> để tiếp tục.
                 </p>
               </div>
             ) : (
               <>
-                <p className="text-center text-xs text-dark-500">
-                  Vai trò đã chọn: <b>{ROLES.find(r=>r.key===selectedRole)?.label}</b>
+                <p className="text-center text-xs font-semibold text-gray-700">
+                  Vai trò đã chọn: <span className="font-bold">{ROLES.find(r=>r.key===selectedRole)?.label}</span>
                 </p>
 
                 <form onSubmit={handleSubmit} className="mt-3 space-y-3">
@@ -321,7 +343,7 @@ export default function Login() {
                     <label htmlFor="username" className="sr-only">Tên đăng nhập</label>
                     <input
                       id="username"
-                      className="w-full rounded-xl border border-gray-200 px-3 py-3 outline-none focus:ring-2 focus:ring-primary-500 bg-white transition-shadow"
+                      className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white font-medium text-gray-900 placeholder:text-gray-500 transition-colors"
                       placeholder="Tên đăng nhập"
                       value={form.username}
                       onChange={(e) => setForm((v) => ({ ...v, username: e.target.value }))}
@@ -334,7 +356,7 @@ export default function Login() {
                     <input
                       id="password"
                       type={showPw ? "text" : "password"}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-3 outline-none focus:ring-2 focus:ring-primary-500 bg-white pr-12 transition-shadow"
+                      className="w-full rounded-xl border-2 border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white pr-12 font-medium text-gray-900 placeholder:text-gray-500 transition-colors"
                       placeholder="Mật khẩu"
                       value={form.password}
                       onChange={(e) => setForm((v) => ({ ...v, password: e.target.value }))}
@@ -360,7 +382,7 @@ export default function Login() {
                   </div>
 
                   {error && (
-                    <div className="text-sm text-red-600 bg-red-50 rounded-xl p-2">
+                    <div className="text-sm font-semibold text-red-700 bg-red-50 rounded-xl p-3 border border-red-200">
                       {error}
                     </div>
                   )}
@@ -368,7 +390,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading || !form.username || !form.password}
-                    className="w-full rounded-xl border-2 border-primary-600 bg-primary-600 text-white font-semibold py-2.5 transition-all duration-200 flex items-center justify-center gap-2 hover:bg-white hover:text-primary-600 hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary-600 disabled:hover:text-white disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                    className="w-full rounded-xl border-2 border-[#c9975b] bg-[#c9975b] text-white font-bold py-3 transition-colors duration-200 flex items-center justify-center gap-2 hover:bg-white hover:text-[#c9975b] hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-[#c9975b] disabled:hover:text-white disabled:hover:shadow-none"
                   >
                     {loading && (
                       <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">

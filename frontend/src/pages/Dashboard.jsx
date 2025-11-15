@@ -547,7 +547,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   <span className="whitespace-nowrap">Quay lại Manager Dashboard</span>
                 </button>
               )}
-              {/* Hàng trên: Đặt bàn, Lịch sử đơn, Đóng ca */}
+              {/* Hàng trên: Đặt bàn, Lịch sử đơn */}
               <div className="flex flex-wrap gap-3 justify-end">
                 {!isManagerViewMode && (
                   <button
@@ -574,6 +574,27 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                     <span className="whitespace-nowrap">Lịch sử đơn</span>
                   </button>
                 )}
+              </div>
+              {/* Hàng dưới: DS Đặt bàn, DS Mang đi, Đóng ca */}
+              <div className="flex flex-wrap gap-3 justify-end">
+                <button
+                  onClick={() => setShowReservationsList(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <span className="whitespace-nowrap">DS Đặt bàn</span>
+                </button>
+                <button
+                  onClick={() => window.location.href = '/takeaway'}
+                  className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <span className="whitespace-nowrap">DS Mang đi</span>
+                </button>
                 {!isManagerViewMode && (
                   shift && shift.status === 'OPEN' ? (
                     <button
@@ -597,27 +618,6 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                     </button>
                   )
                 )}
-              </div>
-              {/* Hàng dưới: DS Đặt bàn, DS Mang đi */}
-              <div className="flex flex-wrap gap-3 justify-end">
-                <button
-                  onClick={() => setShowReservationsList(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
-                >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                  <span className="whitespace-nowrap">DS Đặt bàn</span>
-                </button>
-                <button
-                  onClick={() => window.location.href = '/takeaway'}
-                  className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
-                >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                  <span className="whitespace-nowrap">DS Mang đi</span>
-                </button>
               </div>
                 </div>
               </div>

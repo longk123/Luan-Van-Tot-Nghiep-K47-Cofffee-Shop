@@ -130,6 +130,8 @@ export default function TakeawayOrders() {
   const OrderCard = ({ order }) => {
     const allDone = order.items?.every(item => item.trang_thai_che_bien === 'DONE');
     const isPaid = order.trang_thai === 'PAID';
+    const itemCount = order.items?.length || 0;
+    const hasManyItems = itemCount > 2;
 
     return (
       <div
@@ -184,14 +186,17 @@ export default function TakeawayOrders() {
           </div>
         </div>
 
-        {/* Danh sách món */}
-        <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto pr-2">
+        {/* Danh sách món - Chỉ hiển thị 2 món, scroll nếu nhiều hơn */}
+        <div className={`space-y-2 mb-4 ${hasManyItems ? 'max-h-[160px] overflow-y-auto pr-2' : ''}`}>
           {order.items?.map(item => (
             <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex-1">
-                <span className="font-semibold text-gray-900">
-                  {item.mon_ten} {item.bien_the_ten && `• ${item.bien_the_ten}`}
-                </span>
+                <div className="font-semibold text-gray-900">
+                  {(item.mon_ten || item.ten_mon || item.ten_mon_snapshot || '').trim() || 'Món không tên'}
+                  {item.bien_the_ten && (
+                    <span className="text-gray-600 font-normal ml-2">• {item.bien_the_ten}</span>
+                  )}
+                </div>
                 {item.ghi_chu && (
                   <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
                     <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
