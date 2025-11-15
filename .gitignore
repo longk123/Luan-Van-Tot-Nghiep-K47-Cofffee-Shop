@@ -43,3 +43,12 @@ coverage/
 
 # Text dump files
 *.txt
+
+# Database backups (should NOT be in git - use cloud storage instead)
+backend/backups/
+*.backup
+*.sql.backup
+*.dump
+# Allow migration SQL files (schema only, no data)
+!backend/migrate-*.sql
+!backend/*-migration.sql

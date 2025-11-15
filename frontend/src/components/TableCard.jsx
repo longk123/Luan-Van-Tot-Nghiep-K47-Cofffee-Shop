@@ -64,8 +64,49 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
     return { text: 'CHƯA TT', color: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-md' };
   };
 
+  // Lấy màu nút phù hợp với màu nền của bàn
+  const getButtonColor = () => {
+    if (table.trang_thai === 'KHOA') {
+      // Bàn KHÓA - red/rose background
+      return {
+        primary: 'bg-white text-red-600 border-red-600 hover:bg-red-600 hover:text-white hover:border-red-600',
+        secondary: 'bg-white text-red-500 border-red-500 hover:bg-red-500 hover:text-white hover:border-red-500'
+      };
+    }
+    if (hasReservation && !hasOrder) {
+      // Bàn ĐÃ ĐẶT - indigo/purple background
+      return {
+        primary: 'bg-white text-indigo-600 border-indigo-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600',
+        secondary: 'bg-white text-indigo-600 border-indigo-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600',
+        danger: 'bg-white text-red-600 border-red-600 hover:bg-red-600 hover:text-white hover:border-red-600'
+      };
+    }
+    if (!hasOrder) {
+      // Bàn TRỐNG - emerald/green/teal background
+      return {
+        primary: 'bg-white text-emerald-600 border-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600',
+        secondary: 'bg-white text-emerald-600 border-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600',
+        danger: 'bg-white text-red-600 border-red-600 hover:bg-red-600 hover:text-white hover:border-red-600'
+      };
+    }
+    if (isPaid) {
+      // Bàn ĐÃ TT - blue/sky/cyan background
+      return {
+        primary: 'bg-white text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600',
+        secondary: 'bg-white text-emerald-600 border-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600',
+        danger: 'bg-white text-red-600 border-red-600 hover:bg-red-600 hover:text-white hover:border-red-600'
+      };
+    }
+    // Bàn CHƯA TT - amber/orange/yellow background
+    return {
+      primary: 'bg-white text-amber-600 border-amber-600 hover:bg-amber-600 hover:text-white hover:border-amber-600',
+      secondary: 'bg-white text-amber-600 border-amber-600 hover:bg-amber-600 hover:text-white hover:border-amber-600'
+    };
+  };
+
   const tableStatusBadge = getTableStatusBadge();
   const paymentStatusBadge = getPaymentStatusBadge();
+  const buttonColor = getButtonColor();
 
   const handleCardClick = () => {
     if (!isLocked) {
@@ -136,7 +177,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
               <button
                 onClick={() => setUnlockConfirm(true)}
                 title="Mở khóa bàn"
-                className="flex-1 px-3 py-2.5 bg-white text-orange-600 border-2 border-orange-600 rounded-xl text-xs font-semibold hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
+                className={`flex-1 px-3 py-2.5 border-2 rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5 ${buttonColor.primary}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -149,7 +190,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   setShowReasonDialog(true);
                 }}
                 title="Xem lý do khóa"
-                className="px-3 py-2.5 bg-white text-blue-600 border-2 border-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5"
+                className={`px-3 py-2.5 border-2 rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5 ${buttonColor.secondary}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -167,7 +208,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                 <button
                   onClick={() => setShowReservationInfo(true)}
                   title="Thông tin xác nhận"
-                  className="px-3 py-2 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl text-xs font-semibold hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center gap-1.5"
+                  className={`px-3 py-2 border-2 rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center gap-1.5 ${buttonColor.primary}`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -189,7 +230,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                     }
                   }}
                   title="Tạo đơn hàng"
-                  className="w-full px-3 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
+                  className={`w-full px-3 py-2.5 border-2 rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 ${buttonColor.secondary}`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -202,18 +243,32 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
             <>
               <div className="min-h-[40px]"></div>
               {!viewOnly && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCardClick();
-                  }}
-                  title="Tạo đơn hàng mới"
-                  className="w-full px-3 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Tạo đơn
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCardClick();
+                    }}
+                    title="Tạo đơn hàng mới"
+                    className={`flex-1 px-3 py-2.5 border-2 rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 ${buttonColor.primary}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Tạo đơn
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowLockDialog(true);
+                    }}
+                    title="Khóa bàn"
+                    className={`px-3 py-2.5 border-2 rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center ${buttonColor.danger || 'bg-white text-red-600 border-red-600 hover:bg-red-600 hover:text-white hover:border-red-600'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </button>
                 </div>
               )}
             </>
@@ -251,7 +306,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                 handleCardClick();
               }}
               title="Xem đơn hàng và thanh toán"
-              className="w-full px-3 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
+              className={`w-full px-3 py-2.5 border-2 rounded-xl text-xs font-semibold text-center transition-all duration-200 cursor-pointer active:scale-95 shadow-lg flex items-center justify-center gap-1.5 ${buttonColor.primary}`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -269,7 +324,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   handleCardClick();
                 }}
                 title="Xem chi tiết đơn hàng"
-                className="flex-1 px-2.5 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]"
+                className={`flex-1 px-2.5 py-2.5 border-2 rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center gap-1.5 ${buttonColor.primary}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -283,7 +338,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   <button
                     onClick={() => setCleanConfirm(true)}
                     title="Dọn bàn"
-                    className="flex-1 px-2.5 py-2.5 bg-white text-green-600 border-2 border-green-600 rounded-xl text-xs font-semibold hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center"
+                    className={`flex-1 px-2.5 py-2.5 border-2 rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center ${buttonColor.secondary}`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -295,7 +350,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                       setShowLockDialog(true);
                     }}
                     title="Khóa bàn"
-                    className="flex-1 px-2.5 py-2.5 bg-white text-red-600 border-2 border-red-600 rounded-xl text-xs font-semibold hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center"
+                    className={`flex-1 px-2.5 py-2.5 border-2 rounded-xl text-xs font-semibold transition-all duration-200 outline-none focus:outline-none shadow-lg flex items-center justify-center ${buttonColor.danger}`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

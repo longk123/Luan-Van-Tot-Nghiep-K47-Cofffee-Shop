@@ -152,23 +152,40 @@ export default function TakeawayOrders() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+            <span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 ${
               isPaid
                 ? 'bg-green-500 text-white'
                 : 'bg-amber-500 text-white'
             }`}>
-              {isPaid ? '✓ Đã thanh toán' : '⏳ Chưa thanh toán'}
+              {isPaid ? (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Đã thanh toán
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Chưa thanh toán
+                </>
+              )}
             </span>
             {allDone && (
-              <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500 text-white">
-                ✅ Món đã xong
+              <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500 text-white flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Món đã xong
               </span>
             )}
           </div>
         </div>
 
         {/* Danh sách món */}
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto pr-2">
           {order.items?.map(item => (
             <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex-1">
@@ -176,7 +193,12 @@ export default function TakeawayOrders() {
                   {item.mon_ten} {item.bien_the_ten && `• ${item.bien_the_ten}`}
                 </span>
                 {item.ghi_chu && (
-                  <p className="text-xs text-gray-600 mt-1">📝 {item.ghi_chu}</p>
+                  <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                    <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    {item.ghi_chu}
+                  </p>
                 )}
               </div>
               <div className="flex items-center gap-3">
@@ -214,12 +236,12 @@ export default function TakeawayOrders() {
               <button
                 onClick={() => handleDeliver(order)}
                 className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white border-2 border-green-600
-                hover:bg-white hover:text-green-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
+                hover:bg-white hover:from-white hover:to-white hover:text-green-600 hover:border-green-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
-                ✓ Giao hàng
+                Giao hàng
               </button>
             ) : (
               /* Chưa thanh toán → Nút giao & thu tiền */
@@ -229,12 +251,12 @@ export default function TakeawayOrders() {
                   handleOpenOrder(order);
                 }}
                 className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white border-2 border-amber-600
-                hover:bg-white hover:text-amber-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
+                hover:bg-white hover:from-white hover:to-white hover:text-amber-600 hover:border-amber-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
-                💰 Thu tiền & Giao hàng
+                Thu tiền & Giao hàng
               </button>
             )}
           </div>
