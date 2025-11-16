@@ -716,7 +716,9 @@ export default function OrderDrawer({
               <span className="text-xs text-gray-700">
                 <span className="font-semibold">{shift.nhan_vien?.full_name}</span>
                 <span className="mx-1.5 text-gray-400">•</span>
-                <span className="text-gray-600">{new Date(shift.started_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="text-gray-600">
+                  {shift.started_at ? new Date(shift.started_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--'}
+                </span>
               </span>
             </div>
           )}
@@ -989,7 +991,7 @@ export default function OrderDrawer({
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-700">Tạm tính:</span>
             <span className="font-semibold text-gray-900">
-              {(moneySummary?.subtotal_after_lines || summary?.subtotal || 0).toLocaleString()}đ
+              {(moneySummary?.subtotal_after_lines !== undefined ? moneySummary.subtotal_after_lines : (summary?.subtotal || 0)).toLocaleString()}đ
             </span>
           </div>
           
@@ -1041,7 +1043,7 @@ export default function OrderDrawer({
           <div className="pt-2 border-t-2 border-amber-300 flex items-center justify-between mt-2">
             <span className="font-bold text-amber-900 text-base">Tổng cộng:</span>
             <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600 text-2xl">
-              {(moneySummary?.grand_total || summary?.subtotal || 0).toLocaleString()}đ
+              {(moneySummary?.grand_total !== undefined ? moneySummary.grand_total : (summary?.subtotal || 0)).toLocaleString()}đ
             </span>
           </div>
         </div>
@@ -1051,7 +1053,7 @@ export default function OrderDrawer({
           <div className="mt-4">
             <PaymentSection
               orderId={orderId}
-              grandTotal={moneySummary?.grand_total || summary?.subtotal || 0}
+              grandTotal={moneySummary?.grand_total !== undefined ? moneySummary.grand_total : (summary?.subtotal || 0)}
               isPaid={isPaid}
               refreshTrigger={moneySummary?.grand_total}
               onPaymentComplete={async () => {
@@ -1235,12 +1237,12 @@ export default function OrderDrawer({
                     });
                   }
                 }}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-3 rounded-xl border border-green-700 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
+                className="w-full bg-green-600 hover:bg-white hover:text-green-600 hover:border-green-600 text-white py-3 px-3 rounded-xl border-2 border-green-600 transition-all duration-200 font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl outline-none focus:outline-none"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
-                🧾 In hóa đơn
+                In hóa đơn
               </button>
             )}
           </div>
@@ -1319,13 +1321,13 @@ export default function OrderDrawer({
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowCancelDialog(false)}
-                  className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-all duration-200 hover:shadow-md outline-none focus:outline-none"
+                  className="flex-1 py-3 px-4 bg-gray-100 hover:bg-white hover:text-gray-700 hover:border-gray-700 text-gray-700 border-2 border-gray-300 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg outline-none focus:outline-none"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   onClick={handleCancelOrder}
-                  className="flex-1 py-3 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all duration-200 hover:shadow-lg transform hover:scale-[1.02] outline-none focus:outline-none"
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-red-600 hover:border-red-600 text-white border-2 border-red-600 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg outline-none focus:outline-none"
                 >
                   Xác nhận hủy
                 </button>
@@ -1379,7 +1381,7 @@ export default function OrderDrawer({
           ) : (
             <div className="space-y-3">
               {availablePromotions.map((promo) => {
-                const currentTotal = moneySummary?.subtotal_after_lines || summary?.subtotal || 0;
+                const currentTotal = moneySummary?.subtotal_after_lines !== undefined ? moneySummary.subtotal_after_lines : (summary?.subtotal || 0);
                 const minAmount = promo.don_hang_toi_thieu || 0;
                 const canApply = currentTotal >= minAmount;
                 const alreadyApplied = promotions.some(p => p.ma === promo.ma);

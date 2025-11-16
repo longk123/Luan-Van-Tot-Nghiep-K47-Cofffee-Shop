@@ -197,10 +197,14 @@ export default function ShiftReportPrint() {
       {isKitchen && (
         <div className="mb-6">
           <h3 className="text-lg font-bold text-gray-900 mb-3 border-b border-gray-300 pb-2">HIỆU SUẤT PHA CHẾ</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="border border-gray-300 rounded p-4 text-center">
               <p className="text-sm text-gray-600">Món đã làm</p>
               <p className="text-4xl font-bold text-blue-600">{report.kitchenStats?.total_items_made || 0}</p>
+            </div>
+            <div className="border border-gray-300 rounded p-4 text-center">
+              <p className="text-sm text-gray-600">Món bị hủy</p>
+              <p className="text-4xl font-bold text-red-600">{report.kitchenStats?.total_items_cancelled || 0}</p>
             </div>
             <div className="border border-gray-300 rounded p-4 text-center">
               <p className="text-sm text-gray-600">Thời gian TB/món</p>

@@ -23,7 +23,7 @@ export const getQueue = asyncHandler(async (req, res) => {
  */
 export const updateLineStatus = asyncHandler(async (req, res) => {
   const lineId = parseInt(req.params.id);
-  const { action } = req.body || {}; // 'start' | 'done' | 'cancel'
+  const { action, reason = null } = req.body || {}; // 'start' | 'done' | 'cancel'
   
   if (!action || !['start', 'done', 'cancel'].includes(action)) {
     return res.status(400).json({ 
@@ -32,10 +32,19 @@ export const updateLineStatus = asyncHandler(async (req, res) => {
     });
   }
   
+  // Require reason when canceling
+  if (action === 'cancel' && !reason) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Lý do hủy là bắt buộc' 
+    });
+  }
+  
   const data = await kitchenService.updateLineStatus({ 
     lineId, 
     action, 
-    userId: req.user.user_id 
+    userId: req.user.user_id,
+    reason 
   });
   
   return res.json({ success: true, data });

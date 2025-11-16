@@ -116,21 +116,48 @@ export async function getShiftSummary(shiftId) {
   let kitchenStats = null;
   if (shift.shift_type === 'KITCHEN') {
     const { pool } = await import('../db.js');
+    // Tính số món đã làm: theo maker_id + thời gian (giống như getShiftOrders cho ca KITCHEN)
     const statsResult = await pool.query(
       `SELECT 
          COUNT(*) as total_items,
-         AVG(EXTRACT(EPOCH FROM (finished_at - started_at))) as avg_seconds
-       FROM don_hang_chi_tiet
-       WHERE maker_id = $1
-         AND trang_thai_che_bien = 'DONE'
-         AND started_at >= $2
-         AND finished_at IS NOT NULL`,
-      [shift.nhan_vien_id, shift.started_at]
+         AVG(EXTRACT(EPOCH FROM (ct.finished_at - ct.started_at))) as avg_seconds
+       FROM don_hang_chi_tiet ct
+       WHERE ct.maker_id = $1
+         AND ct.trang_thai_che_bien = 'DONE'
+         AND ct.started_at >= $2
+         AND (ct.started_at < $3 OR $3 IS NULL)
+         AND ct.finished_at IS NOT NULL
+         AND ct.started_at IS NOT NULL`,
+      [shift.nhan_vien_id, shift.started_at, shift.closed_at]
+    );
+    
+    // Đếm số món bị hủy trong ca: ưu tiên theo maker_id (người hủy), fallback theo ca_lam_id nếu maker_id NULL
+    const cancelledResult = await pool.query(
+      `SELECT COUNT(*) as total_cancelled
+       FROM don_hang_chi_tiet ct
+       WHERE ct.trang_thai_che_bien = 'CANCELLED'
+         AND (
+           -- Ưu tiên: Món hủy có maker_id = nhân viên của ca (người hủy)
+           (ct.maker_id = $1
+            AND ct.created_at >= $2
+            AND (ct.created_at < $3 OR $3 IS NULL))
+           -- Fallback: Món hủy thuộc đơn của ca này (nếu maker_id NULL)
+           OR (
+             ct.maker_id IS NULL
+             AND EXISTS (
+               SELECT 1 FROM don_hang dh
+               WHERE dh.id = ct.don_hang_id
+                 AND dh.ca_lam_id = $4
+             )
+           )
+         )`,
+      [shift.nhan_vien_id, shift.started_at, shift.closed_at, shiftId]
     );
     
     kitchenStats = {
       total_items_made: Number(statsResult.rows[0]?.total_items || 0),
-      avg_prep_time_seconds: Math.round(Number(statsResult.rows[0]?.avg_seconds || 0))
+      avg_prep_time_seconds: Math.round(Number(statsResult.rows[0]?.avg_seconds || 0)),
+      total_items_cancelled: Number(cancelledResult.rows[0]?.total_cancelled || 0)
     };
   }
   
@@ -197,22 +224,48 @@ export async function closeShiftEnhanced({ shiftId, userId, actualCash, note }) 
   // 4) Tính toán dựa trên loại ca
   let kitchenStats = null;
   if (isKitchenShift) {
-    // Tính số món đã làm và thời gian trung bình
+    // Tính số món đã làm: theo maker_id + thời gian (giống như getShiftOrders cho ca KITCHEN)
     const statsResult = await pool.query(
       `SELECT 
          COUNT(*) as total_items,
-         AVG(EXTRACT(EPOCH FROM (finished_at - started_at))) as avg_seconds
-       FROM don_hang_chi_tiet
-       WHERE maker_id = $1
-         AND trang_thai_che_bien = 'DONE'
-         AND started_at >= $2
-         AND finished_at IS NOT NULL`,
-      [userId, current.started_at]
+         AVG(EXTRACT(EPOCH FROM (ct.finished_at - ct.started_at))) as avg_seconds
+       FROM don_hang_chi_tiet ct
+       WHERE ct.maker_id = $1
+         AND ct.trang_thai_che_bien = 'DONE'
+         AND ct.started_at >= $2
+         AND (ct.started_at < $3 OR $3 IS NULL)
+         AND ct.finished_at IS NOT NULL
+         AND ct.started_at IS NOT NULL`,
+      [userId, current.started_at, current.closed_at]
+    );
+    
+    // Đếm số món bị hủy trong ca: ưu tiên theo maker_id (người hủy), fallback theo ca_lam_id nếu maker_id NULL
+    const cancelledResult = await pool.query(
+      `SELECT COUNT(*) as total_cancelled
+       FROM don_hang_chi_tiet ct
+       WHERE ct.trang_thai_che_bien = 'CANCELLED'
+         AND (
+           -- Ưu tiên: Món hủy có maker_id = nhân viên của ca (người hủy)
+           (ct.maker_id = $1
+            AND ct.created_at >= $2
+            AND (ct.created_at < $3 OR $3 IS NULL))
+           -- Fallback: Món hủy thuộc đơn của ca này (nếu maker_id NULL)
+           OR (
+             ct.maker_id IS NULL
+             AND EXISTS (
+               SELECT 1 FROM don_hang dh
+               WHERE dh.id = ct.don_hang_id
+                 AND dh.ca_lam_id = $4
+             )
+           )
+         )`,
+      [userId, current.started_at, current.closed_at, shiftId]
     );
     
     kitchenStats = {
       total_items_made: Number(statsResult.rows[0]?.total_items || 0),
-      avg_prep_time_seconds: Math.round(Number(statsResult.rows[0]?.avg_seconds || 0))
+      avg_prep_time_seconds: Math.round(Number(statsResult.rows[0]?.avg_seconds || 0)),
+      total_items_cancelled: Number(cancelledResult.rows[0]?.total_cancelled || 0)
     };
   }
 

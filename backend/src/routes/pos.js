@@ -128,7 +128,7 @@ router.get('/orders/:orderId/summary', async (req, res, next) => {
 // Hỗ trợ 2 cách:
 //   A) { mon_id, bien_the_id?, so_luong, don_gia?, giam_gia? } - tách thành N line
 //   B) { mon_id, bien_the_id?, cups: [{tuy_chon:{SUGAR:0.7, ICE:0.5}, ghi_chu:"..."}, ...] }
-router.post('/orders/:orderId/items', posItemsCtrl.addOrderItems);
+router.post('/orders/:orderId/items', auth, posItemsCtrl.addOrderItems);
 
 // POST /api/v1/pos/orders/:orderId/confirm - Xác nhận đơn (PENDING → QUEUED)
 router.post('/orders/:orderId/confirm', auth, async (req, res, next) => {
@@ -162,11 +162,11 @@ router.post('/orders/:orderId/deliver', auth, async (req, res, next) => {
 // PATCH /api/v1/pos/orders/:orderId/items/:lineId
 // Cho phép sửa: bien_the_id?, so_luong?, don_gia?, giam_gia?, ghi_chu?
 // DB trigger chặn nếu line != QUEUED hoặc order = PAID
-router.patch('/orders/:orderId/items/:lineId', posItemsCtrl.updateOrderItem);
+router.patch('/orders/:orderId/items/:lineId', auth, posItemsCtrl.updateOrderItem);
 
 // DELETE /api/v1/pos/orders/:orderId/items/:lineId
 // DB trigger chặn nếu line != QUEUED hoặc order = PAID
-router.delete('/orders/:orderId/items/:lineId', posItemsCtrl.deleteOrderItem);
+router.delete('/orders/:orderId/items/:lineId', auth, posItemsCtrl.deleteOrderItem);
 
 // ===== ENDPOINTS MỚI CHO PER-CUP OPTIONS & STATUS =====
 
@@ -181,7 +181,7 @@ router.get('/orders/:orderId/items-with-addons', posItemsCtrl.getOrderItemsWithA
 // PUT /api/v1/pos/orders/:orderId/items/:lineId/options
 // Body: { "SUGAR": 0.7, "ICE": 0.5, "TOPPING_FLAN": {"so_luong": 2} }
 // Lưu/ghi đè tùy chọn cho từng ly (hỗ trợ cả PERCENT và AMOUNT)
-router.put('/orders/:orderId/items/:lineId/options', posItemsCtrl.upsertOrderItemOptions);
+router.put('/orders/:orderId/items/:lineId/options', auth, posItemsCtrl.upsertOrderItemOptions);
 
 // PATCH /api/v1/pos/orders/:orderId/items/:lineId/status
 // Body: { trang_thai_che_bien: 'MAKING'|'DONE'|'CANCELLED', maker_id? }

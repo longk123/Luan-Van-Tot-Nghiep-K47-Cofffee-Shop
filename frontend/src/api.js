@@ -248,7 +248,7 @@ export const api = {
     return request('GET', `/kitchen/queue?${params.toString()}`);
   },
   // Cập nhật trạng thái món
-  updateKitchenLine: (lineId, action) => request('PATCH', `/kitchen/lines/${lineId}`, { action }),
+  updateKitchenLine: (lineId, action, reason = null) => request('PATCH', `/kitchen/lines/${lineId}`, { action, reason }),
   // Lấy danh sách món đã hoàn thành
   getKitchenCompleted: (limit = 20) => request('GET', `/kitchen/completed?limit=${limit}`),
   

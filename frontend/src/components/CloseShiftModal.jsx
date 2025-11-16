@@ -252,13 +252,22 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                     </div>
                   </div>
                   
-                  <div className="mt-3 bg-white rounded-xl p-3 border border-primary-200">
-                    <p className="text-sm text-dark-600 mb-1">Thời gian làm việc</p>
-                    <p className="text-lg font-bold text-primary-900">
-                      {shift?.started_at ? (
-                        Math.round((new Date() - new Date(shift.started_at)) / 1000 / 60 / 60 * 10) / 10
-                      ) : 0}h
-                    </p>
+                  <div className="mt-3 grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-xl p-3 border border-primary-200">
+                      <p className="text-sm text-dark-600 mb-1">Thời gian làm việc</p>
+                      <p className="text-lg font-bold text-primary-900">
+                        {shift?.started_at ? (
+                          Math.round((new Date() - new Date(shift.started_at)) / 1000 / 60 / 60 * 10) / 10
+                        ) : 0}h
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl p-3 border border-red-200">
+                      <p className="text-sm text-dark-600 mb-1">Món bị hủy</p>
+                      <p className="text-lg font-bold text-red-600">
+                        {summary?.kitchenStats?.total_items_cancelled || 0}
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -411,14 +420,14 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
         <div className="px-6 py-4 bg-cream-50 border-t border-gray-200 rounded-b-3xl flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-dark-700 rounded-xl font-semibold transition-colors outline-none focus:outline-none"
+            className="flex-1 py-3 px-4 bg-gray-200 hover:bg-white hover:text-gray-700 text-dark-700 border-2 border-gray-300 rounded-xl font-semibold transition-all duration-200 hover:border-gray-700 hover:shadow-lg outline-none focus:outline-none"
           >
             Hủy
           </button>
           <button
             onClick={handleClose}
             disabled={loading || (!isKitchenShift && actualCash === '')}
-            className="flex-[2] py-3 px-4 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] hover:from-[#c9975b] hover:via-[#b8874f] hover:to-[#c9975b] hover:shadow-xl hover:-translate-y-0.5 text-white border-2 border-[#c9975b] rounded-xl font-semibold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:from-[#d4a574] disabled:hover:via-[#c9975b] disabled:hover:to-[#d4a574] outline-none focus:outline-none flex items-center justify-center gap-2"
+            className="flex-[2] py-3 px-4 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gradient-to-r disabled:hover:from-[#d4a574] disabled:hover:via-[#c9975b] disabled:hover:to-[#d4a574] disabled:hover:text-white disabled:hover:border-[#c9975b] outline-none focus:outline-none flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

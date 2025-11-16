@@ -332,7 +332,7 @@ export default function TakeawayOrders() {
                       Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                     </span>
                     <span className="text-[#8b6f47] font-medium">
-                      Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
+                      Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : '--'}
                     </span>
                   </div>
                 )}

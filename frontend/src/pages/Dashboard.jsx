@@ -245,6 +245,17 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     console.log('=== TableCard clicked ===');
     console.log('Table:', table);
     
+    // Kiểm tra có ca đang mở không
+    if (!shift || shift.status !== 'OPEN') {
+      setToast({
+        show: true,
+        type: 'warning',
+        title: 'Chưa mở ca',
+        message: 'Vui lòng mở ca làm việc trước khi thao tác với đơn hàng.'
+      });
+      return;
+    }
+    
     // Backend trả về order_id hoặc current_order_id
     const orderId = table.order_id || table.current_order_id || table.don_hang_id;
     console.log('Has order ID?', orderId);
@@ -332,6 +343,17 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   };
 
   async function handleCreateTakeaway() {
+    // Kiểm tra có ca đang mở không
+    if (!shift || shift.status !== 'OPEN') {
+      setToast({
+        show: true,
+        type: 'warning',
+        title: 'Chưa mở ca',
+        message: 'Vui lòng mở ca làm việc trước khi tạo đơn hàng.'
+      });
+      return;
+    }
+    
     // Hiển thị dialog xác nhận
     setPendingOrderCreation({ type: 'takeaway' });
     setShowCreateConfirm(true);
@@ -501,7 +523,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                       Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                     </span>
                     <span className="text-[#8b6f47] font-medium">
-                      Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
+                      Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : '--'}
                     </span>
                   </div>
                 )}
@@ -661,7 +683,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               orderId={drawer.order?.id}
               onAdded={() => setRefreshTick((x) => x + 1)}
               onShowToast={setToast}
-              disabled={drawer.order?.trang_thai === 'PAID' || drawer.order?.status === 'PAID'}
+              disabled={drawer.order?.trang_thai === 'PAID' || drawer.order?.status === 'PAID' || !shift || shift.status !== 'OPEN'}
             />
           </div>
         </div>
@@ -689,7 +711,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                         onCloseTable={isManagerViewMode ? null : handleCloseTable}
                         onLockTable={isManagerViewMode ? null : handleLockTable}
                         onUnlockTable={isManagerViewMode ? null : handleUnlockTable}
-                        viewOnly={isManagerViewMode}
+                        viewOnly={isManagerViewMode || !shift || shift.status !== 'OPEN'}
                       />
                     ))}
                   </div>
@@ -707,7 +729,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   onCloseTable={isManagerViewMode ? null : handleCloseTable}
                   onLockTable={isManagerViewMode ? null : handleLockTable}
                   onUnlockTable={isManagerViewMode ? null : handleUnlockTable}
-                  viewOnly={isManagerViewMode}
+                  viewOnly={isManagerViewMode || !shift || shift.status !== 'OPEN'}
                 />
               ))}
               {!currentAreaTables.length && <div className="text-gray-500">Không có bàn.</div>}
@@ -758,7 +780,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         onTriggerCancelDialog={() => setTriggerCancelDialog(false)}
         onTableChanged={handleTableChanged}
         onItemsChange={(hasItems) => setDrawerHasItems(hasItems)}
-        viewOnly={isManagerViewMode}
+        viewOnly={isManagerViewMode || !shift || shift.status !== 'OPEN'}
       />
 
       {/* Confirmation Dialog */}
@@ -896,6 +918,17 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
           await loadTables(); // Reload tables khi confirm/cancel/no-show
         }}
         onCheckIn={async (reservation) => {
+          // Kiểm tra có ca đang mở không
+          if (!shift || shift.status !== 'OPEN') {
+            setToast({
+              show: true,
+              type: 'warning',
+              title: 'Chưa mở ca',
+              message: 'Vui lòng mở ca làm việc trước khi check-in đặt bàn.'
+            });
+            return;
+          }
+          
           // Check-in: tạo order và mở drawer
           try {
             const primaryTableId = reservation.ban_ids?.[0];
@@ -1022,8 +1055,11 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
             <button
               onClick={handleCreateTakeaway}
-              className="relative w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 text-white rounded-full shadow-2xl hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
-              title="Tạo đơn mang đi mới"
+              disabled={!shift || shift.status !== 'OPEN'}
+              className={`relative w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 text-white rounded-full shadow-2xl hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95 ${
+                !shift || shift.status !== 'OPEN' ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
+              }`}
+              title={!shift || shift.status !== 'OPEN' ? 'Vui lòng mở ca làm việc trước khi tạo đơn' : 'Tạo đơn mang đi mới'}
             >
               <svg className="w-7 h-7 transition-transform group-hover:rotate-90 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />

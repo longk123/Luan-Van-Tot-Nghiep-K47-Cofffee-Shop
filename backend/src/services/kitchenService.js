@@ -12,8 +12,8 @@ export async function getQueue({ areaId, tableId }) {
 /**
  * Update line status (start/done/cancel)
  */
-export async function updateLineStatus({ lineId, action, userId }) {
-  const updated = await repo.updateLineTx({ lineId, action, userId });
+export async function updateLineStatus({ lineId, action, userId, reason = null }) {
+  const updated = await repo.updateLineTx({ lineId, action, userId, reason });
 
   // Emit realtime events
   emitChange('order.items.changed', { orderId: updated.don_hang_id });

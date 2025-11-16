@@ -159,8 +159,9 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
       }), { total_orders: 0, gross_amount: 0, net_amount: 0, cash_diff: 0 })
     : filteredShifts.reduce((acc, shift) => ({
         total_items_made: acc.total_items_made + (shift.stats?.total_items_made || 0),
+        total_items_cancelled: acc.total_items_cancelled + (shift.stats?.total_items_cancelled || 0),
         avg_prep_time_seconds: shift.stats?.avg_prep_time_seconds || acc.avg_prep_time_seconds,
-      }), { total_items_made: 0, avg_prep_time_seconds: 0 });
+      }), { total_items_made: 0, total_items_cancelled: 0, avg_prep_time_seconds: 0 });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -229,7 +230,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
         </div>
       ) : (
         // KITCHEN: Show kitchen-specific metrics
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-400">
             <div className="text-sm text-gray-600 mb-1">Tổng ca</div>
             <div className="text-2xl font-bold text-gray-800">{filteredShifts.length}</div>
@@ -237,6 +238,10 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
           <div className="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
             <div className="text-sm text-purple-600 mb-1">☕ Tổng món đã làm</div>
             <div className="text-2xl font-bold text-purple-700">{totalStats.total_items_made || 0}</div>
+          </div>
+          <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+            <div className="text-sm text-red-600 mb-1">❌ Tổng món bị hủy</div>
+            <div className="text-2xl font-bold text-red-700">{totalStats.total_items_cancelled || 0}</div>
           </div>
           <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
             <div className="text-sm text-blue-600 mb-1">⏱️ Thời gian TB/món</div>
@@ -334,6 +339,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                 {filterType === 'KITCHEN' && (
                   <>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Món đã làm</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Món đã hủy</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">TG trung bình</th>
                   </>
                 )}
@@ -408,6 +414,9 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                       <>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
                           {shift.stats?.total_items_made || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-medium">
+                          {shift.stats?.total_items_cancelled || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
                           {shift.stats?.avg_prep_time_seconds ? `${Math.round(shift.stats.avg_prep_time_seconds / 60)}m` : '-'}

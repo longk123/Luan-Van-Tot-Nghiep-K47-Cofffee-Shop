@@ -354,7 +354,16 @@ export default {
         ca.closed_at,
         ca.status,
         u.full_name AS nhan_vien,
-        COALESCE(ca.total_orders, 0) AS total_orders,
+        -- Tính total_orders: nếu ca đã đóng thì dùng ca.total_orders, nếu đang mở thì tính trực tiếp
+        -- Tính cả đơn CANCELLED vì đây là số đơn đã xử lý trong ca (đồng nhất với getCurrentShiftOrders)
+        CASE 
+          WHEN ca.status = 'CLOSED' THEN COALESCE(ca.total_orders, 0)
+          ELSE (
+            SELECT COUNT(*)
+            FROM don_hang dh
+            WHERE dh.ca_lam_id = ca.id
+          )
+        END AS total_orders,
         COALESCE(ca.gross_amount, 0) AS gross_amount,
         COALESCE(ca.net_amount, 0) AS net_amount,
         COALESCE(ca.cash_amount, 0) AS cash_amount,
@@ -366,23 +375,45 @@ export default {
         ca.expected_cash,
         ca.note,
         -- Kitchen stats
+        -- Tính món đã làm: theo maker_id + thời gian (giống như getShiftOrders cho ca KITCHEN)
         (
           SELECT COUNT(*)
-          FROM don_hang_chi_tiet dhct
-          WHERE dhct.maker_id = ca.nhan_vien_id
-            AND dhct.trang_thai_che_bien = 'DONE'
-            AND dhct.started_at >= ca.started_at
-            AND dhct.started_at < COALESCE(ca.closed_at, NOW())
+          FROM don_hang_chi_tiet ct
+          WHERE ct.maker_id = ca.nhan_vien_id
+            AND ct.trang_thai_che_bien = 'DONE'
+            AND ct.started_at >= ca.started_at
+            AND (ct.started_at < ca.closed_at OR ca.closed_at IS NULL)
         ) AS total_items_made,
         (
-          SELECT AVG(EXTRACT(EPOCH FROM (dhct.finished_at - dhct.started_at)))
-          FROM don_hang_chi_tiet dhct
-          WHERE dhct.maker_id = ca.nhan_vien_id
-            AND dhct.trang_thai_che_bien = 'DONE'
-            AND dhct.started_at >= ca.started_at
-            AND dhct.started_at < COALESCE(ca.closed_at, NOW())
-            AND dhct.finished_at IS NOT NULL
-        ) AS avg_prep_time_seconds
+          SELECT AVG(EXTRACT(EPOCH FROM (ct.finished_at - ct.started_at)))
+          FROM don_hang_chi_tiet ct
+          WHERE ct.maker_id = ca.nhan_vien_id
+            AND ct.trang_thai_che_bien = 'DONE'
+            AND ct.started_at >= ca.started_at
+            AND (ct.started_at < ca.closed_at OR ca.closed_at IS NULL)
+            AND ct.finished_at IS NOT NULL
+            AND ct.started_at IS NOT NULL
+        ) AS avg_prep_time_seconds,
+        (
+          SELECT COUNT(*)
+          FROM don_hang_chi_tiet ct
+          WHERE ct.trang_thai_che_bien = 'CANCELLED'
+            AND (
+              -- Ưu tiên: Món hủy có maker_id = nhân viên của ca (người hủy)
+              (ct.maker_id = ca.nhan_vien_id
+               AND ct.created_at >= ca.started_at
+               AND (ct.created_at < ca.closed_at OR ca.closed_at IS NULL))
+              -- Fallback: Món hủy thuộc đơn của ca này (nếu maker_id NULL)
+              OR (
+                ct.maker_id IS NULL
+                AND EXISTS (
+                  SELECT 1 FROM don_hang dh
+                  WHERE dh.id = ct.don_hang_id
+                    AND dh.ca_lam_id = ca.id
+                )
+              )
+            )
+        ) AS total_items_cancelled
       FROM ca_lam ca
       LEFT JOIN users u ON u.user_id = ca.opened_by
       WHERE ca.started_at >= CURRENT_DATE - INTERVAL '${days} days'

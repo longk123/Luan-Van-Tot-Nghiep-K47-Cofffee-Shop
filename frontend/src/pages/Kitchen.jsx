@@ -25,6 +25,13 @@ export default function Kitchen() {
   const [openOrders, setOpenOrders] = useState([]);
   const [transferredOrders, setTransferredOrders] = useState([]);
   const [showTransferredOrdersDialog, setShowTransferredOrdersDialog] = useState(false);
+  
+  // Cancel dialog state
+  const [cancelDialog, setCancelDialog] = useState({ open: false, lineId: null, itemName: '' });
+  const [cancelReason, setCancelReason] = useState('');
+  
+  // Item detail dialog state
+  const [itemDetailDialog, setItemDetailDialog] = useState({ open: false, item: null });
 
   // Get user info
   const user = getUser();
@@ -188,10 +195,16 @@ export default function Kitchen() {
 
   // SSE for realtime updates - Silent refresh
   useSSE('/api/v1/pos/events', (evt) => {
+    // Cập nhật queue khi có thay đổi về món
     if (evt.type === 'order.confirmed' || 
         evt.type === 'order.items.added' ||
         evt.type === 'kitchen.line.updated' ||
-        evt.type === 'order.items.changed') {
+        evt.type === 'order.items.changed' ||
+        evt.type === 'order.item.updated' ||
+        evt.type === 'order.item.status.updated' ||
+        evt.type === 'order.item.deleted' ||
+        evt.type === 'order.item.options.updated') {
+      console.log('🔄 Kitchen: SSE event received, refreshing queue:', evt.type);
       loadQueue(true);
     }
     
@@ -204,9 +217,9 @@ export default function Kitchen() {
     }
   }, [shift?.id]);
 
-  async function handleAction(lineId, action) {
+  async function handleAction(lineId, action, reason = null) {
     try {
-      await api.updateKitchenLine(lineId, action);
+      await api.updateKitchenLine(lineId, action, reason);
       // Force reload ngay sau action (không dùng silent)
       await loadQueue(false);
     } catch (err) {
@@ -214,6 +227,26 @@ export default function Kitchen() {
       alert(`Lỗi: ${err.message || 'Không thể cập nhật'}`);
     }
   }
+
+  const handleCancelClick = (item) => {
+    setCancelDialog({ open: true, lineId: item.id, itemName: item.mon_ten });
+    setCancelReason('');
+  };
+
+  const handleCancelConfirm = async () => {
+    if (!cancelReason.trim()) {
+      alert('Vui lòng nhập lý do hủy món');
+      return;
+    }
+    
+    try {
+      await handleAction(cancelDialog.lineId, 'cancel', cancelReason.trim());
+      setCancelDialog({ open: false, lineId: null, itemName: '' });
+      setCancelReason('');
+    } catch (err) {
+      // Error đã được xử lý trong handleAction
+    }
+  };
 
   const queued = items.filter(x => x.trang_thai_che_bien === 'QUEUED');
   const making = items.filter(x => x.trang_thai_che_bien === 'MAKING');
@@ -312,10 +345,20 @@ export default function Kitchen() {
             <p className="text-gray-400 text-sm mt-1">Danh sách trống</p>
           </div>
         ) : (
-          data.map(item => (
+          data.map(item => {
+            // Parse options nếu là string
+            const options = typeof item.options === 'string' ? JSON.parse(item.options || '[]') : (item.options || []);
+            
+            // Tách options theo loại
+            const sugarOption = options.find(opt => opt.ma === 'SUGAR');
+            const iceOption = options.find(opt => opt.ma === 'ICE');
+            const toppings = options.filter(opt => opt.loai === 'AMOUNT' && opt.ma !== 'SUGAR' && opt.ma !== 'ICE');
+            
+            return (
             <div
               key={item.id}
-              className="bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200"
+              className="bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer"
+              onClick={() => setItemDetailDialog({ open: true, item })}
             >
               {/* Header: Tên món & Số lượng */}
               <div className="flex items-start justify-between mb-4">
@@ -347,6 +390,14 @@ export default function Kitchen() {
                         {item.khu_vuc_ten}
                       </span>
                     )}
+                    {item.don_hang_trang_thai === 'PAID' && (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold border border-green-600 shadow-md">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Đã thanh toán
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="ml-4">
@@ -355,6 +406,36 @@ export default function Kitchen() {
                   </div>
                 </div>
               </div>
+
+              {/* Options: Đường, Đá, Topping */}
+              {(sugarOption || iceOption || toppings.length > 0) && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {sugarOption && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-semibold border border-yellow-200">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      Đường: {sugarOption.muc_ten || `${Math.round((sugarOption.he_so || 0) * 100)}%`}
+                    </div>
+                  )}
+                  {iceOption && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                      Đá: {iceOption.muc_ten || `${Math.round((iceOption.he_so || 0) * 100)}%`}
+                    </div>
+                  )}
+                  {toppings.map((topping, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-xs font-semibold border border-purple-200">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                      {topping.ten}: {topping.so_luong || 0} {topping.don_vi || ''}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Ghi chú */}
               {item.ghi_chu && (
@@ -390,19 +471,37 @@ export default function Kitchen() {
               )}
 
               {/* Action buttons */}
-              <div className="flex gap-2">
-                {actions?.map(btn => (
-                  <button
-                    key={btn.label}
-                    onClick={() => handleAction(item.id, btn.action)}
-                    className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:shadow-md ${btn.className} outline-none focus:outline-none`}
-                  >
-                    {btn.label}
-                  </button>
-                ))}
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                {actions?.map(btn => {
+                  // Disable nút Hủy cho món thuộc đơn đã thanh toán
+                  const isPaid = item.don_hang_trang_thai === 'PAID';
+                  const isCancelDisabled = btn.action === 'cancel' && isPaid;
+                  
+                  return (
+                    <button
+                      key={btn.label}
+                      onClick={() => {
+                        if (isCancelDisabled) return;
+                        if (btn.action === 'cancel') {
+                          handleCancelClick(item);
+                        } else {
+                          handleAction(item.id, btn.action);
+                        }
+                      }}
+                      disabled={isCancelDisabled}
+                      className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm hover:shadow-md ${btn.className} outline-none focus:outline-none ${
+                        isCancelDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      title={isCancelDisabled ? 'Đơn đã thanh toán, không thể hủy món' : undefined}
+                    >
+                      {btn.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
@@ -447,7 +546,7 @@ export default function Kitchen() {
                   Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                 </span>
                 <span className="text-[#8b6f47] font-medium">
-                  Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : 'Invalid Date'}
+                  Bắt đầu: {shift.started_at ? new Date(shift.started_at).toLocaleString('vi-VN') : '--'}
                 </span>
               </div>
             )}
@@ -490,7 +589,7 @@ export default function Kitchen() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                     </svg>
-                    <span>Bắt đầu ca</span>
+                    <span>Mở ca</span>
                   </button>
                 )
               )}
@@ -555,6 +654,18 @@ export default function Kitchen() {
                 ),
                 action: 'start',
                 className: 'bg-[#c9975b] text-white border-2 border-[#c9975b] hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b]'
+              },
+              {
+                label: (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Hủy
+                  </span>
+                ),
+                action: 'cancel',
+                className: 'bg-red-500 text-white border-2 border-red-500 hover:bg-white hover:text-red-600 hover:border-red-500'
               }
             ]}
           />
@@ -580,18 +691,6 @@ export default function Kitchen() {
                 ),
                 action: 'done',
                 className: 'bg-green-500 text-white border-2 border-green-500 hover:bg-white hover:text-green-600 hover:border-green-500'
-              },
-              {
-                label: (
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Hủy
-                  </span>
-                ),
-                action: 'cancel',
-                className: 'bg-red-500 text-white border-2 border-red-500 hover:bg-white hover:text-red-600 hover:border-red-500'
               }
             ]}
           />
@@ -604,6 +703,274 @@ export default function Kitchen() {
         onClose={() => setShowOpenShift(false)}
         onSubmit={handleOpenShift}
       />
+
+      {/* Item Detail Dialog */}
+      {itemDetailDialog.open && itemDetailDialog.item && (() => {
+        const item = itemDetailDialog.item;
+        const options = typeof item.options === 'string' ? JSON.parse(item.options || '[]') : (item.options || []);
+        const sugarOption = options.find(opt => opt.ma === 'SUGAR');
+        const iceOption = options.find(opt => opt.ma === 'ICE');
+        const toppings = options.filter(opt => opt.loai === 'AMOUNT' && opt.ma !== 'SUGAR' && opt.ma !== 'ICE');
+        const otherOptions = options.filter(opt => opt.loai === 'PERCENT' && opt.ma !== 'SUGAR' && opt.ma !== 'ICE');
+        
+        return (
+          <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 rounded-t-3xl sticky top-0 z-10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2.5">
+                      <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Chi tiết món
+                    </h3>
+                    <p className="text-sm text-gray-600">{item.mon_ten}</p>
+                  </div>
+                  <button
+                    onClick={() => setItemDetailDialog({ open: false, item: null })}
+                    className="p-2 hover:bg-blue-100 rounded-full transition-colors outline-none focus:outline-none"
+                  >
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Thông tin cơ bản */}
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <h4 className="font-bold text-gray-900 text-lg mb-3">Thông tin cơ bản</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Tên món</p>
+                      <p className="font-semibold text-gray-900">{item.mon_ten}</p>
+                    </div>
+                    {item.bien_the_ten && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Biến thể</p>
+                        <p className="font-semibold text-gray-900">{item.bien_the_ten}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Số lượng</p>
+                      <p className="font-semibold text-gray-900">×{item.so_luong}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Bàn/Khu vực</p>
+                      <p className="font-semibold text-gray-900">
+                        {item.ten_ban || 'Mang đi'} {item.khu_vuc_ten && `• ${item.khu_vuc_ten}`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Trạng thái</p>
+                      <p className="font-semibold text-gray-900">
+                        {item.trang_thai_che_bien === 'QUEUED' ? 'Chờ làm' : 
+                         item.trang_thai_che_bien === 'MAKING' ? 'Đang làm' : 
+                         item.trang_thai_che_bien}
+                      </p>
+                    </div>
+                    {item.don_hang_trang_thai === 'PAID' && (
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Thanh toán</p>
+                        <p className="font-semibold text-green-600">Đã thanh toán</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tùy chọn */}
+                {options.length > 0 && (
+                  <div className="bg-blue-50 rounded-xl p-4 space-y-3">
+                    <h4 className="font-bold text-gray-900 text-lg mb-3">Tùy chọn</h4>
+                    <div className="space-y-3">
+                      {sugarOption && (
+                        <div className="bg-white rounded-lg p-3 border border-yellow-200">
+                          <div className="flex items-center gap-2 mb-1">
+                            <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            <span className="font-semibold text-gray-900">Độ ngọt</span>
+                          </div>
+                          <p className="text-gray-700">
+                            {sugarOption.muc_ten || `${Math.round((sugarOption.he_so || 0) * 100)}%`}
+                          </p>
+                        </div>
+                      )}
+                      {iceOption && (
+                        <div className="bg-white rounded-lg p-3 border border-blue-200">
+                          <div className="flex items-center gap-2 mb-1">
+                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                            <span className="font-semibold text-gray-900">Mức đá</span>
+                          </div>
+                          <p className="text-gray-700">
+                            {iceOption.muc_ten || `${Math.round((iceOption.he_so || 0) * 100)}%`}
+                          </p>
+                        </div>
+                      )}
+                      {toppings.map((topping, idx) => (
+                        <div key={idx} className="bg-white rounded-lg p-3 border border-purple-200">
+                          <div className="flex items-center gap-2 mb-1">
+                            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            <span className="font-semibold text-gray-900">{topping.ten}</span>
+                          </div>
+                          <p className="text-gray-700">
+                            {topping.so_luong || 0} {topping.don_vi || ''}
+                          </p>
+                        </div>
+                      ))}
+                      {otherOptions.map((opt, idx) => (
+                        <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">{opt.ten}</span>
+                          </div>
+                          <p className="text-gray-700">
+                            {opt.muc_ten || `${Math.round((opt.he_so || 0) * 100)}%`}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ghi chú */}
+                {item.ghi_chu && (
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold text-amber-900 mb-1">Ghi chú</p>
+                        <p className="text-sm text-amber-800 leading-relaxed">{item.ghi_chu}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Thời gian */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h4 className="font-bold text-gray-900 text-lg mb-3">Thời gian</h4>
+                  <div className="space-y-2">
+                    {item.created_at && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600 w-24">Đặt lúc:</span>
+                        <span className="font-semibold text-gray-900">
+                          {new Date(item.created_at).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                    )}
+                    {item.started_at && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600 w-24">Bắt đầu:</span>
+                        <span className="font-semibold text-green-600">
+                          {new Date(item.started_at).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                    )}
+                    {item.finished_at && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600 w-24">Hoàn tất:</span>
+                        <span className="font-semibold text-blue-600">
+                          {new Date(item.finished_at).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-3xl">
+                <button
+                  onClick={() => setItemDetailDialog({ open: false, item: null })}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold transition-all duration-200 hover:from-blue-500 hover:to-indigo-500 hover:shadow-lg outline-none focus:outline-none"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Cancel Dialog */}
+      {cancelDialog.open && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-red-50 to-rose-50 border-b border-red-200 rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold text-red-900 mb-1 flex items-center gap-2.5">
+                    <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Hủy món
+                  </h3>
+                  <p className="text-sm text-red-700">Nhập lý do hủy món</p>
+                </div>
+                <button
+                  onClick={() => setCancelDialog({ open: false, lineId: null, itemName: '' })}
+                  className="p-2 hover:bg-red-100 rounded-full transition-colors outline-none focus:outline-none"
+                >
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">Món cần hủy:</p>
+                <p className="font-bold text-gray-900 text-lg">{cancelDialog.itemName}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Lý do hủy <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Nhập lý do hủy món (ví dụ: Hết nguyên liệu, Khách hủy đơn, Lỗi đặt hàng...)"
+                  rows="4"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-3xl flex gap-3">
+              <button
+                onClick={() => setCancelDialog({ open: false, lineId: null, itemName: '' })}
+                className="flex-1 py-3 px-4 bg-gray-200 hover:bg-white hover:text-gray-700 text-dark-700 border-2 border-gray-300 rounded-xl font-semibold transition-all duration-200 hover:border-gray-700 hover:shadow-lg outline-none focus:outline-none"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                className="flex-[2] py-3 px-4 bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-red-600 hover:border-red-600 text-white border-2 border-red-500 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl outline-none focus:outline-none flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Xác nhận hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CloseShiftModal
         open={showCloseShift}

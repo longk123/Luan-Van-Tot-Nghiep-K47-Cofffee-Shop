@@ -177,9 +177,9 @@ export default {
         o.opened_at,
         o.closed_at,
         CASE WHEN o.trang_thai = 'PAID' THEN true ELSE false END AS da_thanh_toan,
-        COUNT(d.id) AS total_lines,
-        COALESCE(SUM(d.so_luong), 0) AS total_quantity,
-        COALESCE(SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia,0)), 0) AS subtotal
+        COUNT(d.id) FILTER (WHERE d.trang_thai_che_bien != 'CANCELLED') AS total_lines,
+        COALESCE(SUM(d.so_luong) FILTER (WHERE d.trang_thai_che_bien != 'CANCELLED'), 0) AS total_quantity,
+        COALESCE(SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia,0)) FILTER (WHERE d.trang_thai_che_bien != 'CANCELLED'), 0) AS subtotal
       FROM don_hang o
       LEFT JOIN don_hang_chi_tiet d ON d.don_hang_id = o.id
       WHERE o.id = $1

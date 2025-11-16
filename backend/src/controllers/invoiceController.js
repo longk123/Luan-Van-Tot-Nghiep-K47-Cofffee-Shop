@@ -73,25 +73,137 @@ class InvoiceController {
     // Header
     doc.fontSize(16).text('HÓA ĐƠN BÁN HÀNG', { align: 'center' });
     doc.fontSize(11).text('COFFEE SHOP', { align: 'center' });
-    doc.moveDown(0.5);
+    doc.moveDown(0.8);
     
-    doc.fontSize(10)
-      .text('Mã đơn: #' + header.order_id)
-      .text(header.ban_label + (header.khu_vuc ? ' (' + header.khu_vuc + ')' : ''))
-      .text('Thu ngân: ' + (header.thu_ngan ?? '-'))
-      .text('Mở: ' + new Date(header.opened_at).toLocaleString('vi-VN'));
+    // Thông tin đơn hàng - 2 cột
+    doc.fontSize(10);
+    const infoY = doc.y;
+    const infoLeft = 24;
+    const infoRight = doc.page.width / 2 + 20;
+    const lineHeight = 14;
+    
+    // Cột trái
+    let currentY = infoY;
+    doc.text('Mã đơn: #' + header.order_id, infoLeft, currentY);
+    currentY += lineHeight;
+    doc.text(header.ban_label + (header.khu_vuc ? ' (' + header.khu_vuc + ')' : ''), infoLeft, currentY);
+    
+    // Cột phải
+    currentY = infoY;
+    doc.text('Thu ngân: ' + (header.thu_ngan ?? '-'), infoRight, currentY);
+    currentY += lineHeight;
+    doc.text('Mở: ' + new Date(header.opened_at).toLocaleString('vi-VN'), infoRight, currentY);
     
     if (header.closed_at) {
-      doc.text('Đóng: ' + new Date(header.closed_at).toLocaleString('vi-VN'));
+      currentY += lineHeight;
+      doc.text('Đóng: ' + new Date(header.closed_at).toLocaleString('vi-VN'), infoRight, currentY);
     }
     
+    // Cập nhật Y để tiếp tục (lấy Y cao nhất)
+    const maxY = header.closed_at ? infoY + (lineHeight * 3) : infoY + (lineHeight * 2);
+    doc.y = maxY + 5;
+    
     doc.moveDown(0.5);
-    doc.text('------------------------------------------------');
-    doc.moveDown(0.3);
-
-    // Lines
+    
+    // Đường phân cách trước bảng món
+    doc.moveTo(24, doc.y)
+       .lineTo(doc.page.width - 24, doc.y)
+       .stroke();
+    
+    doc.moveDown(0.5);
+    
+    // Gộp các món giống nhau (cùng tên, size, topping, đường, đá)
+    const groupedLines = [];
+    const lineMap = new Map();
+    
     lines.forEach(l => {
-      doc.fontSize(10).text(l.ten_mon + (l.ten_bien_the ? ' (' + l.ten_bien_the + ')' : '') + '  x' + l.so_luong);
+      // Parse options nếu là string (từ JSONB)
+      let options = l.options;
+      if (typeof options === 'string') {
+        try {
+          options = JSON.parse(options);
+        } catch (e) {
+          options = [];
+        }
+      }
+      if (!Array.isArray(options)) {
+        options = [];
+      }
+      
+      // Tạo key để so sánh: tên món + biến thể + options + ghi chú + giá
+      const optionsKey = options.length 
+        ? options.map(o => {
+            if (o.loai === 'AMOUNT') {
+              const qty = o.so_luong ?? 1;
+              return `${o.ten}_${qty}_${o.don_vi || ''}`;
+            } else {
+              const pct = Math.round((o.he_so ?? 0) * 100);
+              return `${o.ten}_${pct}`;
+            }
+          }).sort().join('|')
+        : '';
+      const key = `${l.ten_mon}_${l.ten_bien_the || ''}_${optionsKey}_${l.ghi_chu || ''}_${l.don_gia}_${l.giam_gia || 0}`;
+      
+      if (lineMap.has(key)) {
+        const existing = lineMap.get(key);
+        existing.so_luong += l.so_luong;
+        existing.line_total_with_addons += l.line_total_with_addons;
+      } else {
+        const grouped = {
+          ...l,
+          options: options, // Lưu lại options đã parse
+          so_luong: l.so_luong,
+          line_total_with_addons: l.line_total_with_addons
+        };
+        lineMap.set(key, grouped);
+        groupedLines.push(grouped);
+      }
+    });
+
+    // Vẽ bảng
+    const tableLeft = 24;
+    const tableWidth = doc.page.width - 48;
+    const colWidths = {
+      item: tableWidth * 0.5,      // Tên món
+      qty: tableWidth * 0.15,      // Số lượng
+      price: tableWidth * 0.35     // Giá
+    };
+    
+    // Vẽ đường viền bảng
+    const tableTop = doc.y;
+    
+    // Header
+    doc.fontSize(9).font('Roboto');
+    const headerY = doc.y;
+    
+    // Vẽ đường kẻ trên header
+    doc.moveTo(tableLeft, headerY - 5)
+       .lineTo(tableLeft + tableWidth, headerY - 5)
+       .stroke();
+    
+    // Header text (in đậm bằng cách vẽ nhiều lần)
+    doc.text('Món', tableLeft + 2, headerY, { width: colWidths.item - 4 });
+    doc.text('SL', tableLeft + colWidths.item + 2, headerY, { width: colWidths.qty - 4, align: 'center' });
+    doc.text('Thành tiền', tableLeft + colWidths.item + colWidths.qty + 2, headerY, { width: colWidths.price - 4, align: 'right' });
+    
+    // Vẽ đường kẻ dưới header
+    const headerBottom = headerY + 12;
+    doc.moveTo(tableLeft, headerBottom)
+       .lineTo(tableLeft + tableWidth, headerBottom)
+       .stroke();
+    
+    doc.y = headerBottom + 5;
+    doc.fontSize(9);
+    
+    // Lines
+    groupedLines.forEach((l, idx) => {
+      const rowStartY = doc.y;
+      
+      // Tên món
+      let itemText = l.ten_mon;
+      if (l.ten_bien_the) {
+        itemText += ' (' + l.ten_bien_the + ')';
+      }
       
       // Options
       if (l.options?.length) {
@@ -104,22 +216,62 @@ class InvoiceController {
             return o.ten + ' ' + pct + '%';
           }
         }).join(' • ');
-        doc.fontSize(9).text('   ' + chips);
+        itemText += '\n   ' + chips;
       }
       
       // Note
       if (l.ghi_chu) {
-        doc.fontSize(9).text('   Ghi chú: ' + l.ghi_chu);
+        itemText += '\n   Ghi chú: ' + l.ghi_chu;
       }
       
-      // Price breakdown
-      const unit = l.don_gia - (l.giam_gia ?? 0);
-      doc.fontSize(9).text('   ' + money(unit) + 'đ' + (l.topping_total > 0 ? ' + ' + money(l.topping_total) + 'đ topping' : '') + ' = ' + money(l.line_total_with_addons) + 'đ');
-      doc.moveDown(0.3);
+      // Tính chiều cao hàng dựa trên số dòng text
+      const lines = itemText.split('\n');
+      const estimatedHeight = lines.length * 12 + 8;
+      
+      // Vẽ cột Món
+      doc.text(itemText, tableLeft + 2, rowStartY, { 
+        width: colWidths.item - 4,
+        lineGap: 2
+      });
+      
+      // Vẽ cột SL
+      doc.text('x' + l.so_luong, tableLeft + colWidths.item + 2, rowStartY, { 
+        width: colWidths.qty - 4, 
+        align: 'center' 
+      });
+      
+      // Vẽ cột Thành tiền
+      doc.text(money(l.line_total_with_addons) + 'đ', tableLeft + colWidths.item + colWidths.qty + 2, rowStartY, { 
+        width: colWidths.price - 4, 
+        align: 'right' 
+      });
+      
+      // Vẽ đường kẻ dưới hàng
+      const rowBottom = Math.max(rowStartY + estimatedHeight, doc.y) + 3;
+      doc.moveTo(tableLeft, rowBottom)
+         .lineTo(tableLeft + tableWidth, rowBottom)
+         .stroke();
+      
+      doc.y = rowBottom + 3;
     });
-
-    doc.fontSize(10).text('------------------------------------------------');
-    doc.moveDown(0.3);
+    
+    // Vẽ đường viền bên trái và phải
+    const finalTableBottom = doc.y;
+    doc.moveTo(tableLeft, tableTop - 5)
+       .lineTo(tableLeft, finalTableBottom)
+       .stroke();
+    doc.moveTo(tableLeft + tableWidth, tableTop - 5)
+       .lineTo(tableLeft + tableWidth, finalTableBottom)
+       .stroke();
+    
+    doc.moveDown(0.5);
+    
+    // Đường phân cách trước phần tổng tiền
+    doc.moveTo(24, doc.y)
+       .lineTo(doc.page.width - 24, doc.y)
+       .stroke();
+    
+    doc.moveDown(0.5);
 
     // Promotions
     if (promotions.length) {
@@ -130,6 +282,7 @@ class InvoiceController {
     }
 
     // Totals
+    doc.fontSize(10);
     doc.text('Tạm tính: ' + money(totals.subtotal_after_lines) + 'đ', { align: 'right' });
     
     if (totals.promo_total > 0) {
@@ -148,10 +301,34 @@ class InvoiceController {
       doc.text('VAT (' + totals.vat_rate + '%): +' + money(totals.vat_amount) + 'đ', { align: 'right' });
     }
     
-    doc.moveDown(0.3);
-    doc.fontSize(12).text('TỔNG CỘNG: ' + money(totals.grand_total) + 'đ', { align: 'right' });
+    doc.moveDown(0.4);
+    
+    // TỔNG CỘNG - làm nổi bật
+    const totalY = doc.y;
+    const totalLeft = 24;
+    const totalRight = doc.page.width - 24;
+    const totalWidth = totalRight - totalLeft;
+    
+    // Vẽ border cho TỔNG CỘNG
+    doc.rect(totalLeft, totalY - 3, totalWidth, 20)
+       .stroke();
+    
+    doc.fontSize(13).font('Roboto');
+    doc.text('TỔNG CỘNG: ' + money(totals.grand_total) + 'đ', totalLeft + 5, totalY, { 
+      width: totalWidth - 10,
+      align: 'right'
+    });
+    
+    doc.y = totalY + 20;
 
     // Payments
+    doc.moveDown(0.6);
+    
+    // Đường phân cách trước phần thanh toán
+    doc.moveTo(24, doc.y)
+       .lineTo(doc.page.width - 24, doc.y)
+       .stroke();
+    
     doc.moveDown(0.5);
     doc.fontSize(10);
     
@@ -173,12 +350,20 @@ class InvoiceController {
     if ((totals.amount_due ?? 0) > 0) {
       doc.text('Còn phải thu: ' + money(totals.amount_due) + 'đ', { align: 'right' });
     } else {
+      doc.fontSize(10);
       doc.text('Đã thanh toán đủ', { align: 'right' });
     }
 
     // Footer
-    doc.moveDown(1);
-    doc.fontSize(9).text('Cảm ơn quý khách!', { align: 'center' });
+    doc.moveDown(1.2);
+    
+    // Đường phân cách trước footer
+    doc.moveTo(24, doc.y)
+       .lineTo(doc.page.width - 24, doc.y)
+       .stroke();
+    
+    doc.moveDown(0.5);
+    doc.fontSize(10).text('Cảm ơn quý khách!', { align: 'center' });
 
     doc.end();
   });

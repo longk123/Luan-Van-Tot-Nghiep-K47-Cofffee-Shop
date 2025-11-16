@@ -186,7 +186,8 @@ class AnalyticsService {
           cash_diff: Number(shift.cash_diff || 0),
           // Kitchen stats
           total_items_made: Number(shift.total_items_made || 0),
-          avg_prep_time_seconds: Number(shift.avg_prep_time_seconds || 0)
+          avg_prep_time_seconds: Number(shift.avg_prep_time_seconds || 0),
+          total_items_cancelled: Number(shift.total_items_cancelled || 0)
         }
       }));
     } catch (error) {

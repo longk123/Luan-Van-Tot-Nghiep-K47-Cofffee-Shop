@@ -62,7 +62,20 @@ export default {
   },
 
   async createOrderNoTable({ nhanVienId, caLamId }) {
-    const order = await repo.default.createOrderNoTable({ nhanVienId, caLamId });
+    // Kiểm tra có ca đang mở không
+    let caId = caLamId;
+    if (!caId) {
+      const ca = await getMyOpenShift(nhanVienId);
+      if (!ca) {
+        const err = new Error('Nhân viên chưa có ca OPEN. Vui lòng mở ca làm việc trước khi tạo đơn.');
+        err.status = 400;
+        err.code = 'SHIFT_REQUIRED';
+        throw err;
+      }
+      caId = ca.id;
+    }
+    
+    const order = await repo.default.createOrderNoTable({ nhanVienId, caLamId: caId });
     emitChange('order.updated', { orderId: order.id });
     return order;
   },
@@ -262,6 +275,15 @@ export async function cancelOrderService({ orderId, userId, reason = null }) {
   if (!order) {
     const err = new Error('Không tìm thấy đơn hàng.');
     err.status = 404;
+    throw err;
+  }
+
+  // 1.5️⃣ Kiểm tra có ca đang mở không
+  const ca = await getMyOpenShift(userId);
+  if (!ca) {
+    const err = new Error('Nhân viên chưa có ca OPEN. Vui lòng mở ca làm việc trước khi hủy đơn.');
+    err.status = 400;
+    err.code = 'SHIFT_REQUIRED';
     throw err;
   }
 

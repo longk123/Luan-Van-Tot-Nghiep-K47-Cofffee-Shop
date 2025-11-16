@@ -27,13 +27,15 @@ export default function useOrderDrawer(orderId) {
       const itemsData = i?.items || i?.data || i || [];
       setItems(Array.isArray(itemsData) ? itemsData : []);
       
-      // Tính lại summary để bao gồm topping
+      // Tính lại summary để bao gồm topping (loại trừ món CANCELLED)
       const recalculatedSummary = { ...(s?.data || s || {}) };
       if (Array.isArray(itemsData) && itemsData.length > 0) {
-        // Tính tổng tiền có bao gồm topping
-        const totalWithToppings = itemsData.reduce((sum, item) => {
-          return sum + (item.line_total_with_addons || item.line_total || 0);
-        }, 0);
+        // Tính tổng tiền có bao gồm topping, loại trừ món CANCELLED
+        const totalWithToppings = itemsData
+          .filter(item => item.trang_thai_che_bien !== 'CANCELLED')
+          .reduce((sum, item) => {
+            return sum + (item.line_total_with_addons || item.line_total || 0);
+          }, 0);
         recalculatedSummary.subtotal = totalWithToppings;
       }
       setSummary(recalculatedSummary);

@@ -18,6 +18,24 @@ async function assertOrderOpen(client, orderId) {
   }
 }
 
+async function assertShiftOpen(userId) {
+  if (!userId) {
+    const err = new BadRequest('Không xác định được người dùng. Vui lòng đăng nhập lại.');
+    err.status = 401;
+    err.code = 'USER_NOT_FOUND';
+    throw err;
+  }
+  const { getMyOpenShift } = await import('../repositories/shiftsRepository.js');
+  const ca = await getMyOpenShift(userId);
+  if (!ca) {
+    const err = new BadRequest('Nhân viên chưa có ca OPEN. Vui lòng mở ca làm việc trước khi thao tác với đơn hàng.');
+    err.status = 400;
+    err.code = 'SHIFT_REQUIRED';
+    throw err;
+  }
+  return ca;
+}
+
 /**
  * POST /api/v1/pos/orders/:orderId/items
  * Body (2 cách):
@@ -29,6 +47,16 @@ export async function addOrderItems(req, res, next) {
   const { mon_id, bien_the_id, so_luong, cups, don_gia, giam_gia, ghi_chu } = req.body;
 
   if (!orderId || !mon_id) return next(new BadRequest("Thiếu orderId/mon_id"));
+  
+  // Kiểm tra có ca đang mở không
+  if (!req.user || !req.user.user_id) {
+    return next(new BadRequest('Không xác định được người dùng. Vui lòng đăng nhập lại.'));
+  }
+  try {
+    await assertShiftOpen(req.user.user_id);
+  } catch (err) {
+    return next(err);
+  }
   
   const client = await pool.connect();
   try {
@@ -197,6 +225,16 @@ export async function updateOrderItem(req, res, next) {
 
   if (!lineId) return next(new BadRequest("Thiếu lineId"));
 
+  // Kiểm tra có ca đang mở không
+  if (!req.user || !req.user.user_id) {
+    return next(new BadRequest('Không xác định được người dùng. Vui lòng đăng nhập lại.'));
+  }
+  try {
+    await assertShiftOpen(req.user.user_id);
+  } catch (err) {
+    return next(err);
+  }
+
   const fields = [];
   const vals = [];
   let idx = 1;
@@ -248,6 +286,16 @@ export async function upsertOrderItemOptions(req, res, next) {
   const orderId = parseInt(req.params.orderId, 10);
   const lineId = parseInt(req.params.lineId, 10);
   const opts = req.body || {};
+  
+  // Kiểm tra có ca đang mở không
+  if (!req.user || !req.user.user_id) {
+    return next(new BadRequest('Không xác định được người dùng. Vui lòng đăng nhập lại.'));
+  }
+  try {
+    await assertShiftOpen(req.user.user_id);
+  } catch (err) {
+    return next(err);
+  }
   
   const client = await pool.connect();
   try {
@@ -425,6 +473,16 @@ export async function updateOrderItemStatus(req, res, next) {
 export async function deleteOrderItem(req, res, next) {
   const orderId = parseInt(req.params.orderId, 10);
   const lineId = parseInt(req.params.lineId, 10);
+  
+  // Kiểm tra có ca đang mở không
+  if (!req.user || !req.user.user_id) {
+    return next(new BadRequest('Không xác định được người dùng. Vui lòng đăng nhập lại.'));
+  }
+  try {
+    await assertShiftOpen(req.user.user_id);
+  } catch (err) {
+    return next(err);
+  }
   
   console.log(`🗑️ DELETE request:`, {
     orderId_raw: req.params.orderId,

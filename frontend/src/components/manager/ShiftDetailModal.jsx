@@ -230,16 +230,20 @@ export default function ShiftDetailModal({ shift, onClose }) {
                     </svg>
                     Hiệu suất pha chế
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="bg-white/70 rounded-xl p-3 border border-primary-200">
                       <div className="text-sm text-dark-600 mb-1">Món đã làm</div>
-                      <div className="text-2xl font-bold text-primary-900">{shift.stats?.total_items_made || 0}</div>
+                      <div className="text-2xl font-bold text-primary-900">{shift.stats?.total_items_made || report.kitchenStats?.total_items_made || 0}</div>
+                    </div>
+                    <div className="bg-white/70 rounded-xl p-3 border border-primary-200">
+                      <div className="text-sm text-dark-600 mb-1">Món bị hủy</div>
+                      <div className="text-2xl font-bold text-red-600">{shift.stats?.total_items_cancelled || report.kitchenStats?.total_items_cancelled || 0}</div>
                     </div>
                     <div className="bg-white/70 rounded-xl p-3 border border-primary-200">
                       <div className="text-sm text-dark-600 mb-1">Thời gian TB/món</div>
                       <div className="text-2xl font-bold text-primary-700">
-                        {shift.stats?.avg_prep_time_seconds
-                          ? `${Math.round(shift.stats.avg_prep_time_seconds / 60)}m`
+                        {shift.stats?.avg_prep_time_seconds || report.kitchenStats?.avg_prep_time_seconds
+                          ? `${Math.round((shift.stats?.avg_prep_time_seconds || report.kitchenStats?.avg_prep_time_seconds) / 60)}m`
                           : '--'}
                       </div>
                     </div>
