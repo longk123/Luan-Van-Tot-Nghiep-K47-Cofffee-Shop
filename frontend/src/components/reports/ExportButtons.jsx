@@ -72,22 +72,22 @@ const ExportButtons = ({
       format: 'excel', 
       label: 'Excel', 
       icon: FileSpreadsheet, 
-      color: 'bg-green-600 hover:bg-green-700',
-      loadingColor: 'bg-green-400'
+      color: 'bg-green-600 text-white border-2 border-transparent hover:bg-white hover:text-green-600 hover:border-green-600',
+      loadingColor: 'bg-green-400 text-white'
     },
     { 
       format: 'pdf', 
       label: 'PDF', 
       icon: FileText, 
-      color: 'bg-red-600 hover:bg-red-700',
-      loadingColor: 'bg-red-400'
+      color: 'bg-red-600 text-white border-2 border-transparent hover:bg-white hover:text-red-600 hover:border-red-600',
+      loadingColor: 'bg-red-400 text-white'
     },
     { 
       format: 'csv', 
       label: 'CSV', 
       icon: File, 
-      color: 'bg-blue-600 hover:bg-blue-700',
-      loadingColor: 'bg-blue-400'
+      color: 'bg-blue-600 text-white border-2 border-transparent hover:bg-white hover:text-blue-600 hover:border-blue-600',
+      loadingColor: 'bg-blue-400 text-white'
     }
   ];
 
@@ -105,10 +105,10 @@ const ExportButtons = ({
           disabled={disabled || loading !== null}
           className={`
             ${loading === format ? loadingColor : color}
-            ${disabled || loading !== null ? 'opacity-50 cursor-not-allowed' : ''}
-            text-white px-4 py-2 rounded-lg
+            ${disabled || loading !== null ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            px-4 py-2 rounded-lg
             flex items-center gap-2
-            transition-colors duration-200
+            transition-all duration-200
             text-sm font-medium
           `}
         >

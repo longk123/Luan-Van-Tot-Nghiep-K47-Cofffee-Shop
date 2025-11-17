@@ -176,6 +176,225 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
     XLSX.writeFile(wb, fileName);
   };
 
+  // Export to CSV
+  const exportToCSV = () => {
+    if (!reportData || !reportData.details) {
+      alert('Không có dữ liệu để xuất');
+      return;
+    }
+
+    const { summary, details } = reportData;
+    const BOM = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+
+    // Prepare CSV content
+    let csvContent = BOM;
+    
+    // Header
+    csvContent += 'BÁO CÁO LỢI NHUẬN\n';
+    csvContent += `Từ ngày: ${startDate} đến ${endDate}\n\n`;
+    csvContent += 'Tổng quan\n';
+    csvContent += `Tổng đơn hàng,${summary.totalOrders}\n`;
+    csvContent += `Doanh thu,${summary.totalRevenue}\n`;
+    csvContent += `Giá vốn món,${summary.totalCostMon}\n`;
+    csvContent += `Giá vốn topping,${summary.totalCostTopping}\n`;
+    csvContent += `Tổng giá vốn,${summary.totalCost}\n`;
+    csvContent += `Lợi nhuận,${summary.totalProfit}\n`;
+    csvContent += `Tỷ suất lợi nhuận (%),${summary.margin.toFixed(2)}\n\n`;
+    
+    // Details header
+    csvContent += 'Chi tiết đơn hàng\n';
+    csvContent += 'Mã đơn,Thời gian,Loại đơn,Doanh thu,Giảm giá,Giá vốn món,Giá vốn topping,Tổng giá vốn,Lợi nhuận,Tỷ suất (%)\n';
+    
+    // Details rows
+    details.forEach(order => {
+      csvContent += `#${order.orderId},"${new Date(order.closedAt).toLocaleString('vi-VN')}",${order.orderType === 'DINE_IN' ? 'Tại bàn' : 'Mang đi'},${order.revenue},${order.totalDiscount},${order.costMon},${order.costTopping},${order.totalCost},${order.profit},${order.margin.toFixed(2)}\n`;
+    });
+
+    // Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `Bao_cao_loi_nhuan_${startDate}_${endDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export to PDF
+  const exportToPDF = () => {
+    if (!reportData || !reportData.details) {
+      alert('Không có dữ liệu để xuất');
+      return;
+    }
+
+    const { summary, details } = reportData;
+
+    // Create HTML content for PDF
+    let htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Báo cáo lợi nhuận</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            font-size: 12px;
+          }
+          h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+          }
+          .summary {
+            margin-bottom: 30px;
+          }
+          .summary h2 {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-bottom: 10px;
+          }
+          .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+          }
+          .summary-label {
+            font-weight: bold;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th {
+            background-color: #4a5568;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 11px;
+          }
+          td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 11px;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+          .text-right {
+            text-align: right;
+          }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>BÁO CÁO LỢI NHUẬN</h1>
+        <div class="header">Từ ngày: ${startDate} đến ${endDate}</div>
+        
+        <div class="summary">
+          <h2>Tổng quan</h2>
+          <div class="summary-row">
+            <span class="summary-label">Tổng đơn hàng:</span>
+            <span>${summary.totalOrders}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Doanh thu:</span>
+            <span>${formatCurrency(summary.totalRevenue)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Giá vốn món:</span>
+            <span>${formatCurrency(summary.totalCostMon)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Giá vốn topping:</span>
+            <span>${formatCurrency(summary.totalCostTopping)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Tổng giá vốn:</span>
+            <span>${formatCurrency(summary.totalCost)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Lợi nhuận:</span>
+            <span>${formatCurrency(summary.totalProfit)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Tỷ suất lợi nhuận:</span>
+            <span>${summary.margin.toFixed(2)}%</span>
+          </div>
+        </div>
+
+        <h2>Chi tiết đơn hàng</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Mã đơn</th>
+              <th>Thời gian</th>
+              <th>Loại đơn</th>
+              <th class="text-right">Doanh thu</th>
+              <th class="text-right">Giảm giá</th>
+              <th class="text-right">Giá vốn món</th>
+              <th class="text-right">Giá vốn topping</th>
+              <th class="text-right">Tổng giá vốn</th>
+              <th class="text-right">Lợi nhuận</th>
+              <th class="text-right">Tỷ suất (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    details.forEach(order => {
+      htmlContent += `
+            <tr>
+              <td>#${order.orderId}</td>
+              <td>${new Date(order.closedAt).toLocaleString('vi-VN')}</td>
+              <td>${order.orderType === 'DINE_IN' ? 'Tại bàn' : 'Mang đi'}</td>
+              <td class="text-right">${formatCurrency(order.revenue)}</td>
+              <td class="text-right">${formatCurrency(order.totalDiscount)}</td>
+              <td class="text-right">${formatCurrency(order.costMon)}</td>
+              <td class="text-right">${formatCurrency(order.costTopping)}</td>
+              <td class="text-right">${formatCurrency(order.totalCost)}</td>
+              <td class="text-right">${formatCurrency(order.profit)}</td>
+              <td class="text-right">${order.margin.toFixed(2)}%</td>
+            </tr>
+      `;
+    });
+
+    htmlContent += `
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Create blob and open in new window for printing
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+    
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        // Clean up after printing
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 1000);
+      }, 500);
+    };
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-64 space-y-4">
@@ -285,7 +504,11 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
               disabled={!reportData}
               onExport={async (format) => {
                 if (format === 'excel') {
-                  exportToExcel(); // Use existing Excel export
+                  exportToExcel();
+                } else if (format === 'csv') {
+                  exportToCSV();
+                } else if (format === 'pdf') {
+                  exportToPDF();
                 }
               }}
             />
