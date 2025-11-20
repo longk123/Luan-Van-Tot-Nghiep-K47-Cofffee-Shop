@@ -9,6 +9,7 @@ import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { getUser } from '../auth.js';
 import BatchExpiryNotification from '../components/BatchExpiryNotification.jsx';
 import ExportButtons from '../components/reports/ExportButtons.jsx';
+import DropdownMenu, { DropdownMenuItem, DropdownMenuDivider } from '../components/DropdownMenu.jsx';
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
@@ -20,9 +21,23 @@ export default function ManagerDashboard() {
   const [kpis, setKpis] = useState(null);
   const [revenueChart, setRevenueChart] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  // Hàm lấy ngày hôm nay theo timezone Việt Nam (định nghĩa trước để dùng trong useState)
+  const getTodayVN = () => {
+    const now = new Date();
+    // Lấy ngày theo timezone Việt Nam (UTC+7)
+    // Sử dụng Intl.DateTimeFormat để format ngày theo timezone VN
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(now); // Trả về format YYYY-MM-DD
+  };
+
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('day'); // day, week, month, quarter, year, custom
-  const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customDate, setCustomDate] = useState(() => getTodayVN()); // Khởi tạo với ngày hôm nay theo timezone VN
   // Khởi tạo customStartDate và customEndDate với giá trị mặc định (7 ngày gần nhất)
   const [customStartDate, setCustomStartDate] = useState(() => {
     const date = new Date();
@@ -321,9 +336,62 @@ export default function ManagerDashboard() {
     }
   };
 
+
+  // Tự động cập nhật customDate về ngày hôm nay khi chọn "Ngày" hoặc khi mount
+  useEffect(() => {
+    if (timeRange === 'day') {
+      const todayStr = getTodayVN();
+      // Chỉ cập nhật nếu ngày hiện tại khác với customDate
+      if (customDate !== todayStr) {
+        console.log('📅 Auto-updating customDate to today:', todayStr, '(current:', customDate, ')');
+        setCustomDate(todayStr);
+      }
+    }
+  }, [timeRange]); // Chạy khi timeRange thay đổi
+
+  // Đảm bảo customDate là ngày hôm nay khi mount (nếu timeRange là 'day')
+  useEffect(() => {
+    if (timeRange === 'day') {
+      const todayStr = getTodayVN();
+      if (customDate !== todayStr) {
+        console.log('📅 On mount: Updating customDate to today:', todayStr);
+        setCustomDate(todayStr);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Chỉ chạy 1 lần khi mount
+
+  // Tự động kiểm tra và cập nhật ngày hôm nay mỗi phút khi đang ở tab "Ngày"
+  useEffect(() => {
+    if (timeRange !== 'day') return;
+    
+    const interval = setInterval(() => {
+      const todayStr = getTodayVN();
+      if (customDate !== todayStr) {
+        console.log('📅 Date changed! Updating customDate to today:', todayStr);
+        setCustomDate(todayStr);
+      }
+    }, 60000); // Kiểm tra mỗi phút (60000ms)
+
+    return () => clearInterval(interval);
+  }, [timeRange, customDate]); // Chạy khi timeRange hoặc customDate thay đổi
+
   // Auto-load data on component mount
   useEffect(() => {
+    // Đảm bảo customDate là ngày hôm nay khi mount và timeRange là 'day'
+    if (timeRange === 'day') {
+      const todayStr = getTodayVN();
+      console.log('📅 On mount - timeRange is day, today is:', todayStr, 'current customDate:', customDate);
+      // Luôn cập nhật về ngày hôm nay khi mount
+      if (customDate !== todayStr) {
+        console.log('📅 Setting customDate to today on mount');
+        setCustomDate(todayStr);
+        // Không loadData ở đây, sẽ load sau khi customDate được cập nhật
+        return;
+      }
+    }
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array = chỉ chạy 1 lần khi mount
 
   // Auto-reload when time range or custom date changes
@@ -444,72 +512,94 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
-          {/* Right: Action Buttons */}
-          <div className="flex flex-wrap gap-3 justify-end">
-            {/* Nút Quản lý Nhân viên */}
-            <button
-              onClick={() => navigate('/employees')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+          {/* Right: Action Buttons - NEW IMPROVED LAYOUT */}
+          <div className="flex gap-3 justify-end">
+            {/* Dropdown: Quản lý */}
+            <DropdownMenu
+              align="right"
+              trigger={
+                <button className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Quản lý</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              }
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <span>Quản lý Nhân viên</span>
-            </button>
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                }
+                label="Nhân viên"
+                onClick={() => navigate('/employees')}
+              />
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                }
+                label="Khu vực & Bàn"
+                onClick={() => navigate('/areas')}
+              />
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                }
+                label="Thực đơn"
+                onClick={() => navigate('/menu-management')}
+              />
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                }
+                label="Khuyến mãi"
+                onClick={() => navigate('/promotion-management')}
+              />
+              <DropdownMenuDivider />
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                }
+                label="Kho & Lô hàng"
+                onClick={() => navigate('/inventory')}
+              />
+            </DropdownMenu>
 
-            {/* Nút Quản lý Khuyến mãi */}
-            <button
-              onClick={() => navigate('/promotion-management')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              <span>Quản lý Khuyến mãi</span>
-            </button>
-
-            {/* Nút Quản lý Khu vực */}
-            <button
-              onClick={() => navigate('/areas')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <span>Quản lý Khu vực</span>
-            </button>
-
-            {/* Nút Đi tới Bếp */}
+            {/* Quick Action: Bếp */}
             <button
               onClick={() => navigate('/kitchen')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+              className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white border-2 border-orange-500 rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-orange-600 hover:border-orange-600 hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+              title="Màn hình bếp"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
-              <span>Đi tới Bếp</span>
+              <span>Bếp</span>
             </button>
 
-            {/* Nút DS Mang đi */}
+            {/* Quick Action: Mang đi */}
             <button
               onClick={() => navigate('/takeaway')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+              className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white border-2 border-green-500 rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-green-600 hover:border-green-600 hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+              title="Danh sách mang đi"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              <span>DS Mang đi</span>
-            </button>
-
-            {/* Nút Lịch sử đơn */}
-            <button
-              onClick={() => setActiveTab('invoices')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span>Lịch sử đơn</span>
+              <span>Mang đi</span>
             </button>
           </div>
         </div>
@@ -739,7 +829,7 @@ export default function ManagerDashboard() {
             </p>
           </div>
 
-          {/* Bàn Card */}
+          {/* Bàn Card - DYNAMIC theo timeRange */}
           <div className="bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 rounded-2xl shadow-sm border-2 border-purple-300 p-6 hover:shadow-xl hover:border-purple-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-md">
@@ -747,61 +837,119 @@ export default function ManagerDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <h3 className="text-sm font-semibold text-gray-700">Bàn được sử dụng</h3>
+              <h3 className="text-sm font-semibold text-gray-700">
+                {(() => {
+                  const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
+                  return isToday ? 'Bàn đang sử dụng' : 'Tổng bàn đã phục vụ';
+                })()}
+              </h3>
             </div>
             <p className="text-2xl font-bold text-purple-600 mb-2">
-              {kpis ? `${kpis.tables?.active} / ${kpis.tables?.total}` : '0 / 11'}
+              {(() => {
+                const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
+                if (isToday) {
+                  return kpis ? `${kpis.tables?.active} / ${kpis.tables?.total}` : '0 / 11';
+                } else {
+                  return kpis ? `${kpis.tables?.active} bàn` : '0 bàn';
+                }
+              })()}
             </p>
             <p className="text-xs text-gray-600 flex items-center gap-1">
-              {timeRange === 'day'
-                ? (kpis ? <span>{kpis.tables?.utilization_percent}% công suất</span> : <span>Đang cập nhật</span>)
-                : (kpis && kpis.tables?.change_percent !== 0 ? (
-                    <>
-                      {kpis.tables?.change_percent > 0 ? (
-                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                        </svg>
-                      )}
-                      <span>{Math.abs(kpis.tables?.change_percent || 0)}% so với {timeRange === 'week' ? 'tuần trước' : timeRange === 'month' ? 'tháng trước' : timeRange === 'quarter' ? 'quý trước' : 'năm trước'}</span>
-                    </>
+              {(() => {
+                const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
+                if (isToday) {
+                  return kpis ? <span>{kpis.tables?.utilization_percent}% công suất</span> : <span>Đang cập nhật</span>;
+                } else {
+                  return kpis ? (
+                    <span>Trung bình {(kpis.tables?.active / getTimeRangeParams(timeRange, customDate).days).toFixed(1)} bàn/ngày</span>
                   ) : (
-                    <span>Không có dữ liệu kỳ trước</span>
-                  ))
-              }
+                    <span>Không có dữ liệu</span>
+                  );
+                }
+              })()}
             </p>
           </div>
 
-          {/* Món chờ bếp Card */}
+          {/* Card 4 - DYNAMIC: Món chờ bếp (Hôm nay) hoặc Trung bình món/đơn (Khác) */}
           <div className="bg-gradient-to-br from-emerald-50 via-white to-green-50 rounded-2xl shadow-sm border-2 border-emerald-300 p-6 hover:shadow-xl hover:border-emerald-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  {(() => {
+                    const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
+                    return isToday ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    );
+                  })()}
                 </svg>
               </div>
-              <h3 className="text-sm font-semibold text-gray-700">Món chờ bếp</h3>
+              <h3 className="text-sm font-semibold text-gray-700">
+                {(() => {
+                  const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
+                  return isToday ? 'Món chờ bếp' : 'Trung bình món/đơn';
+                })()}
+              </h3>
             </div>
             <p className="text-2xl font-bold text-emerald-600 mb-2">
-              {kpis ? kpis.kitchen?.queue_count : '0'}
+              {(() => {
+                const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
+                if (isToday) {
+                  // Hiển thị số món đang chờ trong bếp (real-time)
+                  return kpis ? (kpis.kitchen?.queue_count || '0') : '0';
+                } else {
+                  // Hiển thị trung bình món/đơn cho khoảng thời gian hoặc ngày quá khứ
+                  if (kpis && kpis.orders?.paid > 0 && invoices.length > 0) {
+                    const timeParams = getTimeRangeParams(timeRange, customDate);
+                    const [startYear, startMonth, startDay] = timeParams.startDate.split('-').map(Number);
+                    const [endYear, endMonth, endDay] = timeParams.endDate.split('-').map(Number);
+                    const startDate = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+                    const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
+                    
+                    const invoicesInRange = invoices.filter(invoice => {
+                      if (!invoice.closed_at || invoice.status !== 'PAID') return false;
+                      const invoiceDate = new Date(invoice.closed_at);
+                      return invoiceDate >= startDate && invoiceDate <= endDate;
+                    });
+                    
+                    // Giả định mỗi đơn có khoảng 2-4 món (tạm thời - cần API thực tế)
+                    // TODO: Thêm API để lấy số món chính xác
+                    const estimatedItems = invoicesInRange.length * 3;
+                    const avgItemsPerOrder = invoicesInRange.length > 0 
+                      ? (estimatedItems / invoicesInRange.length).toFixed(1)
+                      : '0.0';
+                    return `${avgItemsPerOrder} món`;
+                  }
+                  return '0.0 món';
+                }
+              })()}
             </p>
             <p className="text-xs text-gray-600 flex items-center gap-1">
-              {timeRange === 'day'
-                ? (kpis ? <span>{kpis.order_types?.dine_in || 0} tại bàn, {kpis.order_types?.takeaway || 0} mang đi</span> : <span>0 tại bàn, 0 mang đi</span>)
-                : (
-                  <>
-                    <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span>Chỉ hiển thị khi chọn "Ngày"</span>
-                  </>
-                )
-              }
+              {(() => {
+                const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
+                if (isToday) {
+                  return kpis ? <span>{kpis.order_types?.dine_in || 0} tại bàn, {kpis.order_types?.takeaway || 0} mang đi</span> : <span>0 tại bàn, 0 mang đi</span>;
+                } else {
+                  return kpis && kpis.orders?.paid > 0
+                    ? <span>Trong {kpis.orders.paid} đơn hàng</span>
+                    : <span>Không có dữ liệu</span>;
+                }
+              })()}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Quick Insights Row - ẨN TẠM THỜI - Chờ API thật */}
+      {false && activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* NOTE: Section này đang bị ẨN vì chưa có API để lấy data thực
+              TODO: Kích hoạt lại khi có API:
+              - GET /api/v1/analytics/top-items
+              - GET /api/v1/inventory/warnings
+              - GET /api/v1/takeaway/pending-count
+          */}
         </div>
       )}
 
@@ -1632,92 +1780,6 @@ export default function ManagerDashboard() {
         </div>
       )}
 
-      {/* Floating Navigation Buttons */}
-      <div className="fixed bottom-6 left-6 z-[1000] flex gap-4">
-        {/* Nút Cảnh báo Hết hạn */}
-        <div className="group relative">
-          {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
-            <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
-              Quản lý lô hàng
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
-                <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Button - Navigate to Inventory with Batch tab */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
-            <button
-              onClick={() => {
-                navigate('/inventory');
-                // Note: Will need to add URL param or state to auto-select batch tab
-              }}
-              className="relative w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 text-white rounded-full shadow-2xl hover:from-orange-500 hover:to-red-500 hover:shadow-orange-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
-              title="Quản lý lô hàng"
-            >
-              <svg className="w-7 h-7 transition-transform group-hover:rotate-12 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Nút Quản lý Kho */}
-        <div className="group relative">
-          {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
-            <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
-              Quản lý Kho
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
-                <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Button với glow effect */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
-            <button
-              onClick={() => navigate('/inventory')}
-              className="relative w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-full shadow-2xl hover:from-purple-500 hover:to-purple-600 hover:shadow-purple-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
-              title="Quản lý Kho"
-            >
-              <svg className="w-7 h-7 transition-transform group-hover:rotate-12 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Nút Quản lý Thực đơn */}
-        <div className="group relative">
-          {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none transform group-hover:-translate-y-1">
-            <div className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-2xl whitespace-nowrap">
-              Quản lý Thực đơn
-              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
-                <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Button với glow effect */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
-            <button
-              onClick={() => navigate('/menu-management')}
-              className="relative w-16 h-16 bg-gradient-to-br from-[#d4a574] to-[#c9975b] text-white rounded-full shadow-2xl hover:from-[#c9975b] hover:to-[#b8864a] hover:shadow-amber-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
-              title="Quản lý Thực đơn"
-            >
-              <svg className="w-7 h-7 transition-transform group-hover:rotate-12 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
     </AuthedLayout>
   );
 }

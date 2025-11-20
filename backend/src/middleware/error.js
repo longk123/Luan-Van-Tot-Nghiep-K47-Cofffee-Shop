@@ -2,7 +2,18 @@
 // Xử lý lỗi tập trung
 
 const errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('❌ Error Handler:', err);
+  console.error('   Name:', err.name);
+  console.error('   Message:', err.message);
+  console.error('   Status:', err.status);
+
+  // Lỗi từ httpErrors.js (BadRequest, NotFound, Unauthorized, Forbidden)
+  if (err.name === 'BadRequest' || err.name === 'NotFound' || err.name === 'Unauthorized' || err.name === 'Forbidden') {
+    return res.status(err.status || 400).json({
+      error: err.message || 'Lỗi yêu cầu',
+      code: err.code
+    });
+  }
 
   // Lỗi validation
   if (err.name === 'ValidationError') {

@@ -121,6 +121,9 @@ app.use('/api/v1/reports', exportsRouter);
 import paymentSuccessRouter from './src/routes/paymentSuccess.js'; // <— router payment redirect
 app.use('/', paymentSuccessRouter);
 
+import customerRouter from './src/routes/customer.js'; // <— router customer portal
+app.use('/api/v1', customerRouter);
+
 // Error handling middleware (phải ở cuối)
 app.use(errorHandler);
 

@@ -36,13 +36,41 @@ export default {
           AND o.opened_at < timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp + INTERVAL '1 day')
       ),
       active_tables_now AS (
-        -- Bàn được sử dụng trong ngày được chọn (dựa trên opened_at)
-        SELECT COUNT(DISTINCT o.ban_id) AS active_tables
-        FROM don_hang o
-        WHERE o.ban_id IS NOT NULL
-          AND o.order_type = 'DINE_IN'
-          AND o.opened_at >= timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp)
-          AND o.opened_at < timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp + INTERVAL '1 day')
+        -- Bàn đang sử dụng: Đếm bàn có đơn OPEN hoặc đơn PAID nhưng bàn vẫn DANG_DUNG (chưa đóng bàn)
+        -- Luôn đếm real-time khi ngày >= hôm nay, đếm historical khi ngày < hôm nay
+        SELECT COUNT(DISTINCT b.id) AS active_tables
+        FROM ban b
+        WHERE b.trang_thai != 'KHOA'
+          AND (
+            -- Nếu là hôm nay hoặc tương lai: đếm real-time các bàn đang sử dụng
+            (to_char($1::date, 'YYYY-MM-DD') >= to_char((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date, 'YYYY-MM-DD') AND (
+              -- Bàn có đơn OPEN (chưa thanh toán)
+              EXISTS (
+                SELECT 1 FROM don_hang o 
+                WHERE o.ban_id = b.id 
+                  AND o.order_type = 'DINE_IN'
+                  AND o.trang_thai = 'OPEN'
+              )
+              OR
+              -- Bàn có đơn PAID nhưng bàn vẫn DANG_DUNG (đã thanh toán nhưng chưa đóng bàn)
+              (b.trang_thai = 'DANG_DUNG' AND EXISTS (
+                SELECT 1 FROM don_hang o 
+                WHERE o.ban_id = b.id 
+                  AND o.order_type = 'DINE_IN'
+                  AND o.trang_thai = 'PAID'
+                  AND o.closed_at IS NOT NULL
+              ))
+            ))
+            OR
+            -- Nếu là quá khứ: đếm bàn có đơn được mở trong ngày đó (historical)
+            (to_char($1::date, 'YYYY-MM-DD') < to_char((NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date, 'YYYY-MM-DD') AND EXISTS (
+              SELECT 1 FROM don_hang o 
+              WHERE o.ban_id = b.id 
+                AND o.order_type = 'DINE_IN'
+                AND o.opened_at >= timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp)
+                AND o.opened_at < timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp + INTERVAL '1 day')
+            ))
+          )
       ),
       yesterday_stats AS (
         SELECT
@@ -59,11 +87,12 @@ export default {
           AND to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') = to_char(($1::date - INTERVAL '1 day'), 'YYYY-MM-DD')
       ),
       kitchen_queue AS (
+        -- Đếm số món đang chờ/làm trong bếp (real-time)
         SELECT COUNT(*) AS queue_count
         FROM don_hang_chi_tiet d
         INNER JOIN don_hang o ON o.id = d.don_hang_id
         WHERE d.trang_thai_che_bien IN ('QUEUED', 'MAKING')
-          AND o.trang_thai = 'OPEN'
+          AND o.trang_thai IN ('OPEN', 'PAID')
       ),
       total_tables AS (
         SELECT COUNT(*) AS total_tables

@@ -595,7 +595,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
         {/* Giá vốn */}
         <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200">
           <div className="flex justify-between items-start">
-            <div>
+            <div className="flex-1">
               <p className="text-white text-opacity-90 text-sm font-medium flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -603,12 +603,18 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                 <span>Tổng giá vốn</span>
               </p>
               <p className="text-3xl font-bold mt-2">{formatCurrency(summary?.totalCost)}</p>
-              <div className="mt-2 space-y-1">
-                <p className="text-white text-opacity-80 text-xs">Món: {formatCurrency(summary?.totalCostMon)}</p>
-                <p className="text-white text-opacity-80 text-xs">Topping: {formatCurrency(summary?.totalCostTopping)}</p>
+              <div className="mt-3 space-y-1.5 bg-white bg-opacity-10 rounded-lg p-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-white text-opacity-90 text-xs">Món:</span>
+                  <span className="text-white text-opacity-100 text-xs font-semibold">{formatCurrency(summary?.totalCostMon)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white text-opacity-90 text-xs">Topping:</span>
+                  <span className="text-white text-opacity-100 text-xs font-semibold">{formatCurrency(summary?.totalCostTopping)}</span>
+                </div>
               </div>
             </div>
-            <div className="bg-white bg-opacity-20 rounded-full p-3">
+            <div className="bg-white bg-opacity-20 rounded-full p-3 ml-4">
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
               </svg>
@@ -637,7 +643,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
         </div>
 
         {/* Tỷ suất lợi nhuận */}
-        <div className="bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200">
+        <div className="bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-all duration-200 group relative">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-white text-opacity-90 text-sm font-medium flex items-center gap-2">
@@ -645,6 +651,9 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                 </svg>
                 <span>Tỷ suất lợi nhuận</span>
+                <svg className="w-4 h-4 text-white text-opacity-70 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </p>
               <p className="text-3xl font-bold mt-2">{formatPercent(summary?.margin)}</p>
               <p className="text-white text-opacity-80 text-xs mt-2">
@@ -656,6 +665,11 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                 <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
               </svg>
             </div>
+          </div>
+          <div className="absolute right-4 top-full mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+            <div className="font-semibold mb-1">Tỷ suất lợi nhuận</div>
+            <div className="text-gray-300 mb-2">= (Lợi nhuận / Doanh thu) × 100%</div>
+            <div className="text-yellow-300 text-xs">Chỉ số quan trọng để đánh giá hiệu quả kinh doanh</div>
           </div>
         </div>
       </div>
@@ -930,6 +944,14 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span>Loại đơn</span>
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <span>Thời gian</span>
@@ -944,11 +966,19 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                     </div>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2 group relative">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                       </svg>
                       <span>Giảm giá</span>
+                      <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="font-semibold mb-2">Chi tiết giảm giá:</div>
+                        <div className="space-y-1">
+                          <div>• <span className="text-blue-300">Line:</span> Giảm giá từng món</div>
+                          <div>• <span className="text-purple-300">Promo:</span> Giảm giá khuyến mãi</div>
+                          <div>• <span className="text-orange-300">Manual:</span> Giảm giá thủ công</div>
+                        </div>
+                      </div>
                     </div>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -984,11 +1014,16 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                     </div>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2 group relative">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
-                    <span>Tỷ suất lợi nhuận</span>
+                      <span>Tỷ suất lợi nhuận</span>
+                      <div className="absolute right-0 top-full mt-2 w-56 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="font-semibold mb-1">Tỷ suất lợi nhuận</div>
+                        <div className="text-gray-300">= (Lợi nhuận / Doanh thu) × 100%</div>
+                        <div className="mt-2 text-yellow-300">Tỷ lệ phần trăm lợi nhuận trên doanh thu</div>
+                      </div>
                     </div>
                   </th>
                 </tr>
@@ -997,42 +1032,106 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                 {filteredDetails
                   .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                   .map((order) => (
-                  <tr key={order.orderId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      #{order.orderId}
+                  <tr key={order.orderId} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-gray-900">#{order.orderId}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        order.orderType === 'DINE_IN' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {order.orderType === 'DINE_IN' ? (
+                          <>
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            Tại bàn
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            Mang đi
+                          </>
+                        )}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.closedAt).toLocaleString('vi-VN')}
+                      <div className="flex flex-col">
+                        <span>{new Date(order.closedAt).toLocaleDateString('vi-VN')}</span>
+                        <span className="text-xs text-gray-400">{new Date(order.closedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                      {formatCurrency(order.revenue)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <div className="font-semibold text-gray-900">{formatCurrency(order.revenue)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600">
-                      {order.totalDiscount > 0 ? `-${formatCurrency(order.totalDiscount)}` : '-'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      {order.totalDiscount > 0 ? (
+                        <div className="flex flex-col items-end gap-1 group relative">
+                          <div className="font-medium text-red-600">-{formatCurrency(order.totalDiscount)}</div>
+                          {(order.discountLine > 0 || order.discountPromo > 0 || order.discountManual > 0) && (
+                            <div className="absolute right-0 top-full mt-1 w-56 p-2 bg-gray-800 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                              <div className="space-y-1">
+                                {order.discountLine > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-blue-300">Line:</span>
+                                    <span>{formatCurrency(order.discountLine)}</span>
+                                  </div>
+                                )}
+                                {order.discountPromo > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-purple-300">Promo:</span>
+                                    <span>{formatCurrency(order.discountPromo)}</span>
+                                  </div>
+                                )}
+                                {order.discountManual > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-orange-300">Manual:</span>
+                                    <span>{formatCurrency(order.discountManual)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
                       {formatCurrency(order.costMon)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-orange-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <span>{formatCurrency(order.costTopping)}</span>
+                        <span className={order.costTopping > 0 ? 'text-orange-600 font-medium' : 'text-gray-400'}>
+                          {formatCurrency(order.costTopping)}
+                        </span>
                         {order.costTopping > 0 && (
-                          <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" title="Có topping">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
-                      {formatCurrency(order.totalCost)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <div className="font-semibold text-gray-900">{formatCurrency(order.totalCost)}</div>
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${
                       order.profit >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {formatCurrency(order.profit)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                      {formatPercent(order.margin)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <span className={`font-semibold ${
+                        order.margin >= 50 ? 'text-green-600' : 
+                        order.margin >= 30 ? 'text-yellow-600' : 
+                        order.margin >= 0 ? 'text-orange-600' : 'text-red-600'
+                      }`}>
+                        {formatPercent(order.margin)}
+                      </span>
                     </td>
                   </tr>
                 ))}

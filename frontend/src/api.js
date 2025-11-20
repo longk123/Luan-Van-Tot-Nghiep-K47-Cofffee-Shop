@@ -59,6 +59,8 @@ export const api = {
     ca_lam_id: null
   }),
   createTakeawayOrder: () => request('POST', '/pos/orders', { order_type: 'TAKEAWAY' }),
+  createDeliveryOrder: () => request('POST', '/pos/orders', { order_type: 'DELIVERY' }),
+  saveDeliveryInfo: (orderId, deliveryInfo) => request('POST', `/pos/orders/${orderId}/delivery-info`, deliveryInfo),
   getOrderItems: (orderId) => request('GET', `/pos/orders/${orderId}/items`),
   getOrderSummary: (orderId) => request('GET', `/pos/orders/${orderId}/summary`),
   addItemToOrder: (orderId, payload) => request('POST', `/pos/orders/${orderId}/items`, payload),

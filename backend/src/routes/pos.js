@@ -67,12 +67,12 @@ router.get('/menu/search', auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/v1/pos/orders (tạo đơn mang đi)
-// body: { order_type: 'TAKEAWAY', nhan_vien_id, ca_lam_id? }
+// POST /api/v1/pos/orders (tạo đơn mang đi hoặc giao hàng)
+// body: { order_type: 'TAKEAWAY' | 'DELIVERY', nhan_vien_id, ca_lam_id? }
 router.post('/orders', auth, async (req, res, next) => {
   try {
     const schema = Joi.object({
-      order_type: Joi.string().valid('TAKEAWAY').default('TAKEAWAY'),
+      order_type: Joi.string().valid('TAKEAWAY', 'DELIVERY').default('TAKEAWAY'),
       nhan_vien_id: Joi.number().integer(),
       ca_lam_id: Joi.number().integer().allow(null),
     });
@@ -81,7 +81,8 @@ router.post('/orders', auth, async (req, res, next) => {
     console.log(`🔍 Route /orders - Using user_id from token: ${req.user?.user_id} (ignoring nhan_vien_id: ${nhan_vien_id})`);
     const order = await service.default.createOrderNoTable({
       nhanVienId: req.user?.user_id, 
-      caLamId: ca_lam_id ?? null
+      caLamId: ca_lam_id ?? null,
+      orderType: order_type
     });
     res.status(201).json({ ok: true, data: order });
   } catch (e) { next(e); }
@@ -155,6 +156,27 @@ router.post('/orders/:orderId/deliver', auth, async (req, res, next) => {
   try {
     const orderId = parseInt(req.params.orderId);
     const result = await service.default.deliverOrder(orderId);
+    res.json({ success: true, data: result });
+  } catch (e) { next(e); }
+});
+
+// POST /api/v1/pos/orders/:orderId/delivery-info - Lưu thông tin giao hàng
+router.post('/orders/:orderId/delivery-info', auth, async (req, res, next) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const schema = Joi.object({
+      deliveryAddress: Joi.string().required(),
+      deliveryPhone: Joi.string().allow(''),
+      deliveryTime: Joi.string().allow(''),
+      deliveryNotes: Joi.string().allow(''),
+      deliveryFee: Joi.number().integer().min(0).default(0),
+      latitude: Joi.number().min(-90).max(90).allow(null),
+      longitude: Joi.number().min(-180).max(180).allow(null),
+      distance: Joi.number().min(0).allow(null)
+    });
+    const data = await schema.validateAsync(req.body);
+    
+    const result = await service.default.saveDeliveryInfo(orderId, data);
     res.json({ success: true, data: result });
   } catch (e) { next(e); }
 });

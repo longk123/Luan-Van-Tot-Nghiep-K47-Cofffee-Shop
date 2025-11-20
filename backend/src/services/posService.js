@@ -3,6 +3,19 @@ import * as repo from '../repositories/posRepository.js';
 import { getMyOpenShift } from '../repositories/shiftsRepository.js';
 import { emitChange } from '../utils/eventBus.js';
 
+// Calculate distance between two coordinates (Haversine formula)
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
+
 export default {
   async getTables(areaId) {
     return repo.default.getTablesWithSummary({ areaId });
@@ -152,6 +165,90 @@ export default {
     );
     
     emitChange('order.completed', { orderId });
+    
+    return result.rows[0];
+  },
+
+  // Lưu thông tin giao hàng
+  async saveDeliveryInfo(orderId, data) {
+    const { pool } = await import('../db.js');
+    
+    // Store location (gần Đại học Cần Thơ)
+    const STORE_LOCATION = {
+      lat: 10.0310,
+      lng: 105.7690
+    };
+    const MAX_DELIVERY_DISTANCE = 2; // 2km
+    
+    // Kiểm tra đơn hàng có tồn tại và là DELIVERY không
+    const orderCheck = await pool.query(
+      `SELECT id, order_type FROM don_hang WHERE id = $1`,
+      [orderId]
+    );
+    
+    if (orderCheck.rows.length === 0) {
+      const err = new Error('Đơn hàng không tồn tại');
+      err.status = 404;
+      throw err;
+    }
+    
+    if (orderCheck.rows[0].order_type !== 'DELIVERY') {
+      const err = new Error('Chỉ có thể lưu thông tin giao hàng cho đơn DELIVERY');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Validate distance if coordinates provided
+    if (data.latitude && data.longitude) {
+      const distance = calculateDistance(
+        STORE_LOCATION.lat, 
+        STORE_LOCATION.lng, 
+        parseFloat(data.latitude), 
+        parseFloat(data.longitude)
+      );
+      
+      if (distance > MAX_DELIVERY_DISTANCE) {
+        const err = new Error(`Địa chỉ này cách quán ${distance.toFixed(2)}km, vượt quá bán kính giao hàng ${MAX_DELIVERY_DISTANCE}km`);
+        err.status = 400;
+        throw err;
+      }
+      
+      // Use calculated distance if not provided
+      if (!data.distance) {
+        data.distance = distance;
+      }
+    }
+    
+    // Lưu hoặc cập nhật delivery info
+    const result = await pool.query(
+      `INSERT INTO don_hang_delivery_info (
+        order_id, delivery_address, delivery_phone, delivery_notes, 
+        delivery_fee, latitude, longitude, distance_km, estimated_time, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+      ON CONFLICT (order_id) 
+      DO UPDATE SET 
+        delivery_address = EXCLUDED.delivery_address,
+        delivery_phone = EXCLUDED.delivery_phone,
+        delivery_notes = EXCLUDED.delivery_notes,
+        delivery_fee = EXCLUDED.delivery_fee,
+        latitude = EXCLUDED.latitude,
+        longitude = EXCLUDED.longitude,
+        distance_km = EXCLUDED.distance_km,
+        estimated_time = EXCLUDED.estimated_time,
+        updated_at = NOW()
+      RETURNING *`,
+      [
+        orderId,
+        data.deliveryAddress,
+        data.deliveryPhone || null,
+        data.deliveryNotes || null,
+        data.deliveryFee || 0,
+        data.latitude ? parseFloat(data.latitude) : null,
+        data.longitude ? parseFloat(data.longitude) : null,
+        data.distance ? parseFloat(data.distance) : null,
+        data.deliveryTime ? new Date(data.deliveryTime) : null
+      ]
+    );
     
     return result.rows[0];
   },

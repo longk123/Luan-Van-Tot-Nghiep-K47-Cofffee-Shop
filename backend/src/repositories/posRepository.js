@@ -526,14 +526,14 @@ export default {
     return rows[0];
   },
 
-  // Tạo đơn hàng mang đi (không có bàn)
-  async createOrderNoTable({ nhanVienId, caLamId }) {
+  // Tạo đơn hàng mang đi hoặc giao hàng (không có bàn)
+  async createOrderNoTable({ nhanVienId, caLamId, orderType = 'TAKEAWAY' }) {
     const sql = `
       INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type)
-      VALUES (NULL, $1, $2, 'OPEN', 'TAKEAWAY')
+      VALUES (NULL, $1, $2, 'OPEN', $3)
       RETURNING *;
     `;
-    const { rows } = await pool.query(sql, [nhanVienId, caLamId]);
+    const { rows } = await pool.query(sql, [nhanVienId, caLamId, orderType]);
     return rows[0];
   },
 
