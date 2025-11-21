@@ -6,6 +6,16 @@ import { api } from '../../api';
 import { isCustomerLoggedIn } from '../../auth/customerAuth';
 import { useToast } from '../../components/CustomerToast';
 import { ArrowLeft, CreditCard, Wallet, Smartphone, MapPin, AlertCircle } from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet default icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -59,6 +69,11 @@ export default function CheckoutPage() {
   const autocompleteRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
+  const circleRef = useRef(null);
+  const storeMarkerRef = useRef(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     loadCart();
@@ -67,60 +82,56 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Load Google Maps when DELIVERY is selected
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target)) {
+        setSearchResults([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Load Leaflet map when DELIVERY is selected
   useEffect(() => {
     if (orderType !== 'DELIVERY') {
       // Cleanup when switching away from DELIVERY
-      if (markerRef.current) {
-        markerRef.current.setMap(null);
-        markerRef.current = null;
-      }
+      cleanupMap();
       return;
     }
 
-    // Check if API key is configured
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey || apiKey === 'YOUR_API_KEY') {
-      console.error('Google Maps API key chưa được cấu hình!');
-      toast.error('Google Maps chưa được cấu hình. Vui lòng thêm API key vào file .env');
-      return;
-    }
-
-    // Load Google Maps script if not already loaded
-    if (!window.google) {
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) {
-        // Script already loading, wait for it
-        existingScript.addEventListener('load', () => {
-          setTimeout(() => initMap(), 100);
-        });
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=vi`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        setTimeout(() => initMap(), 100);
-      };
-      script.onerror = (error) => {
-        console.error('Error loading Google Maps:', error);
-        toast.error('Không thể tải Google Maps. Vui lòng kiểm tra API key trong file .env');
-      };
-      document.head.appendChild(script);
-    } else {
-      // Google Maps already loaded
-      setTimeout(() => initMap(), 100);
+    // Initialize Leaflet map
+    if (mapRef.current && !mapInstanceRef.current) {
+      initMap();
     }
     
     return () => {
-      if (markerRef.current) {
-        markerRef.current.setMap(null);
-        markerRef.current = null;
-      }
+      cleanupMap();
     };
   }, [orderType]);
+
+  const cleanupMap = () => {
+    if (markerRef.current) {
+      mapInstanceRef.current?.removeLayer(markerRef.current);
+      markerRef.current = null;
+    }
+    if (circleRef.current) {
+      mapInstanceRef.current?.removeLayer(circleRef.current);
+      circleRef.current = null;
+    }
+    if (storeMarkerRef.current) {
+      mapInstanceRef.current?.removeLayer(storeMarkerRef.current);
+      storeMarkerRef.current = null;
+    }
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+  };
 
   // Calculate distance between two coordinates (Haversine formula)
   const calculateDistance = (lat1, lng1, lat2, lng2) => {
@@ -136,149 +147,48 @@ export default function CheckoutPage() {
   };
 
   const initMap = () => {
-    if (!window.google || !mapRef.current) {
-      console.error('Google Maps API chưa sẵn sàng hoặc mapRef chưa được mount');
+    if (!mapRef.current) {
+      console.error('Map container chưa được mount');
       return;
     }
 
-    // Clear any existing map instance
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current = null;
-    }
-
     try {
-      // Ensure map container is visible and has proper dimensions
-      if (mapRef.current) {
-        mapRef.current.style.width = '100%';
-        mapRef.current.style.height = '320px';
-        mapRef.current.style.minHeight = '320px';
-      }
+      // Initialize Leaflet map
+      const map = L.map(mapRef.current).setView([STORE_LOCATION.lat, STORE_LOCATION.lng], 15);
 
-      // Initialize map centered on store location
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng },
-        zoom: 15,
-        mapTypeControl: false,
-        fullscreenControl: false,
-        streetViewControl: false,
-        clickableIcons: true,
-        draggable: true,
-        zoomControl: true,
-        scrollwheel: true,
-        disableDefaultUI: false
-      });
+      // Add OpenStreetMap tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
 
       mapInstanceRef.current = map;
 
-      // Add store marker
-      new window.google.maps.Marker({
-        position: { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng },
-        map: map,
-        title: 'Quán của chúng tôi',
-        icon: {
-          url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-        }
+      // Add store marker (red)
+      const storeIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
       });
+      storeMarkerRef.current = L.marker([STORE_LOCATION.lat, STORE_LOCATION.lng], { icon: storeIcon })
+        .addTo(map)
+        .bindPopup('Quán của chúng tôi');
 
       // Add delivery radius circle (2km)
-      new window.google.maps.Circle({
-        strokeColor: '#FF0000',
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
+      circleRef.current = L.circle([STORE_LOCATION.lat, STORE_LOCATION.lng], {
+        color: '#FF0000',
         fillColor: '#FF0000',
         fillOpacity: 0.15,
-        map: map,
-        center: { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng },
         radius: MAX_DELIVERY_DISTANCE * 1000 // Convert km to meters
-      });
-
-      // Initialize Places Autocomplete
-      if (autocompleteRef.current) {
-        try {
-          if (!window.google.maps.places) {
-            console.error('Places API chưa được load. Vui lòng kiểm tra API key có bật Places API chưa.');
-            toast.error('Places API chưa được kích hoạt. Vui lòng kiểm tra Google Cloud Console.');
-            return;
-          }
-
-          const autocomplete = new window.google.maps.places.Autocomplete(
-            autocompleteRef.current,
-            {
-              componentRestrictions: { country: 'vn' },
-              fields: ['formatted_address', 'geometry', 'name'],
-              types: ['address']
-            }
-          );
-
-      autocomplete.addListener('place_changed', () => {
-        try {
-          const place = autocomplete.getPlace();
-          if (!place.geometry) {
-            toast.error('Không tìm thấy địa chỉ. Vui lòng chọn từ danh sách gợi ý.');
-            return;
-          }
-
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
-
-        if (distance > MAX_DELIVERY_DISTANCE) {
-          toast.error(`Địa chỉ này cách quán ${distance.toFixed(2)}km, vượt quá bán kính giao hàng ${MAX_DELIVERY_DISTANCE}km. Vui lòng chọn địa chỉ gần hơn.`);
-          setDeliveryInfo(prev => ({
-            ...prev,
-            deliveryAddress: '',
-            latitude: null,
-            longitude: null,
-            distance: null,
-            deliveryFee: 0
-          }));
-          if (markerRef.current) {
-            markerRef.current.setMap(null);
-          }
-          return;
-        }
-
-        // Phí giao hàng cố định 8,000đ (trong bán kính 2km)
-        const deliveryFee = DELIVERY_FEE;
-
-        // Update delivery info
-        setDeliveryInfo(prev => ({
-          ...prev,
-          deliveryAddress: place.formatted_address || place.name,
-          latitude: lat,
-          longitude: lng,
-          distance: distance,
-          deliveryFee: deliveryFee
-        }));
-
-        // Add marker for selected location
-        if (markerRef.current) {
-          markerRef.current.setMap(null);
-        }
-        markerRef.current = new window.google.maps.Marker({
-          position: { lat, lng },
-          map: map,
-          title: 'Địa chỉ giao hàng',
-          icon: {
-            url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-          }
-        });
-
-        // Center map on selected location
-        map.setCenter({ lat, lng });
-        map.setZoom(16);
-
-        toast.success(`Địa chỉ hợp lệ! Cách quán ${distance.toFixed(2)}km - Phí ship: ${DELIVERY_FEE.toLocaleString()}đ`);
-        } catch (error) {
-          console.error('Error processing place selection:', error);
-          toast.error('Có lỗi xảy ra khi xử lý địa chỉ. Vui lòng thử lại.');
-        }
-      });
+      }).addTo(map);
 
       // Add click listener to map for selecting location
-      map.addListener('click', async (event) => {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
+      map.on('click', async (e) => {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
         const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
 
         if (distance > MAX_DELIVERY_DISTANCE) {
@@ -286,21 +196,15 @@ export default function CheckoutPage() {
           return;
         }
 
-        // Reverse geocoding to get address
-        const geocoder = new window.google.maps.Geocoder();
+        // Reverse geocoding using Nominatim (free, no API key needed)
         try {
-          const results = await new Promise((resolve, reject) => {
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-              if (status === 'OK') {
-                resolve(results);
-              } else {
-                reject(new Error('Không thể lấy địa chỉ từ vị trí này'));
-              }
-            });
-          });
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=vi`
+          );
+          const data = await response.json();
 
-          if (results && results[0]) {
-            const address = results[0].formatted_address;
+          if (data && data.display_name) {
+            const address = data.display_name;
             const deliveryFee = DELIVERY_FEE;
 
             // Update delivery info
@@ -313,23 +217,27 @@ export default function CheckoutPage() {
               deliveryFee: deliveryFee
             }));
 
-            // Update autocomplete input
-            if (autocompleteRef.current) {
-              autocompleteRef.current.value = address;
-            }
+            // Update search input
+            setSearchQuery(address);
+            setSearchResults([]);
 
-            // Add/update marker
+            // Add/update marker (blue)
             if (markerRef.current) {
-              markerRef.current.setMap(null);
+              map.removeLayer(markerRef.current);
             }
-            markerRef.current = new window.google.maps.Marker({
-              position: { lat, lng },
-              map: map,
-              title: 'Địa chỉ giao hàng',
-              icon: {
-                url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-              }
+            const deliveryIcon = L.icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41]
             });
+            markerRef.current = L.marker([lat, lng], { icon: deliveryIcon })
+              .addTo(map)
+              .bindPopup('Địa chỉ giao hàng');
+
+            map.setView([lat, lng], 16);
 
             toast.success(`Đã chọn vị trí! Cách quán ${distance.toFixed(2)}km - Phí ship: ${DELIVERY_FEE.toLocaleString()}đ`);
           }
@@ -338,15 +246,85 @@ export default function CheckoutPage() {
           toast.error('Không thể lấy địa chỉ từ vị trí này. Vui lòng thử lại.');
         }
       });
-        } catch (error) {
-          console.error('Error initializing Places Autocomplete:', error);
-          toast.error('Không thể khởi tạo tìm kiếm địa chỉ. Vui lòng kiểm tra Places API trong Google Cloud Console.');
-        }
-      }
     } catch (error) {
-      console.error('Error initializing Google Map:', error);
-      toast.error('Có lỗi xảy ra khi khởi tạo bản đồ. Vui lòng kiểm tra lại cấu hình.');
+      console.error('Error initializing Leaflet map:', error);
+      toast.error('Có lỗi xảy ra khi khởi tạo bản đồ. Vui lòng thử lại.');
     }
+  };
+
+  // Search address using Nominatim (free geocoding service)
+  const searchAddress = async (query) => {
+    if (!query || query.trim().length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&countrycodes=vn&accept-language=vi`
+      );
+      const data = await response.json();
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Error searching address:', error);
+      toast.error('Không thể tìm kiếm địa chỉ. Vui lòng thử lại.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle address selection from search results
+  const handleAddressSelect = (result) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
+
+    if (distance > MAX_DELIVERY_DISTANCE) {
+      toast.error(`Địa chỉ này cách quán ${distance.toFixed(2)}km, vượt quá bán kính giao hàng ${MAX_DELIVERY_DISTANCE}km. Vui lòng chọn địa chỉ gần hơn.`);
+      setSearchQuery('');
+      setSearchResults([]);
+      return;
+    }
+
+    const address = result.display_name;
+    const deliveryFee = DELIVERY_FEE;
+
+    // Update delivery info
+    setDeliveryInfo(prev => ({
+      ...prev,
+      deliveryAddress: address,
+      latitude: lat,
+      longitude: lng,
+      distance: distance,
+      deliveryFee: deliveryFee
+    }));
+
+    // Update search input
+    setSearchQuery(address);
+    setSearchResults([]);
+
+    // Add/update marker
+    if (markerRef.current && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(markerRef.current);
+    }
+    if (mapInstanceRef.current) {
+      const deliveryIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+      markerRef.current = L.marker([lat, lng], { icon: deliveryIcon })
+        .addTo(mapInstanceRef.current)
+        .bindPopup('Địa chỉ giao hàng');
+
+      mapInstanceRef.current.setView([lat, lng], 16);
+    }
+
+    toast.success(`Địa chỉ hợp lệ! Cách quán ${distance.toFixed(2)}km - Phí ship: ${DELIVERY_FEE.toLocaleString()}đ`);
   };
 
   const loadCart = async () => {
@@ -704,12 +682,55 @@ export default function CheckoutPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Chọn địa chỉ giao hàng trên bản đồ <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      ref={autocompleteRef}
-                      type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
-                      placeholder="Nhập địa chỉ hoặc click trên bản đồ..."
-                    />
+                    <div className="relative" ref={autocompleteRef}>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          searchAddress(e.target.value);
+                        }}
+                        onFocus={() => {
+                          if (searchQuery.length >= 3) {
+                            searchAddress(searchQuery);
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
+                        placeholder="Nhập địa chỉ hoặc click trên bản đồ..."
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="w-5 h-5 border-2 border-[#c9975b] border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                      {searchResults.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {searchResults.map((result, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => handleAddressSelect(result)}
+                              className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-2">
+                                <MapPin className="w-4 h-4 text-[#c9975b] flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{result.display_name}</p>
+                                  {result.address && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {result.address.road && `${result.address.road}, `}
+                                      {result.address.ward && `${result.address.ward}, `}
+                                      {result.address.district && `${result.address.district}, `}
+                                      {result.address.city && result.address.city}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     {deliveryInfo.deliveryAddress && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
                         <div className="flex items-center gap-2">
@@ -739,40 +760,22 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   
-                  {/* Google Map */}
+                  {/* Leaflet Map (OpenStreetMap - Free, no API key needed) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Bản đồ
                     </label>
-                    {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY || import.meta.env.VITE_GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY' ? (
-                      <div className="w-full h-80 border-2 border-dashed border-yellow-300 rounded-xl bg-yellow-50 flex items-center justify-center p-4 shadow-sm">
-                        <div className="text-center">
-                          <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-2" />
-                          <p className="text-sm font-semibold text-yellow-900 mb-1">
-                            Google Maps chưa được cấu hình
-                          </p>
-                          <p className="text-xs text-yellow-700">
-                            Vui lòng thêm <code className="bg-yellow-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code> vào file <code className="bg-yellow-100 px-1 rounded">frontend/.env</code>
-                          </p>
-                          <p className="text-xs text-yellow-600 mt-2">
-                            Xem hướng dẫn trong file <code className="bg-yellow-100 px-1 rounded">GOOGLE_MAPS_SETUP.md</code>
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-                        <div 
-                          ref={mapRef}
-                          className="w-full h-80"
-                          style={{ 
-                            minHeight: '320px',
-                            position: 'relative',
-                            zIndex: 1,
-                            pointerEvents: 'auto'
-                          }}
-                        />
-                      </div>
-                    )}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                      <div 
+                        ref={mapRef}
+                        className="w-full h-80"
+                        style={{ 
+                          minHeight: '320px',
+                          position: 'relative',
+                          zIndex: 1
+                        }}
+                      />
+                    </div>
                     <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
                       Click trên bản đồ hoặc nhập địa chỉ để chọn vị trí giao hàng (trong bán kính 2km)

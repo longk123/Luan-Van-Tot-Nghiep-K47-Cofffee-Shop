@@ -562,13 +562,27 @@ export default {
       khachHangId = customer.id;
     }
 
-    // Create order (nhan_vien_id and ca_lam_id can be NULL for customer orders)
+    // Tự động gán vào ca CASHIER đang mở (nếu có) để thu ngân thấy được đơn hàng
+    let caLamId = null;
+    try {
+      const { default: shiftsRepository } = await import('../repositories/shiftsRepository.js');
+      const openShift = await shiftsRepository.getOpenCashierShift();
+      if (openShift && openShift.id) {
+        caLamId = openShift.id;
+      }
+    } catch (error) {
+      console.error('Error getting open cashier shift:', error);
+      // Nếu không lấy được ca, vẫn tạo đơn với ca_lam_id = NULL
+      // Đơn sẽ được tự động gán vào ca khi mở ca mới
+    }
+
+    // Create order - tự động gán vào ca đang mở (nếu có)
     const sql = `
-      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type, khach_hang_id)
-      VALUES (NULL, NULL, NULL, 'OPEN', $1, $2)
+      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type, customer_account_id)
+      VALUES (NULL, NULL, $1, 'OPEN', $2, $3)
       RETURNING *
     `;
-    const { rows } = await pool.query(sql, [orderType, khachHangId || null]);
+    const { rows } = await pool.query(sql, [caLamId, orderType, khachHangId || null]);
     return rows[0];
   },
 

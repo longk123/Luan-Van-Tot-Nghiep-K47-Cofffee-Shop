@@ -586,6 +586,21 @@ export default {
     // Clear cart after order created
     await customerRepository.clearCart(cart.id);
 
+    // Emit SSE event để thu ngân biết có đơn mới từ Customer Portal
+    try {
+      const { emitEvent } = await import('../utils/sse.js');
+      emitEvent('order.created', { 
+        orderId: order.id, 
+        orderType: order.order_type,
+        source: 'customer_portal',
+        ca_lam_id: order.ca_lam_id 
+      });
+      emitEvent('order.updated', { orderId: order.id });
+    } catch (error) {
+      console.error('Error emitting SSE event:', error);
+      // Không throw error, chỉ log
+    }
+
     return order;
   }
 };

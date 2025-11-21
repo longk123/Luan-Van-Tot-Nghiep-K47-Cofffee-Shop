@@ -371,6 +371,29 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                             <p className="text-xs text-[#c9975b]">{order.khu_vuc_ten}</p>
                           )}
                         </div>
+                      ) : order.order_type === 'DELIVERY' ? (
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-blue-600">Giao hàng</p>
+                            {order.is_pre_order && (
+                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded border border-blue-300">
+                                Đặt trước
+                              </span>
+                            )}
+                          </div>
+                          {order.khach_hang_ten && (
+                            <p className="text-xs font-semibold text-gray-900">👤 {order.khach_hang_ten}</p>
+                          )}
+                          {order.delivery_address && (
+                            <p className="text-xs text-gray-600 mt-0.5">📍 {order.delivery_address.length > 40 ? order.delivery_address.substring(0, 40) + '...' : order.delivery_address}</p>
+                          )}
+                          {order.delivery_phone && (
+                            <p className="text-xs text-gray-500 mt-0.5">📞 {order.delivery_phone}</p>
+                          )}
+                          {order.distance_km && (
+                            <p className="text-xs text-blue-600 mt-0.5">📏 Cách {parseFloat(order.distance_km).toFixed(2)}km</p>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-[#c9975b] font-medium">Mang đi</span>
                       )}
@@ -379,9 +402,11 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                       <span className={`px-3 py-1.5 text-xs font-semibold rounded-lg ${
                         order.order_type === 'DINE_IN' 
                           ? 'bg-[#f5ebe0] text-[#8b6f47] border border-[#c9975b]' 
+                          : order.order_type === 'DELIVERY'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-300'
                           : 'bg-orange-50 text-orange-700 border border-orange-300'
                       }`}>
-                        {order.order_type === 'DINE_IN' ? 'Tại bàn' : 'Mang đi'}
+                        {order.order_type === 'DINE_IN' ? 'Tại bàn' : order.order_type === 'DELIVERY' ? 'Giao hàng' : 'Mang đi'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

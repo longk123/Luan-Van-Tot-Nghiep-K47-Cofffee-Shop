@@ -12,6 +12,8 @@ import { getUser } from '../auth.js';
 export default function TakeawayOrders() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [deliveryOrders, setDeliveryOrders] = useState([]);
+  const [activeTab, setActiveTab] = useState('TAKEAWAY'); // 'TAKEAWAY' or 'DELIVERY' or 'ALL'
   const [loading, setLoading] = useState(false);
   const [drawer, setDrawer] = useState({ open: false, order: null });
   const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
@@ -68,10 +70,14 @@ export default function TakeawayOrders() {
     setLoading(true);
     try {
       // Lấy các đơn TAKEAWAY còn món chưa xong
-      const res = await api.get('/pos/takeaway-orders');
-      setOrders(res?.data || res || []);
+      const takeawayRes = await api.get('/pos/takeaway-orders');
+      setOrders(takeawayRes?.data || takeawayRes || []);
+      
+      // Lấy các đơn DELIVERY còn món chưa xong
+      const deliveryRes = await api.get('/pos/delivery-orders');
+      setDeliveryOrders(deliveryRes?.data || deliveryRes || []);
     } catch (err) {
-      console.error('Error loading takeaway orders:', err);
+      console.error('Error loading orders:', err);
     } finally {
       setLoading(false);
     }
@@ -87,7 +93,9 @@ export default function TakeawayOrders() {
     if (evt.type === 'order.items.changed' || 
         evt.type === 'kitchen.line.updated' ||
         evt.type === 'order.confirmed' ||
-        evt.type === 'order.completed') {
+        evt.type === 'order.completed' ||
+        evt.type === 'order.created' ||
+        evt.type === 'order.updated') {
       loadOrders();
     }
     
@@ -122,7 +130,7 @@ export default function TakeawayOrders() {
       open: true,
       order: {
         id: order.id,
-        order_type: 'TAKEAWAY'
+        order_type: order.order_type || order._type || 'TAKEAWAY'
       }
     });
   };
@@ -139,19 +147,65 @@ export default function TakeawayOrders() {
         onClick={isManagerViewMode ? undefined : () => handleOpenOrder(order)}
       >
         <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-xl font-bold text-[#8b6f47] flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-              Đơn #{order.id}
-            </h3>
-            <p className="text-sm text-[#8b6f47] font-medium mt-1">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-xl font-bold text-[#8b6f47] flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                Đơn #{order.id}
+              </h3>
+              {order.is_pre_order && (
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded border border-blue-300">
+                  Đặt trước
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-[#8b6f47] font-medium">
               {new Date(order.opened_at).toLocaleTimeString('vi-VN', {
                 hour: '2-digit',
                 minute: '2-digit'
               })}
             </p>
+            {/* Thông tin khách hàng (nếu có) */}
+            {order.khach_hang_ten && (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm font-semibold text-gray-900">
+                  👤 {order.khach_hang_ten}
+                </p>
+                {order.khach_hang_phone && (
+                  <p className="text-xs text-gray-600">
+                    📞 {order.khach_hang_phone}
+                  </p>
+                )}
+              </div>
+            )}
+            {/* Thông tin giao hàng (nếu là DELIVERY) */}
+            {order.order_type === 'DELIVERY' && order.delivery_address && (
+              <div className="mt-2 space-y-1 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs font-semibold text-blue-900">
+                  📍 Địa chỉ giao hàng:
+                </p>
+                <p className="text-xs text-blue-800">
+                  {order.delivery_address}
+                </p>
+                {order.delivery_phone && (
+                  <p className="text-xs text-blue-700 mt-1">
+                    📞 SĐT nhận: {order.delivery_phone}
+                  </p>
+                )}
+                {order.distance_km && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    📏 Cách quán: {parseFloat(order.distance_km).toFixed(2)}km
+                  </p>
+                )}
+                {order.delivery_fee > 0 && (
+                  <p className="text-xs text-blue-700 mt-1 font-semibold">
+                    💰 Phí ship: {order.delivery_fee.toLocaleString('vi-VN')}đ
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 ${
@@ -316,10 +370,10 @@ export default function TakeawayOrders() {
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-1">Đơn mang đi</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Đơn mang đi & Giao hàng</h2>
                     <p className="text-sm text-gray-600 font-medium flex items-center gap-2">
                       <span className="inline-block w-2 h-2 bg-[#c9975b] rounded-full animate-pulse"></span>
-                      Quản lý đơn mang đi
+                      Quản lý đơn mang đi và giao hàng
                     </p>
                   </div>
                 </div>
@@ -370,21 +424,72 @@ export default function TakeawayOrders() {
             </div>
           </div>
 
+          {/* Tabs để chuyển giữa TAKEAWAY và DELIVERY */}
+          <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('TAKEAWAY')}
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                  activeTab === 'TAKEAWAY'
+                    ? 'bg-[#c9975b] text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Mang đi ({orders.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('DELIVERY')}
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                  activeTab === 'DELIVERY'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Giao hàng ({deliveryOrders.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('ALL')}
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                  activeTab === 'ALL'
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Tất cả ({orders.length + deliveryOrders.length})
+              </button>
+            </div>
+          </div>
+
           {loading ? (
             <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#d4a574] border-t-[#c9975b] mx-auto mb-6"></div>
               <p className="text-[#8b6f47] font-bold text-lg">Đang tải...</p>
             </div>
-          ) : orders.length === 0 ? (
+          ) : (activeTab === 'TAKEAWAY' && orders.length === 0) || 
+              (activeTab === 'DELIVERY' && deliveryOrders.length === 0) ||
+              (activeTab === 'ALL' && orders.length === 0 && deliveryOrders.length === 0) ? (
             <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
               <svg className="w-24 h-24 mx-auto text-[#d4a574] mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
-              <p className="text-[#8b6f47] font-bold text-xl">Không có đơn mang đi</p>
+              <p className="text-[#8b6f47] font-bold text-xl">
+                {activeTab === 'TAKEAWAY' ? 'Không có đơn mang đi' :
+                 activeTab === 'DELIVERY' ? 'Không có đơn giao hàng' :
+                 'Không có đơn nào'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {orders.map(order => (
+              {activeTab === 'TAKEAWAY' && orders.map(order => (
+                <OrderCard key={order.id} order={order} />
+              ))}
+              {activeTab === 'DELIVERY' && deliveryOrders.map(order => (
+                <OrderCard key={order.id} order={order} />
+              ))}
+              {activeTab === 'ALL' && [
+                ...orders.map(order => ({ ...order, _type: 'TAKEAWAY' })),
+                ...deliveryOrders.map(order => ({ ...order, _type: 'DELIVERY' }))
+              ].sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at)).map(order => (
                 <OrderCard key={order.id} order={order} />
               ))}
             </div>

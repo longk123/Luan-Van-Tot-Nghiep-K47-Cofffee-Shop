@@ -1,4 +1,4 @@
-// Tạo view cho đơn mang đi chưa giao
+// Tạo view cho đơn giao hàng chưa giao
 const { Pool } = require('pg');
 require('dotenv').config();
 
@@ -14,20 +14,13 @@ async function create() {
   const client = await pool.connect();
   
   try {
-    console.log('🚀 Creating v_takeaway_pending view...\n');
+    console.log('🚀 Creating v_delivery_pending view...\n');
     
     await client.query('BEGIN');
     
-    // Tạo cột delivered_at nếu chưa có
+    // Tạo view cho đơn DELIVERY chưa giao
     await client.query(`
-      ALTER TABLE don_hang
-        ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
-    `);
-    console.log('✅ Added delivered_at column');
-    
-    // Tạo view
-    await client.query(`
-      CREATE OR REPLACE VIEW v_takeaway_pending AS
+      CREATE OR REPLACE VIEW v_delivery_pending AS
       SELECT 
         dh.id,
         dh.trang_thai,
@@ -45,6 +38,15 @@ async function create() {
           WHEN dh.customer_account_id IS NOT NULL THEN true
           ELSE false
         END AS is_pre_order,
+        -- Thông tin giao hàng
+        di.delivery_address,
+        di.delivery_phone,
+        di.delivery_notes,
+        di.delivery_fee,
+        di.distance_km,
+        di.latitude,
+        di.longitude,
+        di.estimated_time,
         settlement.grand_total,
         json_agg(
           json_build_object(
@@ -62,20 +64,23 @@ async function create() {
       LEFT JOIN mon_bien_the btm ON btm.id = ct.bien_the_id
       LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
       LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
-      WHERE dh.order_type = 'TAKEAWAY'
+      LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      WHERE dh.order_type = 'DELIVERY'
         AND dh.trang_thai IN ('OPEN', 'PAID')
-        AND dh.delivered_at IS NULL
-      GROUP BY dh.id, dh.trang_thai, dh.order_type, dh.opened_at, dh.closed_at, dh.delivered_at, 
-               dh.customer_account_id, ca.full_name, ca.phone, ca.email, settlement.grand_total
+        AND (dh.delivered_at IS NULL OR di.actual_delivered_at IS NULL)
+      GROUP BY dh.id, dh.trang_thai, dh.order_type, dh.opened_at, dh.closed_at, dh.delivered_at,
+               dh.customer_account_id, ca.full_name, ca.phone, ca.email,
+               di.delivery_address, di.delivery_phone, di.delivery_notes, di.delivery_fee,
+               di.distance_km, di.latitude, di.longitude, di.estimated_time, settlement.grand_total
       ORDER BY dh.opened_at;
     `);
     
     await client.query('COMMIT');
     
     console.log('✅ View created successfully!\n');
-    console.log('📝 View: v_takeaway_pending');
-    console.log('📝 Condition: order_type = TAKEAWAY AND delivered_at IS NULL');
-    console.log('📝 Now use: SELECT * FROM v_takeaway_pending');
+    console.log('📝 View: v_delivery_pending');
+    console.log('📝 Condition: order_type = DELIVERY AND delivered_at IS NULL');
+    console.log('📝 Now use: SELECT * FROM v_delivery_pending');
     
   } catch (error) {
     await client.query('ROLLBACK');

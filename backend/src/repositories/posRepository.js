@@ -572,9 +572,25 @@ export default {
         dh.opened_at,
         dh.closed_at,
         dh.ly_do_huy,
+        dh.customer_account_id,
         b.ten_ban,
         kv.ten AS khu_vuc_ten,
         u.full_name AS nhan_vien_ten,
+        -- Thông tin khách hàng (nếu có)
+        ca.full_name AS khach_hang_ten,
+        ca.phone AS khach_hang_phone,
+        ca.email AS khach_hang_email,
+        -- Phân biệt đơn đặt trước (từ Customer Portal) vs đơn tại quán
+        CASE 
+          WHEN dh.customer_account_id IS NOT NULL THEN true
+          ELSE false
+        END AS is_pre_order,
+        -- Thông tin giao hàng (nếu là DELIVERY)
+        di.delivery_address,
+        di.delivery_phone AS delivery_phone,
+        di.delivery_notes AS delivery_notes,
+        di.delivery_fee,
+        di.distance_km,
         -- Tổng tiền đơn hàng: dùng grand_total từ v_order_settlement để bao gồm topping và discount
         -- Đơn đã hủy (CANCELLED) sẽ hiển thị 0 ₫
         CASE 
@@ -600,6 +616,8 @@ export default {
       LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
       LEFT JOIN users u ON u.user_id = dh.nhan_vien_id
       LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
+      LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
+      LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
       WHERE 
         -- Filter theo ca_lam_id để đồng bộ với tab "Tổng quan"
         dh.ca_lam_id = $1

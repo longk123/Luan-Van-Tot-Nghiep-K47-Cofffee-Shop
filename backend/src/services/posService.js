@@ -135,6 +135,16 @@ export default {
     return rows;
   },
 
+  // Lấy danh sách đơn giao hàng chưa giao
+  async getDeliveryOrders() {
+    const { pool } = await import('../db.js');
+    const { rows } = await pool.query(`
+      SELECT * FROM v_delivery_pending
+    `);
+    
+    return rows;
+  },
+
   // Giao hàng (đánh dấu đơn hoàn tất)
   async deliverOrder(orderId) {
     const { pool } = await import('../db.js');

@@ -148,6 +148,14 @@ router.get('/takeaway-orders', auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// GET /api/v1/pos/delivery-orders - Danh sách đơn giao hàng chưa hoàn tất
+router.get('/delivery-orders', auth, async (req, res, next) => {
+  try {
+    const data = await service.default.getDeliveryOrders();
+    res.json({ success: true, data });
+  } catch (e) { next(e); }
+});
+
 // GET /api/v1/pos/orders/current-shift - Lấy đơn hàng của ca hiện tại (cho cashier và manager)
 router.get('/orders/current-shift', auth, posItemsCtrl.getCurrentShiftOrders);
 
