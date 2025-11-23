@@ -156,6 +156,55 @@ router.get('/delivery-orders', auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// GET /api/v1/pos/waiters - Lấy danh sách nhân viên phục vụ (WAITER role)
+router.get('/waiters', auth, async (req, res, next) => {
+  try {
+    const userRepository = (await import('../repositories/userRepository.js')).default;
+    const waiters = await userRepository.getUsersByRole('WAITER');
+    res.json({ success: true, data: waiters });
+  } catch (e) { next(e); }
+});
+
+// POST /api/v1/pos/orders/:orderId/assign-delivery - Phân công đơn giao hàng cho nhân viên phục vụ
+router.post('/orders/:orderId/assign-delivery', auth, async (req, res, next) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const schema = Joi.object({
+      shipperId: Joi.number().integer().required()
+    });
+    const { shipperId } = await schema.validateAsync(req.body);
+    const assignedBy = req.user.user_id;
+    
+    const result = await service.default.assignDeliveryOrder(orderId, shipperId, assignedBy);
+    res.json({ success: true, data: result });
+  } catch (e) { next(e); }
+});
+
+// PATCH /api/v1/pos/orders/:orderId/delivery-status - Cập nhật trạng thái giao hàng
+router.patch('/orders/:orderId/delivery-status', auth, async (req, res, next) => {
+  try {
+    const orderId = parseInt(req.params.orderId);
+    const schema = Joi.object({
+      status: Joi.string().valid('PENDING', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED').required()
+    });
+    const { status } = await schema.validateAsync(req.body);
+    const shipperId = req.user.user_id; // Nhân viên phục vụ tự update
+    
+    const result = await service.default.updateDeliveryStatus(orderId, status, shipperId);
+    res.json({ success: true, data: result });
+  } catch (e) { next(e); }
+});
+
+// GET /api/v1/pos/delivery/my-assigned - Lấy đơn được phân công cho nhân viên phục vụ hiện tại
+router.get('/delivery/my-assigned', auth, async (req, res, next) => {
+  try {
+    const shipperId = req.user.user_id;
+    const status = req.query.status || null;
+    const data = await service.default.getAssignedDeliveryOrders(shipperId, status);
+    res.json({ success: true, data });
+  } catch (e) { next(e); }
+});
+
 // GET /api/v1/pos/orders/current-shift - Lấy đơn hàng của ca hiện tại (cho cashier và manager)
 router.get('/orders/current-shift', auth, posItemsCtrl.getCurrentShiftOrders);
 

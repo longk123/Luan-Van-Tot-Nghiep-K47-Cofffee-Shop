@@ -81,9 +81,17 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     }
   }, [navigate]);
 
-  // Check if user can view current shift orders (cashier, manager, admin)
+  // Reload shift khi userRoles thay đổi (để detect Waiter)
+  useEffect(() => {
+    if (userRoles.length > 0) {
+      loadShift();
+    }
+  }, [userRoles.length]);
+
+  // Check if user can view current shift orders (cashier, waiter, manager, admin)
+  // Waiter có thể xem để theo dõi đơn mình tạo
   const canViewCurrentShiftOrders = userRoles.some(role =>
-    ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
+    ['cashier', 'waiter', 'manager', 'admin'].includes(role.toLowerCase())
   );
 
   // Check if user is Manager (View Only mode)
@@ -91,6 +99,13 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     ['manager', 'admin'].includes(role.toLowerCase())
   ) && !userRoles.some(role =>
     ['cashier'].includes(role.toLowerCase())
+  );
+
+  // Check if user is Waiter
+  const isWaiter = userRoles.some(role =>
+    role.toLowerCase() === 'waiter'
+  ) && !userRoles.some(role =>
+    ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
   );
 
   // Debug: Log drawer state changes
@@ -117,14 +132,33 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
 
   async function loadShift() {
     try {
-      const res = await api.getCurrentShift();
-      const shiftData = res?.data || res || null;
-      console.log('📊 Loaded shift:', shiftData);
-      setShift(shiftData);
+      // Nếu là Waiter, lấy ca Cashier đang mở thay vì ca của mình
+      const isWaiterUser = userRoles.some(role =>
+        role.toLowerCase() === 'waiter'
+      ) && !userRoles.some(role =>
+        ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
+      );
       
-      // Load transferred orders (orders from previous shift)
-      if (shiftData?.id) {
-        loadTransferredOrders(shiftData.id);
+      if (isWaiterUser) {
+        const res = await api.getOpenCashierShift();
+        const shiftData = res?.data || res || null;
+        console.log('📊 Loaded cashier shift for waiter:', shiftData);
+        setShift(shiftData);
+        
+        // Load transferred orders (orders from previous shift)
+        if (shiftData?.id) {
+          loadTransferredOrders(shiftData.id);
+        }
+      } else {
+        const res = await api.getCurrentShift();
+        const shiftData = res?.data || res || null;
+        console.log('📊 Loaded shift:', shiftData);
+        setShift(shiftData);
+        
+        // Load transferred orders (orders from previous shift)
+        if (shiftData?.id) {
+          loadTransferredOrders(shiftData.id);
+        }
       }
     } catch (err) {
       console.error('Error loading shift:', err);
@@ -297,7 +331,25 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     setShowCreateConfirm(false);
     
     try {
-      const res = await api.createOrderForTable(table.id);
+      // Nếu là Waiter, cần có ca Cashier đang mở
+      let cashierShiftId = null;
+      if (isWaiter) {
+        if (!shift || shift.status !== 'OPEN') {
+          setToast({
+            show: true,
+            type: 'warning',
+            title: 'Chưa có ca làm việc',
+            message: 'Chưa có ca Cashier đang mở. Vui lòng đợi Cashier mở ca.'
+          });
+          setPendingOrderCreation(null);
+          return;
+        }
+        cashierShiftId = shift.id;
+      }
+      
+      const res = await api.createOrderForTable(table.id, {
+        ca_lam_id: cashierShiftId
+      });
       const newOrder = res?.data || res;
       console.log('New order created:', newOrder);
       
@@ -349,7 +401,9 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         show: true,
         type: 'warning',
         title: 'Chưa mở ca',
-        message: 'Vui lòng mở ca làm việc trước khi tạo đơn hàng.'
+        message: isWaiter 
+          ? 'Chưa có ca Cashier đang mở. Vui lòng đợi Cashier mở ca.'
+          : 'Vui lòng mở ca làm việc trước khi tạo đơn hàng.'
       });
       return;
     }
@@ -364,7 +418,23 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     setShowCreateConfirm(false);
     
     try {
-      const res = await api.createTakeawayOrder();
+      // Nếu là Waiter, cần có ca Cashier đang mở
+      let cashierShiftId = null;
+      if (isWaiter) {
+        if (!shift || shift.status !== 'OPEN') {
+          setToast({
+            show: true,
+            type: 'warning',
+            title: 'Chưa có ca làm việc',
+            message: 'Chưa có ca Cashier đang mở. Vui lòng đợi Cashier mở ca.'
+          });
+          setPendingOrderCreation(null);
+          return;
+        }
+        cashierShiftId = shift.id;
+      }
+      
+      const res = await api.createTakeawayOrder(cashierShiftId ? { ca_lam_id: cashierShiftId } : {});
       const newOrder = res?.data || res;
       
       setDrawer({ 
@@ -781,6 +851,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         onTableChanged={handleTableChanged}
         onItemsChange={(hasItems) => setDrawerHasItems(hasItems)}
         viewOnly={isManagerViewMode || !shift || shift.status !== 'OPEN'}
+        userRoles={userRoles}
+        isWaiter={isWaiter}
       />
 
       {/* Confirmation Dialog */}

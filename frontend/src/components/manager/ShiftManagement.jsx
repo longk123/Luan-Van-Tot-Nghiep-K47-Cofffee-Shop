@@ -9,7 +9,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
   const [loading, setLoading] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [filterType, setFilterType] = useState('CASHIER'); // CASHIER, KITCHEN (no ALL option)
+  const [filterType, setFilterType] = useState('CASHIER'); // CASHIER, KITCHEN
   const [filterStatus, setFilterStatus] = useState('ALL'); // ALL, OPEN, CLOSED
   const [filterEmployee, setFilterEmployee] = useState('ALL'); // ALL or user_id
   const [employees, setEmployees] = useState([]);
@@ -143,13 +143,14 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
 
   // Filter shifts - NO "ALL" option for type
   const filteredShifts = shifts.filter(shift => {
-    if (shift.type !== filterType) return false; // Always filter by type
+    // Filter theo shift type
+    if (shift.type !== filterType) return false;
     if (filterStatus !== 'ALL' && shift.status !== filterStatus) return false;
     if (filterEmployee !== 'ALL' && shift.nhan_vien_id !== parseInt(filterEmployee)) return false;
     return true;
   });
 
-  // Tính tổng thống kê - Tách riêng cho CASHIER và KITCHEN
+  // Tính tổng thống kê - Tách riêng cho CASHIER vs KITCHEN
   const totalStats = filterType === 'CASHIER'
     ? filteredShifts.reduce((acc, shift) => ({
         total_orders: acc.total_orders + (shift.stats?.total_orders || 0),
@@ -189,8 +190,10 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
   const getTypeBadge = (type) => {
     if (type === 'CASHIER') {
       return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Thu ngân</span>;
+    } else if (type === 'KITCHEN') {
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Pha chế</span>;
     }
-    return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Pha chế</span>;
+    return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Khác</span>;
   };
 
   return (

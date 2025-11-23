@@ -103,6 +103,9 @@ app.use('/api/v1/kitchen', kitchenRouter);
 import analyticsRouter from './src/routes/analytics.js'; // <— router analytics cho Manager
 app.use('/api/v1/analytics', analyticsRouter);
 
+import adminRouter from './src/routes/admin.js'; // <— router admin
+app.use('/api/v1/admin', adminRouter);
+
 import inventoryRouter from './src/routes/inventory.js'; // <— router quản lý tồn kho
 app.use('/api/v1/inventory', inventoryRouter);
 
@@ -123,6 +126,9 @@ app.use('/', paymentSuccessRouter);
 
 import customerRouter from './src/routes/customer.js'; // <— router customer portal
 app.use('/api/v1', customerRouter);
+
+import notificationsRouter from './src/routes/notifications.js'; // <— router notifications
+app.use('/api/v1/notifications', notificationsRouter);
 
 // Error handling middleware (phải ở cuối)
 app.use(errorHandler);

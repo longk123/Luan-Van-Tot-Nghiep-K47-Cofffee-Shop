@@ -19,6 +19,8 @@ export default function TakeawayOrders() {
   const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
   const [showOrdersList, setShowOrdersList] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [waiters, setWaiters] = useState([]);
+  const [assigningOrder, setAssigningOrder] = useState(null);
   
   // Shift management - sử dụng ca của thu ngân
   const [shift, setShift] = useState(null);
@@ -32,6 +34,13 @@ export default function TakeawayOrders() {
     ['manager', 'admin'].includes(role.toLowerCase())
   ) && !userRoles.some(role =>
     ['cashier'].includes(role.toLowerCase())
+  );
+
+  // Check if user is Waiter (View Only mode - không thể phân công giao hàng)
+  const isWaiter = userRoles.some(role =>
+    role.toLowerCase() === 'waiter'
+  ) && !userRoles.some(role =>
+    ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
   );
 
   // Role-based access control - Takeaway chỉ dành cho thu ngân
@@ -76,6 +85,16 @@ export default function TakeawayOrders() {
       // Lấy các đơn DELIVERY còn món chưa xong
       const deliveryRes = await api.get('/pos/delivery-orders');
       setDeliveryOrders(deliveryRes?.data || deliveryRes || []);
+      
+      // Lấy danh sách nhân viên phục vụ (nếu là Cashier/Manager, không phải Waiter)
+      if (!isManagerViewMode && !isWaiter) {
+        try {
+          const waitersRes = await api.getWaiters();
+          setWaiters(waitersRes?.data || waitersRes || []);
+        } catch (err) {
+          console.error('Error loading waiters:', err);
+        }
+      }
     } catch (err) {
       console.error('Error loading orders:', err);
     } finally {
@@ -135,6 +154,27 @@ export default function TakeawayOrders() {
     });
   };
 
+  const handleAssignDelivery = async (order, shipperId) => {
+    try {
+      await api.assignDeliveryOrder(order.id, shipperId);
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Phân công thành công!',
+        message: `Đơn #${order.id} đã được phân công cho nhân viên phục vụ`
+      });
+      setAssigningOrder(null);
+      loadOrders();
+    } catch (err) {
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message || 'Không thể phân công đơn'
+      });
+    }
+  };
+
   const OrderCard = ({ order }) => {
     const allDone = order.items?.every(item => item.trang_thai_che_bien === 'DONE');
     const isPaid = order.trang_thai === 'PAID';
@@ -143,8 +183,8 @@ export default function TakeawayOrders() {
 
     return (
       <div
-        className={`bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-xl hover:border-[#c9975b] transition-all duration-200 ${isManagerViewMode ? 'cursor-default' : 'cursor-pointer'}`}
-        onClick={isManagerViewMode ? undefined : () => handleOpenOrder(order)}
+        className={`bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-xl hover:border-[#c9975b] transition-all duration-200 ${(isManagerViewMode || isWaiter) ? 'cursor-default' : 'cursor-pointer'}`}
+        onClick={(isManagerViewMode || isWaiter) ? undefined : () => handleOpenOrder(order)}
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
@@ -203,6 +243,25 @@ export default function TakeawayOrders() {
                   <p className="text-xs text-blue-700 mt-1 font-semibold">
                     💰 Phí ship: {order.delivery_fee.toLocaleString('vi-VN')}đ
                   </p>
+                )}
+                {/* Thông tin shipper nếu đã được phân công */}
+                {order.shipper_name && (
+                  <div className="mt-2 pt-2 border-t border-blue-300">
+                    <p className="text-xs text-blue-900 font-semibold">
+                      👤 Nhân viên giao: {order.shipper_name}
+                    </p>
+                    {order.delivery_status && (
+                      <p className="text-xs text-blue-700 mt-0.5">
+                        Trạng thái: {
+                          order.delivery_status === 'ASSIGNED' ? 'Đã phân công' :
+                          order.delivery_status === 'OUT_FOR_DELIVERY' ? 'Đang giao hàng' :
+                          order.delivery_status === 'DELIVERED' ? 'Đã giao' :
+                          order.delivery_status === 'FAILED' ? 'Giao thất bại' :
+                          'Chờ phân công'
+                        }
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -288,35 +347,91 @@ export default function TakeawayOrders() {
         </div>
 
         {/* Action buttons - stopPropagation để không trigger open drawer - ENHANCED */}
-        {!isManagerViewMode && allDone ? (
+        {!isManagerViewMode && !isWaiter && allDone ? (
           <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-            {isPaid ? (
-              /* Đã thanh toán → Chỉ cần giao */
-              <button
-                onClick={() => handleDeliver(order)}
-                className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white border-2 border-green-600
-                hover:bg-white hover:from-white hover:to-white hover:text-green-600 hover:border-green-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-                Giao hàng
-              </button>
+            {/* Đối với đơn DELIVERY: Thu ngân chỉ phân công, không giao hàng */}
+            {order.order_type === 'DELIVERY' ? (
+              !order.shipper_id ? (
+                /* Chưa được phân công → Hiển thị nút phân công */
+                <div className="mb-2">
+                  {assigningOrder === order.id ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Chọn nhân viên phục vụ:</p>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {waiters.map(waiter => (
+                          <button
+                            key={waiter.user_id}
+                            onClick={() => handleAssignDelivery(order, waiter.user_id)}
+                            className="w-full px-3 py-2 text-left bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
+                          >
+                            <p className="font-medium text-gray-900">{waiter.full_name}</p>
+                            {waiter.phone && (
+                              <p className="text-xs text-gray-600">📞 {waiter.phone}</p>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setAssigningOrder(null)}
+                        className="w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAssigningOrder(order.id)}
+                      className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-2 border-purple-600
+                      hover:bg-white hover:from-white hover:to-white hover:text-purple-600 hover:border-purple-600 hover:scale-105 active:scale-95 transition-all duration-300 shadow-md flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Phân công giao hàng
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* Đã được phân công → Hiển thị thông tin, không có nút giao hàng (nhân viên phục vụ sẽ giao) */
+                <div className="text-center py-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700 font-semibold">
+                    Đã phân công cho: {order.shipper_name || 'Nhân viên phục vụ'}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Nhân viên phục vụ sẽ thực hiện giao hàng
+                  </p>
+                </div>
+              )
             ) : (
-              /* Chưa thanh toán → Nút giao & thu tiền */
-              <button
-                onClick={async () => {
-                  // Mở drawer để thanh toán
-                  handleOpenOrder(order);
-                }}
-                className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white border-2 border-amber-600
-                hover:bg-white hover:from-white hover:to-white hover:text-amber-600 hover:border-amber-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Thu tiền & Giao hàng
-              </button>
+              /* Đối với đơn TAKEAWAY: Thu ngân có thể thu tiền và giao tại quán */
+              isPaid ? (
+                /* Đã thanh toán → Giao cho khách tại quán */
+                <button
+                  onClick={() => handleDeliver(order)}
+                  className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white border-2 border-green-600
+                  hover:bg-white hover:from-white hover:to-white hover:text-green-600 hover:border-green-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Giao cho khách
+                </button>
+              ) : (
+                /* Chưa thanh toán → Chỉ thu tiền (không giao hàng vì là đơn mang đi tại quán) */
+                <button
+                  onClick={async () => {
+                    // Mở drawer để thanh toán
+                    handleOpenOrder(order);
+                  }}
+                  className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white border-2 border-amber-600
+                  hover:bg-white hover:from-white hover:to-white hover:text-amber-600 hover:border-amber-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Thu tiền
+                </button>
+              )
             )}
           </div>
         ) : (

@@ -38,9 +38,16 @@ const AdminIcon = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
+const WaiterIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
 const ROLES = [
   { key: "cashier", label: "Thu ngân", icon: CashierIcon },
   { key: "kitchen", label: "Pha chế / Bếp", icon: KitchenIcon },
+  { key: "waiter", label: "Phục vụ / Giao hàng", icon: WaiterIcon },
   { key: "manager", label: "Quản lý", icon: ManagerIcon },
   { key: "admin",   label: "Quản trị viên", icon: AdminIcon },
 ];
@@ -82,6 +89,18 @@ const ROLE_COLORS = {
     hoverBg: "group-hover:bg-primary-100",
     hoverText: "group-hover:text-primary-700",
     focusRing: "focus:ring-primary-500",
+  },
+  waiter: {
+    border: "border-green-500",
+    ring: "ring-green-500",
+    bg: "bg-green-50",
+    iconBg: "bg-green-100",
+    iconText: "text-green-700",
+    text: "text-green-700",
+    hoverBorder: "hover:border-green-500",
+    hoverBg: "group-hover:bg-green-100",
+    hoverText: "group-hover:text-green-700",
+    focusRing: "focus:ring-green-500",
   },
   admin: {
     border: "border-purple-500",
@@ -148,11 +167,15 @@ export default function Login() {
       const isKitchenStaff = originalUserRoles.some(role => 
         ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
       );
+      const isWaiter = originalUserRoles.some(role => 
+        role.toLowerCase() === 'waiter'
+      );
       const isManager = originalUserRoles.some(role => 
         ['manager', 'admin'].includes(role.toLowerCase())
       );
       
       console.log('🔍 Login - isKitchenStaff:', isKitchenStaff);
+      console.log('🔍 Login - isWaiter:', isWaiter);
       console.log('🔍 Login - isManager:', isManager);
       
       // Kiểm tra xem có payment result pending không
@@ -187,16 +210,21 @@ export default function Login() {
         }
         
         // Redirect về dashboard để hiển thị toast (chỉ cho cashier/manager)
-        if (!isKitchenStaff) {
+        if (!isKitchenStaff && !isWaiter) {
           navigate("/dashboard?from=payment");
-        } else {
+        } else if (isKitchenStaff) {
           navigate("/kitchen?from=payment");
+        } else if (isWaiter) {
+          navigate("/waiter/delivery?from=payment");
         }
       } else {
         // Auto-redirect theo role
         if (isKitchenStaff) {
           console.log('🍳 Kitchen staff → redirect to /kitchen');
           navigate("/kitchen");
+        } else if (isWaiter) {
+          console.log('🚚 Waiter → redirect to /waiter/delivery');
+          navigate("/waiter/delivery");
         } else if (isManager) {
           console.log('👔 Manager → redirect to /manager');
           window.location.href = '/manager';
@@ -284,7 +312,7 @@ export default function Login() {
             </div>
 
             {/* role tiles */}
-            <div className="grid grid-cols-2 gap-4 mb-4" role="radiogroup" aria-label="Chọn vai trò">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-4" role="radiogroup" aria-label="Chọn vai trò">
               {ROLES.map((r) => {
                 const active = r.key === selectedRole;
                 const colors = ROLE_COLORS[r.key];
@@ -295,30 +323,32 @@ export default function Login() {
                     onClick={() => setSelectedRole(r.key)}
                     aria-pressed={active}
                     className={[
-                      "group h-24 rounded-2xl border transition-colors duration-200 text-left p-4 focus:outline-none focus:ring-2",
+                      "group h-20 md:h-24 rounded-xl md:rounded-2xl border transition-all duration-200 text-left p-3 md:p-4 focus:outline-none focus:ring-2",
                       colors.focusRing,
                       active
-                        ? `${colors.border} ring-2 ${colors.ring}/30 ${colors.bg}`
-                        : `border-gray-300 ${colors.hoverBorder} hover:shadow-md bg-white`,
+                        ? `${colors.border} ring-2 ${colors.ring}/30 ${colors.bg} shadow-md scale-[1.02]`
+                        : `border-gray-300 ${colors.hoverBorder} hover:shadow-md bg-white hover:scale-[1.01]`,
                     ].join(" ")}
                   >
-                    <div
-                      className={[
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                        active 
-                          ? `${colors.iconBg} ${colors.iconText}` 
-                          : `bg-cream-200 text-gray-600 ${colors.hoverBg} ${colors.hoverText}`,
-                      ].join(" ")}
-                    >
-                      <r.icon className="w-5 h-5" />
-                    </div>
-                    <div
-                      className={[
-                        "mt-2 text-sm font-semibold transition-colors",
-                        active ? colors.text : `text-gray-800 ${colors.hoverText}`,
-                      ].join(" ")}
-                    >
-                      {r.label}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={[
+                          "w-9 h-9 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center transition-colors flex-shrink-0",
+                          active 
+                            ? `${colors.iconBg} ${colors.iconText}` 
+                            : `bg-cream-200 text-gray-600 ${colors.hoverBg} ${colors.hoverText}`,
+                        ].join(" ")}
+                      >
+                        <r.icon className="w-4 h-4 md:w-5 md:h-5" />
+                      </div>
+                      <div
+                        className={[
+                          "text-xs md:text-sm font-semibold transition-colors leading-tight",
+                          active ? colors.text : `text-gray-800 ${colors.hoverText}`,
+                        ].join(" ")}
+                      >
+                        {r.label}
+                      </div>
                     </div>
                   </button>
                 );

@@ -51,6 +51,9 @@ class ExportController {
       case 'customers':
         data = await this.getCustomersData(dateFilters);
         break;
+      case 'inventory':
+        data = await this.getInventoryData(req.query);
+        break;
       default:
         throw new BadRequest('Invalid report type');
     }
@@ -92,6 +95,7 @@ class ExportController {
     const totalRevenue = chartData.datasets[0].data.reduce((sum, val) => sum + val, 0);
     const dineInRevenue = chartData.datasets[1].data.reduce((sum, val) => sum + val, 0);
     const takeawayRevenue = chartData.datasets[2].data.reduce((sum, val) => sum + val, 0);
+    const deliveryRevenue = chartData.datasets[3]?.data?.reduce((sum, val) => sum + val, 0) || 0;
     
     // Get order count
     const orderQuery = `
@@ -110,6 +114,7 @@ class ExportController {
       revenue: chartData.datasets[0].data[index],
       dineIn: chartData.datasets[1].data[index],
       takeaway: chartData.datasets[2].data[index],
+      delivery: chartData.datasets[3]?.data?.[index] || 0,
       orders: Math.floor(chartData.datasets[0].data[index] / (totalRevenue / totalOrders || 1)),
       average: Math.floor(chartData.datasets[0].data[index] / (totalOrders / chartData.labels.length || 1))
     }));
@@ -118,6 +123,7 @@ class ExportController {
       totalRevenue,
       dineInRevenue,
       takeawayRevenue,
+      deliveryRevenue,
       totalOrders,
       averageOrder: totalOrders > 0 ? Math.floor(totalRevenue / totalOrders) : 0,
       details
@@ -250,6 +256,66 @@ class ExportController {
     };
   }
 
+  async getInventoryData(queryParams) {
+    const { tab = 'stock' } = queryParams;
+    const { inventoryRepository } = await import('../repositories/inventoryRepository.js');
+    
+    if (tab === 'stock' || tab === 'warnings') {
+      const ingredients = await inventoryRepository.getAllIngredients();
+      return {
+        ingredients: ingredients.map(i => ({
+          code: i.ma,
+          name: i.ten,
+          stock: parseFloat(i.ton_kho || 0),
+          unit: i.don_vi,
+          price: parseFloat(i.gia_nhap_moi_nhat || 0),
+          value: parseFloat(i.gia_tri_ton_kho || 0),
+          status: i.trang_thai || 'DU'
+        }))
+      };
+    } else if (tab === 'export') {
+      const { from_date, to_date } = queryParams;
+      const history = await inventoryRepository.getExportHistory({
+        fromDate: from_date || null,
+        toDate: to_date || null,
+        limit: 1000
+      });
+      return {
+        exports: history.map(h => ({
+          date: h.ngay_xuat,
+          ingredient: h.nguyen_lieu,
+          code: h.ma,
+          quantity: parseFloat(h.so_luong),
+          unit: h.don_vi,
+          orderId: h.don_hang_id,
+          value: parseFloat(h.gia_tri || 0)
+        }))
+      };
+    } else if (tab === 'import') {
+      const { from_date, to_date } = queryParams;
+      const history = await inventoryRepository.getImportHistory({
+        fromDate: from_date || null,
+        toDate: to_date || null,
+        limit: 1000
+      });
+      return {
+        imports: history.map(h => ({
+          date: h.ngay_nhap,
+          ingredient: h.nguyen_lieu,
+          code: h.ma,
+          quantity: parseFloat(h.so_luong),
+          unit: h.don_vi,
+          price: parseFloat(h.don_gia),
+          total: parseFloat(h.thanh_tien),
+          supplier: h.nha_cung_cap,
+          note: h.ghi_chu
+        }))
+      };
+    }
+    
+    return { ingredients: [] };
+  }
+
   async getCustomersData(filters) {
     const { startDate, endDate } = filters;
     
@@ -297,6 +363,8 @@ class ExportController {
         return await exportService.exportPromotionsToExcel(data, filters);
       case 'customers':
         return await exportService.exportCustomersToExcel(data, filters);
+      case 'inventory':
+        return await exportService.exportInventoryToExcel(data, filters);
       default:
         throw new BadRequest('Invalid report type');
     }
@@ -334,6 +402,14 @@ class ExportController {
       customers: [
         { header: 'Khách Hàng', key: 'name' },
         { header: 'Số Đơn', key: 'orderCount' },
+      ],
+      inventory: [
+        { header: 'Mã', key: 'code' },
+        { header: 'Tên Nguyên Liệu', key: 'name' },
+        { header: 'Tồn Kho', key: 'stock' },
+        { header: 'Đơn Vị', key: 'unit' },
+        { header: 'Giá Nhập', key: 'price' },
+        { header: 'Giá Trị Tồn', key: 'value' },
         { header: 'Tổng Chi', key: 'totalSpent' }
       ]
     };
@@ -352,6 +428,8 @@ class ExportController {
         return data.promotions || [];
       case 'customers':
         return data.customers || [];
+      case 'inventory':
+        return data.ingredients || [];
       default:
         return [];
     }

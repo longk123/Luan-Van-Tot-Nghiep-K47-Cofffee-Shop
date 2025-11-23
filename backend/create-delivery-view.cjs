@@ -18,9 +18,12 @@ async function create() {
     
     await client.query('BEGIN');
     
+    // Drop view cũ nếu có
+    await client.query(`DROP VIEW IF EXISTS v_delivery_pending CASCADE`);
+    
     // Tạo view cho đơn DELIVERY chưa giao
     await client.query(`
-      CREATE OR REPLACE VIEW v_delivery_pending AS
+      CREATE VIEW v_delivery_pending AS
       SELECT 
         dh.id,
         dh.trang_thai,
@@ -47,6 +50,10 @@ async function create() {
         di.latitude,
         di.longitude,
         di.estimated_time,
+        di.delivery_status,
+        di.shipper_id,
+        shipper.full_name AS shipper_name,
+        shipper.username AS shipper_username,
         settlement.grand_total,
         json_agg(
           json_build_object(
@@ -65,13 +72,16 @@ async function create() {
       LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
       LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
       LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      LEFT JOIN users shipper ON shipper.user_id = di.shipper_id
       WHERE dh.order_type = 'DELIVERY'
         AND dh.trang_thai IN ('OPEN', 'PAID')
         AND (dh.delivered_at IS NULL OR di.actual_delivered_at IS NULL)
       GROUP BY dh.id, dh.trang_thai, dh.order_type, dh.opened_at, dh.closed_at, dh.delivered_at,
                dh.customer_account_id, ca.full_name, ca.phone, ca.email,
                di.delivery_address, di.delivery_phone, di.delivery_notes, di.delivery_fee,
-               di.distance_km, di.latitude, di.longitude, di.estimated_time, settlement.grand_total
+               di.distance_km, di.latitude, di.longitude, di.estimated_time, 
+               di.delivery_status, di.shipper_id, shipper.full_name, shipper.username,
+               settlement.grand_total
       ORDER BY dh.opened_at;
     `);
     

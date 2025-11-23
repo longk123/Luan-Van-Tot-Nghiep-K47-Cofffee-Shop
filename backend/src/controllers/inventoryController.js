@@ -109,6 +109,29 @@ export async function getWarnings(req, res, next) {
     const warning = warnings.filter(w => w.trang_thai === 'SAP_HET');
     const ok = warnings.filter(w => w.trang_thai === 'DU');
     
+    const warningsData = warnings.map(w => ({
+      id: w.id,
+      code: w.ma,
+      name: w.ten,
+      stock: parseFloat(w.ton_kho),
+      unit: w.don_vi,
+      price: parseFloat(w.gia_nhap_moi_nhat || 0),
+      value: parseFloat(w.gia_tri_ton_kho || 0),
+      canMake: w.uoc_tinh_so_ly_lam_duoc ? parseInt(w.uoc_tinh_so_ly_lam_duoc) : null,
+      status: w.trang_thai
+    }));
+
+    // Tạo notifications cho managers/admins nếu có cảnh báo
+    if (critical.length > 0 || warning.length > 0) {
+      try {
+        const { notificationRepository } = await import('../repositories/notificationRepository.js');
+        await notificationRepository.createInventoryWarningNotifications(warningsData);
+      } catch (notifError) {
+        console.error('Error creating inventory warning notifications:', notifError);
+        // Không throw error, chỉ log để không ảnh hưởng đến response
+      }
+    }
+    
     res.json({
       ok: true,
       summary: {
@@ -117,17 +140,7 @@ export async function getWarnings(req, res, next) {
         warning: warning.length,
         ok: ok.length
       },
-      warnings: warnings.map(w => ({
-        id: w.id,
-        code: w.ma,
-        name: w.ten,
-        stock: parseFloat(w.ton_kho),
-        unit: w.don_vi,
-        price: parseFloat(w.gia_nhap_moi_nhat || 0),
-        value: parseFloat(w.gia_tri_ton_kho || 0),
-        canMake: w.uoc_tinh_so_ly_lam_duoc ? parseInt(w.uoc_tinh_so_ly_lam_duoc) : null,
-        status: w.trang_thai
-      }))
+      warnings: warningsData
     });
   } catch (error) {
     next(error);

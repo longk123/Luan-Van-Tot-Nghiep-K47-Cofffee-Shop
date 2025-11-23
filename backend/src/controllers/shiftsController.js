@@ -47,6 +47,8 @@ export const openShift = asyncHandler(async (req, res) => {
   )) {
     detectedShiftType = 'KITCHEN';
   }
+  // Waiter và Shipper không có ca riêng, họ làm việc trong ca CASHIER
+  // Tracking dựa vào nhan_vien_id trong báo cáo
   
   const data = await shiftsService.open({
     nhanVienId: req.user.user_id,

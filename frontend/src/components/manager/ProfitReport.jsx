@@ -140,7 +140,7 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
       summaryData.push([
         `#${order.orderId}`,
         new Date(order.closedAt).toLocaleString('vi-VN'),
-        order.orderType === 'DINE_IN' ? 'Tại bàn' : 'Mang đi',
+        order.orderType === 'DINE_IN' ? 'Tại bàn' : order.orderType === 'DELIVERY' ? 'Giao hàng' : 'Mang đi',
         order.revenue,
         order.totalDiscount,
         order.costMon,
@@ -433,10 +433,11 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
               <option value="">Tất cả</option>
               <option value="DINE_IN">Tại bàn</option>
               <option value="TAKEAWAY">Mang đi</option>
+              <option value="DELIVERY">Giao hàng</option>
             </select>
             {summary && (
               <span className="text-sm text-gray-600">
-                ({summary.dineInOrders || 0} tại bàn, {summary.takeawayOrders || 0} mang đi)
+                ({summary.dineInOrders || 0} tại bàn, {summary.takeawayOrders || 0} mang đi, {summary.deliveryOrders || 0} giao hàng)
               </span>
             )}
           </div>
@@ -1040,6 +1041,8 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         order.orderType === 'DINE_IN' 
                           ? 'bg-blue-100 text-blue-800' 
+                          : order.orderType === 'DELIVERY'
+                          ? 'bg-purple-100 text-purple-800'
                           : 'bg-green-100 text-green-800'
                       }`}>
                         {order.orderType === 'DINE_IN' ? (
@@ -1048,6 +1051,13 @@ export default function ProfitReport({ startDate: propStartDate, endDate: propEn
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                             Tại bàn
+                          </>
+                        ) : order.orderType === 'DELIVERY' ? (
+                          <>
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            Giao hàng
                           </>
                         ) : (
                           <>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import OptionsDialog from './pos/OptionsDialog.jsx';
+import ItemDetailModal from './ItemDetailModal.jsx';
 
 // QtySizeDialog component
 function QtySizeDialog({ open, item, onClose, onConfirm }) {
@@ -175,6 +176,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
   // Dialogs
   const [dialog, setDialog] = useState({ open: false, item: null });
   const [optionsDialog, setOptionsDialog] = useState({ open: false, item: null, variant: null, quantity: 1 });
+  const [detailModal, setDetailModal] = useState({ open: false, item: null });
 
   useEffect(() => {
     api.getMenuCategories()
@@ -331,25 +333,29 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
 
       {/* Categories tabs */}
       <div className="px-4 py-3 border-b-2 border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1 scroll-smooth" style={{ 
+          scrollbarWidth: 'thin', 
+          scrollbarColor: '#d4a574 rgba(255, 255, 255, 0.1)',
+          WebkitOverflowScrolling: 'touch'
+        }}>
           <button
             onClick={() => { setActiveCat(0); setSearching(false); setSearch(''); }}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex items-center gap-2 flex-shrink-0 ${
               activeCat === 0 
                 ? 'bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white shadow-lg scale-105 border-2 border-[#c9975b]' 
                 : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-2 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
             }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
             </svg>
-            Tất cả
+            <span>Tất cả</span>
           </button>
           {cats.map((c) => (
             <button
               key={c.id}
               onClick={() => { setActiveCat(c.id); setSearching(false); setSearch(''); }}
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none ${
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex-shrink-0 ${
                 activeCat === c.id 
                   ? 'bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white shadow-lg scale-105 border-2 border-[#c9975b]' 
                   : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-2 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
@@ -375,14 +381,29 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
               const hasVariants = itemVariants.length > 0;
               
               return (
-                <div key={m.id} className="border-2 border-amber-200 rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:border-amber-400 transition-all">
+                <div key={m.id} className="border-2 border-amber-200 rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:border-amber-400 transition-all relative">
+                  {/* Icon xem chi tiết ở góc trên bên phải */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDetailModal({ open: true, item: m });
+                    }}
+                    className="absolute top-2 right-2 z-10 p-1.5 bg-white/90 hover:bg-white rounded-lg shadow-md hover:shadow-lg transition-all group"
+                    title="Xem chi tiết"
+                  >
+                    <svg className="w-4 h-4 text-gray-600 group-hover:text-[#c9975b] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                  
                   {m.hinh_anh ? (
                     <img src={m.hinh_anh} alt={m.ten} className="w-full h-32 object-cover" />
                   ) : (
                     <div className="w-full h-32 bg-gradient-to-br from-amber-50 to-orange-50 grid place-items-center text-amber-400 text-3xl">☕</div>
                   )}
                   <div className="p-3 bg-gradient-to-b from-white to-amber-50/30">
-                    <div className="font-bold text-base truncate mb-1 text-amber-900" title={m.ten}>{m.ten}</div>
+                    <div className="font-bold text-base truncate mb-1 text-amber-900 pr-8" title={m.ten}>{m.ten}</div>
                     
                     {/* Hiển thị giá */}
                     <div className="text-sm font-semibold text-amber-700 mb-2">
@@ -475,6 +496,12 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
         quantity={optionsDialog.quantity}
         onClose={() => setOptionsDialog({ open: false, item: null, variant: null, quantity: 1 })}
         onConfirm={confirmOptions}
+      />
+
+      <ItemDetailModal
+        open={detailModal.open}
+        item={detailModal.item}
+        onClose={() => setDetailModal({ open: false, item: null })}
       />
     </div>
   );

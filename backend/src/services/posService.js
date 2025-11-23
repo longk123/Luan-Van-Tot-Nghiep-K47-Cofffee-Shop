@@ -145,6 +145,194 @@ export default {
     return rows;
   },
 
+  // Phân công đơn giao hàng cho nhân viên phục vụ
+  async assignDeliveryOrder(orderId, shipperId, assignedBy) {
+    const { pool } = await import('../db.js');
+    
+    // Kiểm tra đơn có tồn tại và là DELIVERY không
+    const orderCheck = await pool.query(
+      `SELECT id, order_type, trang_thai FROM don_hang WHERE id = $1`,
+      [orderId]
+    );
+    
+    if (orderCheck.rows.length === 0) {
+      const err = new Error('Không tìm thấy đơn hàng');
+      err.status = 404;
+      throw err;
+    }
+    
+    if (orderCheck.rows[0].order_type !== 'DELIVERY') {
+      const err = new Error('Chỉ có thể phân công đơn DELIVERY');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Kiểm tra xem đã có delivery_info chưa
+    const existingDeliveryInfo = await pool.query(
+      `SELECT order_id FROM don_hang_delivery_info WHERE order_id = $1`,
+      [orderId]
+    );
+    
+    if (existingDeliveryInfo.rows.length === 0) {
+      const err = new Error('Đơn hàng chưa có thông tin giao hàng. Vui lòng tạo đơn từ Customer Portal hoặc thêm thông tin giao hàng trước.');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Chỉ UPDATE khi đã có delivery_info (vì delivery_address là NOT NULL)
+    const result = await pool.query(`
+      UPDATE don_hang_delivery_info
+      SET shipper_id = $2,
+          delivery_status = 'ASSIGNED',
+          updated_at = NOW()
+      WHERE order_id = $1
+      RETURNING *
+    `, [orderId, shipperId]);
+    
+    // Emit event
+    const { emitEvent } = await import('../utils/sse.js');
+    emitEvent('delivery.assigned', { orderId, shipperId, assignedBy });
+    
+    return result.rows[0];
+  },
+
+  // Cập nhật trạng thái giao hàng
+  async updateDeliveryStatus(orderId, status, shipperId = null) {
+    const { pool } = await import('../db.js');
+    
+    const validStatuses = ['PENDING', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'];
+    if (!validStatuses.includes(status)) {
+      const err = new Error(`Trạng thái không hợp lệ. Phải là một trong: ${validStatuses.join(', ')}`);
+      err.status = 400;
+      throw err;
+    }
+    
+    // Kiểm tra tất cả món đã xong chưa khi chuyển sang OUT_FOR_DELIVERY
+    if (status === 'OUT_FOR_DELIVERY') {
+      const checkResult = await pool.query(
+        `SELECT COUNT(*) as count 
+         FROM don_hang_chi_tiet 
+         WHERE don_hang_id = $1 
+           AND trang_thai_che_bien NOT IN ('DONE', 'CANCELLED')`,
+        [orderId]
+      );
+      
+      if (parseInt(checkResult.rows[0].count) > 0) {
+        const err = new Error('Còn món chưa hoàn tất. Không thể bắt đầu giao hàng.');
+        err.status = 400;
+        throw err;
+      }
+    }
+    
+    // Kiểm tra quyền: chỉ shipper được phân công mới có thể update
+    if (shipperId) {
+      const checkResult = await pool.query(
+        `SELECT shipper_id FROM don_hang_delivery_info WHERE order_id = $1`,
+        [orderId]
+      );
+      
+      if (checkResult.rows.length > 0 && checkResult.rows[0].shipper_id !== shipperId) {
+        const err = new Error('Bạn không có quyền cập nhật đơn này');
+        err.status = 403;
+        throw err;
+      }
+    }
+    
+    // Cập nhật trạng thái
+    const result = await pool.query(`
+      UPDATE don_hang_delivery_info
+      SET delivery_status = $1,
+          updated_at = NOW()
+      WHERE order_id = $2
+      RETURNING *
+    `, [status, orderId]);
+    
+    if (result.rows.length === 0) {
+      const err = new Error('Không tìm thấy thông tin giao hàng');
+      err.status = 404;
+      throw err;
+    }
+    
+    // Nếu DELIVERED, cập nhật delivered_at
+    if (status === 'DELIVERED') {
+      await pool.query(`
+        UPDATE don_hang_delivery_info
+        SET actual_delivered_at = NOW()
+        WHERE order_id = $1
+      `, [orderId]);
+      
+      await pool.query(`
+        UPDATE don_hang
+        SET delivered_at = NOW()
+        WHERE id = $1
+      `, [orderId]);
+    }
+    
+    // Emit event
+    const { emitEvent } = await import('../utils/sse.js');
+    emitEvent('delivery.status.updated', { orderId, status, shipperId });
+    
+    return result.rows[0];
+  },
+
+  // Lấy đơn được phân công cho nhân viên phục vụ
+  async getAssignedDeliveryOrders(shipperId, status = null) {
+    const { pool } = await import('../db.js');
+    
+    let query = `
+      SELECT 
+        dh.id,
+        dh.trang_thai,
+        dh.order_type,
+        dh.opened_at,
+        di.delivery_address,
+        di.delivery_phone,
+        di.delivery_status,
+        di.distance_km,
+        di.delivery_fee,
+        settlement.grand_total,
+        ca.full_name AS khach_hang_ten,
+        ca.phone AS khach_hang_phone,
+        json_agg(
+          json_build_object(
+            'id', ct.id,
+            'mon_ten', COALESCE(ct.ten_mon_snapshot, m.ten),
+            'bien_the_ten', btm.ten_bien_the,
+            'so_luong', ct.so_luong,
+            'trang_thai_che_bien', ct.trang_thai_che_bien
+          ) ORDER BY ct.id
+        ) FILTER (WHERE ct.id IS NOT NULL) AS items
+      FROM don_hang dh
+      JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+      LEFT JOIN mon m ON m.id = ct.mon_id
+      LEFT JOIN mon_bien_the btm ON btm.id = ct.bien_the_id
+      LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
+      LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
+      WHERE di.shipper_id = $1
+        AND dh.trang_thai IN ('OPEN', 'PAID')
+        AND (dh.delivered_at IS NULL OR di.actual_delivered_at IS NULL)
+    `;
+    
+    const params = [shipperId];
+    
+    if (status) {
+      query += ` AND di.delivery_status = $2`;
+      params.push(status);
+    }
+    
+    query += `
+      GROUP BY dh.id, dh.trang_thai, dh.order_type, dh.opened_at,
+               di.delivery_address, di.delivery_phone, di.delivery_status,
+               di.distance_km, di.delivery_fee, settlement.grand_total,
+               ca.full_name, ca.phone
+      ORDER BY dh.opened_at ASC
+    `;
+    
+    const { rows } = await pool.query(query, params);
+    return rows;
+  },
+
   // Giao hàng (đánh dấu đơn hoàn tất)
   async deliverOrder(orderId) {
     const { pool } = await import('../db.js');
@@ -183,12 +371,32 @@ export default {
   async saveDeliveryInfo(orderId, data) {
     const { pool } = await import('../db.js');
     
-    // Store location (gần Đại học Cần Thơ)
+    // Store location (địa chỉ ảo cho demo: 123 Đường 3/2, Phường Xuân Khánh, Ninh Kiều, Cần Thơ)
     const STORE_LOCATION = {
-      lat: 10.0310,
-      lng: 105.7690
+      lat: 10.0310,  // Tọa độ gần Đại học Cần Thơ, đường 3/2
+      lng: 105.7690,
+      address: '123 Đường 3/2, Phường Xuân Khánh, Ninh Kiều, Cần Thơ'
     };
-    const MAX_DELIVERY_DISTANCE = 2; // 2km
+    
+    // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
+    const checkIsNinhKieu = (address) => {
+      if (!address) return false;
+      const addressLower = address.toLowerCase();
+      const ninhKieuKeywords = [
+        'ninh kiều',
+        'xuân khánh',
+        'an khánh',
+        'an hòa',
+        'an thới',
+        'bình thủy',
+        'cái khế',
+        'hưng lợi',
+        'tân an',
+        'thới bình',
+        'thới an đông'
+      ];
+      return ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+    };
     
     // Kiểm tra đơn hàng có tồn tại và là DELIVERY không
     const orderCheck = await pool.query(
@@ -208,7 +416,14 @@ export default {
       throw err;
     }
     
-    // Validate distance if coordinates provided
+    // Validate địa chỉ phải thuộc quận Ninh Kiều
+    if (data.deliveryAddress && !checkIsNinhKieu(data.deliveryAddress)) {
+      const err = new Error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Tính khoảng cách nếu có tọa độ (để lưu vào database, không dùng để validate)
     if (data.latitude && data.longitude) {
       const distance = calculateDistance(
         STORE_LOCATION.lat, 
@@ -216,12 +431,6 @@ export default {
         parseFloat(data.latitude), 
         parseFloat(data.longitude)
       );
-      
-      if (distance > MAX_DELIVERY_DISTANCE) {
-        const err = new Error(`Địa chỉ này cách quán ${distance.toFixed(2)}km, vượt quá bán kính giao hàng ${MAX_DELIVERY_DISTANCE}km`);
-        err.status = 400;
-        throw err;
-      }
       
       // Use calculated distance if not provided
       if (!data.distance) {

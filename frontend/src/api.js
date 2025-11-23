@@ -47,6 +47,17 @@ export const api = {
   post: (p, b) => request('POST', p, b),
   patch: (p, b) => request('PATCH', p, b),
   del: (p) => request('DELETE', p),
+  put: (p, b) => request('PUT', p, b),
+  
+  // Admin APIs
+  getAdminSettings: () => api.get('/admin/settings'),
+  updateAdminSettings: (settings) => api.put('/admin/settings', settings),
+  getSystemLogs: (params) => {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/admin/logs?${query}`);
+  },
+  getSystemHealth: () => api.get('/admin/health'),
+  
   // Menu
   getCategories: () => request('GET', '/pos/menu/categories'),
   getAllItems: () => request('GET', '/pos/menu/categories/0/items'),
@@ -54,13 +65,21 @@ export const api = {
   getVariantsByItem: (id) => request('GET', `/pos/menu/items/${id}/variants`), // fallback-friendly
   searchMenuItems: (keyword) => request('GET', `/pos/menu/search?keyword=${encodeURIComponent(keyword)}`),
   // POS
-  createOrderForTable: (tableId) => request('POST', `/pos/orders/${tableId}`, {
+  createOrderForTable: (tableId, options = {}) => request('POST', `/pos/orders/${tableId}`, {
     nhan_vien_id: 1, // TODO: Get from auth context
-    ca_lam_id: null
+    ca_lam_id: options.ca_lam_id ?? null
   }),
-  createTakeawayOrder: () => request('POST', '/pos/orders', { order_type: 'TAKEAWAY' }),
+  createTakeawayOrder: (options = {}) => request('POST', '/pos/orders', { 
+    order_type: 'TAKEAWAY',
+    ...options
+  }),
   createDeliveryOrder: () => request('POST', '/pos/orders', { order_type: 'DELIVERY' }),
   saveDeliveryInfo: (orderId, deliveryInfo) => request('POST', `/pos/orders/${orderId}/delivery-info`, deliveryInfo),
+  // Delivery assignment
+  getWaiters: () => request('GET', '/pos/waiters'),
+  assignDeliveryOrder: (orderId, shipperId) => request('POST', `/pos/orders/${orderId}/assign-delivery`, { shipperId }),
+  updateDeliveryStatus: (orderId, status) => request('PATCH', `/pos/orders/${orderId}/delivery-status`, { status }),
+  getMyAssignedDeliveries: (status) => request('GET', `/pos/delivery/my-assigned${status ? `?status=${status}` : ''}`),
   getOrderItems: (orderId) => request('GET', `/pos/orders/${orderId}/items`),
   getOrderSummary: (orderId) => request('GET', `/pos/orders/${orderId}/summary`),
   addItemToOrder: (orderId, payload) => request('POST', `/pos/orders/${orderId}/items`, payload),
@@ -284,6 +303,13 @@ export const api = {
   // Thống kê ca làm việc
   getShiftStats: (days = 7) => request('GET', `/analytics/shift-stats?days=${days}`),
   // Báo cáo lợi nhuận
+  getOrdersByRole: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.roleName) queryParams.append('roleName', params.roleName);
+    return request('GET', `/analytics/orders-by-role?${queryParams.toString()}`);
+  },
   getProfitReport: (params = {}) => {
     const queryParams = new URLSearchParams();
     if (params.startDate && params.endDate) {
@@ -408,6 +434,10 @@ export const api = {
   // ===== EMPLOYEE MANAGEMENT =====
   // Users
   getAllUsers: () => request('GET', '/auth/users'),
+  
+  // ===== USER PROFILE =====
+  getMyProfile: () => request('GET', '/auth/me'),
+  updateMyProfile: (data) => request('PATCH', '/auth/me', data),
   getUserById: (id) => request('GET', `/auth/users/${id}`),
   createUser: (data) => request('POST', '/auth/users', data),
   updateUser: (id, data) => request('PUT', `/auth/users/${id}`, data),
@@ -475,4 +505,18 @@ export const api = {
     if (date) queryParams.append('date', date);
     return request('GET', `/promotions/summary?${queryParams.toString()}`);
   },
+
+  // ===== NOTIFICATIONS =====
+  getNotifications: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.offset) queryParams.append('offset', params.offset);
+    if (params.unreadOnly) queryParams.append('unreadOnly', params.unreadOnly);
+    const queryString = queryParams.toString();
+    return request('GET', `/notifications${queryString ? `?${queryString}` : ''}`);
+  },
+  getUnreadCount: () => request('GET', '/notifications/unread-count'),
+  markNotificationAsRead: (id) => request('POST', `/notifications/${id}/read`),
+  markAllNotificationsAsRead: () => request('POST', '/notifications/read-all'),
+  deleteNotification: (id) => request('DELETE', `/notifications/${id}`),
 };

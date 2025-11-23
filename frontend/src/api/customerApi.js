@@ -93,5 +93,11 @@ export const customerApi = {
     const query = new URLSearchParams(params).toString();
     return request('GET', `/tables/available${query ? `?${query}` : ''}`, null, false);
   },
+
+  // ==================== CHATBOT ====================
+  chat: (message) => request('POST', '/chatbot/chat', { message }, false), // Optional auth
+  getActiveConversation: () => request('GET', '/chatbot/conversation/active', null, false), // Optional auth
+  getConversations: () => request('GET', '/chatbot/conversations', null, true), // Require auth
+  getMessages: (conversationId) => request('GET', `/chatbot/conversations/${conversationId}/messages`, null, true), // Require auth
 };
 

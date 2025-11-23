@@ -232,6 +232,83 @@ class ExportService {
     return workbook;
   }
 
+  async exportInventoryToExcel(data, filters) {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Coffee Shop POS';
+    workbook.created = new Date();
+
+    if (data.ingredients && data.ingredients.length > 0) {
+      // Sheet: Tồn kho
+      const stockSheet = workbook.addWorksheet('Tồn Kho');
+      stockSheet.columns = [
+        { header: 'Mã', key: 'code', width: 20 },
+        { header: 'Tên Nguyên Liệu', key: 'name', width: 30 },
+        { header: 'Tồn Kho', key: 'stock', width: 15 },
+        { header: 'Đơn Vị', key: 'unit', width: 10 },
+        { header: 'Giá Nhập', key: 'price', width: 18 },
+        { header: 'Giá Trị Tồn', key: 'value', width: 18 },
+        { header: 'Trạng Thái', key: 'status', width: 15 }
+      ];
+
+      stockSheet.addRows(data.ingredients);
+      stockSheet.getColumn('price').numFmt = '#,##0 ₫';
+      stockSheet.getColumn('value').numFmt = '#,##0 ₫';
+      stockSheet.getRow(1).font = { bold: true };
+      stockSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+    }
+
+    if (data.exports && data.exports.length > 0) {
+      const exportSheet = workbook.addWorksheet('Lịch Sử Xuất');
+      exportSheet.columns = [
+        { header: 'Thời Gian', key: 'date', width: 20 },
+        { header: 'Nguyên Liệu', key: 'ingredient', width: 30 },
+        { header: 'Mã', key: 'code', width: 20 },
+        { header: 'Số Lượng', key: 'quantity', width: 15 },
+        { header: 'Đơn Vị', key: 'unit', width: 10 },
+        { header: 'Đơn Hàng', key: 'orderId', width: 12 },
+        { header: 'Giá Trị', key: 'value', width: 18 }
+      ];
+      exportSheet.addRows(data.exports);
+      exportSheet.getColumn('value').numFmt = '#,##0 ₫';
+      exportSheet.getRow(1).font = { bold: true };
+      exportSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+    }
+
+    if (data.imports && data.imports.length > 0) {
+      const importSheet = workbook.addWorksheet('Lịch Sử Nhập');
+      importSheet.columns = [
+        { header: 'Thời Gian', key: 'date', width: 20 },
+        { header: 'Nguyên Liệu', key: 'ingredient', width: 30 },
+        { header: 'Mã', key: 'code', width: 20 },
+        { header: 'Số Lượng', key: 'quantity', width: 15 },
+        { header: 'Đơn Vị', key: 'unit', width: 10 },
+        { header: 'Đơn Giá', key: 'price', width: 18 },
+        { header: 'Thành Tiền', key: 'total', width: 18 },
+        { header: 'Nhà Cung Cấp', key: 'supplier', width: 25 },
+        { header: 'Ghi Chú', key: 'note', width: 30 }
+      ];
+      importSheet.addRows(data.imports);
+      importSheet.getColumn('price').numFmt = '#,##0 ₫';
+      importSheet.getColumn('total').numFmt = '#,##0 ₫';
+      importSheet.getRow(1).font = { bold: true };
+      importSheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+    }
+
+    return workbook;
+  }
+
   async exportCustomersToExcel(data, filters) {
     const workbook = new ExcelJS.Workbook();
     
@@ -311,6 +388,9 @@ class ExportService {
         break;
       case 'customers':
         this.addCustomersPDFContent(doc, data);
+        break;
+      case 'inventory':
+        this.addInventoryPDFContent(doc, data);
         break;
     }
 
@@ -413,6 +493,49 @@ class ExportService {
     }
   }
 
+  addInventoryPDFContent(doc, data) {
+    if (data.ingredients && data.ingredients.length > 0) {
+      doc.fontSize(12).text('TỒN KHO NGUYÊN LIỆU:', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(9);
+      
+      data.ingredients.slice(0, 30).forEach((item, index) => {
+        const statusText = item.status === 'HET_HANG' ? '🔴 HẾT' : 
+                          item.status === 'SAP_HET' ? '⚠️ SẮP HẾT' : '✅ ĐỦ';
+        doc.text(`${index + 1}. ${item.name} (${item.code}): ${item.stock} ${item.unit} - ${this.formatCurrency(item.value)} [${statusText}]`);
+      });
+      
+      if (data.ingredients.length > 30) {
+        doc.moveDown(0.5);
+        doc.text(`... và ${data.ingredients.length - 30} nguyên liệu khác`);
+      }
+    }
+    
+    if (data.exports && data.exports.length > 0) {
+      doc.moveDown(1);
+      doc.fontSize(12).text('LỊCH SỬ XUẤT KHO:', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(9);
+      
+      data.exports.slice(0, 20).forEach((item, index) => {
+        const date = new Date(item.date).toLocaleDateString('vi-VN');
+        doc.text(`${date}: ${item.ingredient} - ${item.quantity} ${item.unit} (ĐH #${item.orderId})`);
+      });
+    }
+    
+    if (data.imports && data.imports.length > 0) {
+      doc.moveDown(1);
+      doc.fontSize(12).text('LỊCH SỬ NHẬP KHO:', { underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(9);
+      
+      data.imports.slice(0, 20).forEach((item, index) => {
+        const date = new Date(item.date).toLocaleDateString('vi-VN');
+        doc.text(`${date}: ${item.ingredient} - ${item.quantity} ${item.unit} - ${this.formatCurrency(item.total)}`);
+      });
+    }
+  }
+
   addCustomersPDFContent(doc, data) {
     doc.fontSize(12).text('TOP KHÁCH HÀNG/BÀN:', { underline: true });
     doc.moveDown(0.5);
@@ -457,7 +580,8 @@ class ExportService {
       profit: 'BÁO CÁO LỢI NHUẬN',
       products: 'BÁO CÁO SẢN PHẨM',
       promotions: 'BÁO CÁO KHUYẾN MÃI',
-      customers: 'BÁO CÁO KHÁCH HÀNG'
+      customers: 'BÁO CÁO KHÁCH HÀNG',
+      inventory: 'BÁO CÁO TỒN KHO'
     };
     return titles[reportType] || 'BÁO CÁO';
   }

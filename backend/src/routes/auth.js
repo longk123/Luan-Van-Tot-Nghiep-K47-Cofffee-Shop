@@ -20,6 +20,9 @@ router.post('/login', validateLogin, authController.login);
 // Lấy thông tin bản thân
 router.get('/me', authRequired, authController.getMe);
 
+// Cập nhật thông tin cá nhân (nhân viên tự cập nhật)
+router.patch('/me', authRequired, authController.updateMyProfile);
+
 // Verify token (cho testing)
 router.get('/verify', authController.verifyToken);
 

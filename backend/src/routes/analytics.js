@@ -79,4 +79,11 @@ router.get('/profit-by-category', analyticsController.getProfitByCategory);
  */
 router.get('/profit-comparison', analyticsController.getProfitComparison);
 
+/**
+ * @route GET /api/v1/analytics/orders-by-role
+ * @desc Lấy thống kê đơn hàng theo role (waiter/shipper)
+ * @access Manager, Admin
+ */
+router.get('/orders-by-role', analyticsController.getOrdersByRole);
+
 export default router;

@@ -4,6 +4,7 @@
 import authService from '../services/authService.js';
 import userRepository from '../repositories/userRepository.js';
 import { asyncHandler } from '../middleware/error.js';
+import { pool } from '../db.js';
 
 class AuthController {
   // Đăng nhập
@@ -36,6 +37,22 @@ class AuthController {
     const user = await authService.getCurrentUser(user_id);
     
     res.json({ user });
+  });
+
+  // Cập nhật thông tin cá nhân (nhân viên tự cập nhật)
+  updateMyProfile = asyncHandler(async (req, res) => {
+    const { user_id } = req.user;
+    const { full_name, email, phone, current_password, new_password } = req.body;
+
+    const updated = await authService.updateMyProfile(user_id, {
+      full_name,
+      email,
+      phone,
+      current_password,
+      new_password
+    });
+
+    res.json({ success: true, data: updated });
   });
 
   // Verify token (cho testing)
@@ -85,6 +102,29 @@ class AuthController {
       return res.status(400).json({ error: 'Username already exists' });
     }
     
+    // Check if current user is admin
+    const currentUserRoles = req.user.roles || [];
+    const isAdmin = currentUserRoles.some(role => role.toLowerCase() === 'admin');
+    
+    // Only admin can assign manager/admin roles
+    if (roles && roles.length > 0) {
+      // Get role names from role IDs
+      const { rows: roleRows } = await pool.query(`
+        SELECT role_id, role_name FROM roles WHERE role_id = ANY($1)
+      `, [roles]);
+      
+      const roleNames = roleRows.map(r => r.role_name.toLowerCase());
+      const hasManagerOrAdmin = roleNames.some(name => 
+        name === 'manager' || name === 'admin'
+      );
+      
+      if (hasManagerOrAdmin && !isAdmin) {
+        return res.status(403).json({ 
+          error: 'Only admin can assign manager or admin roles' 
+        });
+      }
+    }
+    
     // Hash password
     const bcrypt = await import('bcrypt');
     const passwordHash = await bcrypt.hash(password, 10);
@@ -118,6 +158,42 @@ class AuthController {
     const existingUser = await userRepository.findById(parseInt(id));
     if (!existingUser) {
       return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Check if current user is admin
+    const currentUserRoles = req.user.roles || [];
+    const isAdmin = currentUserRoles.some(role => role.toLowerCase() === 'admin');
+    
+    // Only admin can assign manager/admin roles
+    if (roles && Array.isArray(roles)) {
+      // Get role names from role IDs
+      const { rows: roleRows } = await pool.query(`
+        SELECT role_id, role_name FROM roles WHERE role_id = ANY($1)
+      `, [roles]);
+      
+      const roleNames = roleRows.map(r => r.role_name.toLowerCase());
+      const hasManagerOrAdmin = roleNames.some(name => 
+        name === 'manager' || name === 'admin'
+      );
+      
+      if (hasManagerOrAdmin && !isAdmin) {
+        return res.status(403).json({ 
+          error: 'Only admin can assign manager or admin roles' 
+        });
+      }
+      
+      // Prevent non-admin from removing admin role from themselves
+      if (parseInt(id) === req.user.user_id && !isAdmin) {
+        const currentUserRoles = await userRepository.getUserRoles(parseInt(id));
+        const currentRoleNames = currentUserRoles.map(r => r.role_name.toLowerCase());
+        const isRemovingAdmin = currentRoleNames.includes('admin') && 
+                                !roleNames.includes('admin');
+        if (isRemovingAdmin) {
+          return res.status(403).json({ 
+            error: 'Cannot remove admin role from yourself' 
+          });
+        }
+      }
     }
     
     // Hash new password if provided

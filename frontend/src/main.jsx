@@ -10,9 +10,12 @@ import Dashboard from './pages/Dashboard.jsx'
 import POS from './pages/POS.jsx'
 import Kitchen from './pages/Kitchen.jsx'
 import TakeawayOrders from './pages/TakeawayOrders.jsx'
+import WaiterDeliveryPage from './pages/WaiterDeliveryPage.jsx'
+import UserProfile from './pages/UserProfile.jsx'
 import PaymentSuccess from './pages/PaymentSuccess.jsx'
 import PaymentCancel from './pages/PaymentCancel.jsx'
 import ManagerDashboard from './pages/ManagerDashboard.jsx'
+import AdminDashboard from './pages/AdminDashboard.jsx'
 import InventoryManagement from './pages/InventoryManagement.jsx'
 import MenuManagement from './pages/MenuManagement.jsx'
 import AreaTableManagement from './pages/AreaTableManagement.jsx'
@@ -40,7 +43,7 @@ const router = createBrowserRouter([
   { 
     path: '/dashboard', 
     element: (
-      <RoleGuard allowedRoles={['cashier', 'manager', 'admin']}>
+      <RoleGuard allowedRoles={['cashier', 'waiter', 'manager', 'admin']}>
         <Dashboard />
       </RoleGuard>
     )
@@ -50,6 +53,14 @@ const router = createBrowserRouter([
     element: (
       <RoleGuard allowedRoles={['manager', 'admin']}>
         <ManagerDashboard />
+      </RoleGuard>
+    )
+  },
+  { 
+    path: '/admin', 
+    element: (
+      <RoleGuard allowedRoles={['admin']}>
+        <AdminDashboard />
       </RoleGuard>
     )
   },
@@ -112,10 +123,22 @@ const router = createBrowserRouter([
   { 
     path: '/takeaway', 
     element: (
-      <RoleGuard allowedRoles={['cashier', 'manager', 'admin']}>
+      <RoleGuard allowedRoles={['cashier', 'waiter', 'manager', 'admin']}>
         <TakeawayOrders />
       </RoleGuard>
     )
+  },
+  { 
+    path: '/waiter/delivery', 
+    element: (
+      <RoleGuard allowedRoles={['waiter', 'manager', 'admin']}>
+        <WaiterDeliveryPage />
+      </RoleGuard>
+    )
+  },
+  { 
+    path: '/profile', 
+    element: <UserProfile />
   },
   { path: '/payment-success', element: <PaymentSuccess /> },
   { path: '/payment-cancel', element: <PaymentCancel /> },

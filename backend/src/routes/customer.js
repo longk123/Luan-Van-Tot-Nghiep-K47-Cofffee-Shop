@@ -48,5 +48,16 @@ router.get('/customer/orders/:id', customerAuth, customerController.getOrderDeta
 router.get('/customer/reservations', customerAuth, customerController.getReservations);
 router.get('/customer/reservations/:id', customerAuth, customerController.getReservationDetail);
 
+// ==================== CHATBOT ====================
+import chatbotController from '../controllers/chatbotController.js';
+
+// Chat (optional auth - works for guests too)
+router.post('/customer/chatbot/chat', optionalCustomerAuth, chatbotController.chat);
+router.get('/customer/chatbot/conversation/active', optionalCustomerAuth, chatbotController.getActiveConversation);
+
+// Conversations (require authentication)
+router.get('/customer/chatbot/conversations', customerAuth, chatbotController.getConversations);
+router.get('/customer/chatbot/conversations/:id/messages', customerAuth, chatbotController.getMessages);
+
 export default router;
 

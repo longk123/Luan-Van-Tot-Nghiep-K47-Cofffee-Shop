@@ -373,14 +373,7 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                         </div>
                       ) : order.order_type === 'DELIVERY' ? (
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-bold text-blue-600">Giao hàng</p>
-                            {order.is_pre_order && (
-                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded border border-blue-300">
-                                Đặt trước
-                              </span>
-                            )}
-                          </div>
+                          <p className="font-bold text-blue-600 mb-1">Giao hàng</p>
                           {order.khach_hang_ten && (
                             <p className="text-xs font-semibold text-gray-900">👤 {order.khach_hang_ten}</p>
                           )}
@@ -395,7 +388,16 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                           )}
                         </div>
                       ) : (
-                        <span className="text-[#c9975b] font-medium">Mang đi</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#c9975b] font-medium">Mang đi</span>
+                            {order.is_pre_order && (
+                              <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded border border-orange-300">
+                                Đặt trước
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -556,9 +558,15 @@ export default function CurrentShiftOrders({ viewOnly = false }) {
                         <p className="font-semibold">{invoiceData.header.ban_label || 'Mang đi'}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Thu ngân</p>
-                        <p className="font-semibold">{invoiceData.header.thu_ngan || '-'}</p>
+                        <p className="text-sm text-gray-600">Người tạo đơn</p>
+                        <p className="font-semibold">{invoiceData.header.nguoi_tao_don || invoiceData.header.thu_ngan || '-'}</p>
                       </div>
+                      {invoiceData.header.nguoi_tao_don && invoiceData.header.thu_ngan && invoiceData.header.nguoi_tao_don !== invoiceData.header.thu_ngan && (
+                        <div>
+                          <p className="text-sm text-gray-600">Thu ngân</p>
+                          <p className="font-semibold">{invoiceData.header.thu_ngan}</p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm text-gray-600">Thời gian</p>
                         <p className="font-semibold">{formatDateTime(invoiceData.header.opened_at)}</p>

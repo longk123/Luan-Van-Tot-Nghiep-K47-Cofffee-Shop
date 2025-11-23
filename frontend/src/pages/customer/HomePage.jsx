@@ -2,7 +2,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { customerApi } from '../../api/customerApi';
-import { Coffee, Calendar, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Coffee, Calendar, ShoppingBag, ArrowRight, CupSoda, GlassWater, IceCream, Cookie, UtensilsCrossed } from 'lucide-react';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -190,7 +190,7 @@ export default function HomePage() {
       </section>
 
       {/* Categories Preview */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-gradient-to-b from-white to-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Danh mục</h2>
@@ -198,18 +198,101 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <Link
-                key={category.id}
-                to={`/customer/menu?category=${category.id}`}
-                className="group"
-              >
-                <div className="bg-gradient-to-br from-[#c9975b] to-[#d4a574] rounded-xl p-8 text-center hover:shadow-lg transition">
-                  <Coffee className="w-12 h-12 text-white mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white">{category.ten}</h3>
-                </div>
-              </Link>
-            ))}
+            {categories.map((category) => {
+              // Map category names to icons and colors
+              const getCategoryConfig = (name) => {
+                const nameLower = name.toLowerCase();
+                if (nameLower.includes('cà phê') || nameLower.includes('coffee')) {
+                  return {
+                    icon: Coffee,
+                    gradient: 'from-amber-700 via-amber-600 to-amber-500',
+                    hoverGradient: 'hover:from-amber-600 hover:via-amber-500 hover:to-amber-400',
+                    iconBg: 'bg-amber-500/20'
+                  };
+                }
+                if (nameLower.includes('trà') || nameLower.includes('tea')) {
+                  return {
+                    icon: CupSoda,
+                    gradient: 'from-emerald-600 via-emerald-500 to-emerald-400',
+                    hoverGradient: 'hover:from-emerald-500 hover:via-emerald-400 hover:to-emerald-300',
+                    iconBg: 'bg-emerald-500/20'
+                  };
+                }
+                if (nameLower.includes('nước ép') || nameLower.includes('juice')) {
+                  return {
+                    icon: GlassWater,
+                    gradient: 'from-orange-500 via-orange-400 to-orange-300',
+                    hoverGradient: 'hover:from-orange-400 hover:via-orange-300 hover:to-orange-200',
+                    iconBg: 'bg-orange-500/20'
+                  };
+                }
+                if (nameLower.includes('sinh tố') || nameLower.includes('smoothie')) {
+                  return {
+                    icon: IceCream,
+                    gradient: 'from-pink-500 via-pink-400 to-pink-300',
+                    hoverGradient: 'hover:from-pink-400 hover:via-pink-300 hover:to-pink-200',
+                    iconBg: 'bg-pink-500/20'
+                  };
+                }
+                if (nameLower.includes('bánh') || nameLower.includes('cake') || nameLower.includes('dessert')) {
+                  return {
+                    icon: Cookie,
+                    gradient: 'from-purple-600 via-purple-500 to-purple-400',
+                    hoverGradient: 'hover:from-purple-500 hover:via-purple-400 hover:to-purple-300',
+                    iconBg: 'bg-purple-500/20'
+                  };
+                }
+                if (nameLower.includes('ăn') || nameLower.includes('snack') || nameLower.includes('food')) {
+                  return {
+                    icon: UtensilsCrossed,
+                    gradient: 'from-red-600 via-red-500 to-red-400',
+                    hoverGradient: 'hover:from-red-500 hover:via-red-400 hover:to-red-300',
+                    iconBg: 'bg-red-500/20'
+                  };
+                }
+                // Default
+                return {
+                  icon: Coffee,
+                  gradient: 'from-[#c9975b] via-[#d4a574] to-[#c9975b]',
+                  hoverGradient: 'hover:from-[#d4a574] hover:via-[#c9975b] hover:to-[#d4a574]',
+                  iconBg: 'bg-[#c9975b]/20'
+                };
+              };
+
+              const config = getCategoryConfig(category.ten);
+              const IconComponent = config.icon;
+
+              return (
+                <Link
+                  key={category.id}
+                  to={`/customer/menu?category=${category.id}`}
+                  className="group"
+                >
+                  <div className={`relative bg-gradient-to-br ${config.gradient} ${config.hoverGradient} rounded-2xl p-6 text-center transition-all duration-300 transform hover:scale-105 hover:shadow-2xl overflow-hidden`}>
+                    {/* Decorative background pattern */}
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-16 -mt-16"></div>
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-12 -mb-12"></div>
+                    </div>
+                    
+                    {/* Icon with background */}
+                    <div className={`relative ${config.iconBg} w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                      <IconComponent className="w-8 h-8 text-white" />
+                    </div>
+                    
+                    {/* Category name */}
+                    <h3 className="relative text-lg font-bold text-white group-hover:text-white/95 transition-colors">
+                      {category.ten}
+                    </h3>
+                    
+                    {/* Arrow indicator on hover */}
+                    <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <ArrowRight className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -243,18 +326,18 @@ export default function HomePage() {
                 <div className="space-y-4">
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Địa chỉ</div>
-                    <div className="text-gray-900">123 Đường ABC, Quận XYZ, TP.HCM</div>
+                    <div className="text-gray-900">123 Đường 3/2, Phường Xuân Khánh, Ninh Kiều, Cần Thơ</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Điện thoại</div>
-                    <a href="tel:0123456789" className="text-[#c9975b] hover:underline">
-                      0123 456 789
+                    <a href="tel:0292388888" className="text-[#c9975b] hover:underline">
+                      0292 388 888
                     </a>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Email</div>
-                    <a href="mailto:info@coffeeshop.vn" className="text-[#c9975b] hover:underline">
-                      info@coffeeshop.vn
+                    <a href="mailto:info@coffeeshop-demo.vn" className="text-[#c9975b] hover:underline">
+                      info@coffeeshop-demo.vn
                     </a>
                   </div>
                   <div>

@@ -214,6 +214,26 @@ class AnalyticsController {
       data
     });
   });
+
+  /**
+   * GET /api/v1/analytics/orders-by-role
+   * Lấy thống kê đơn hàng theo role (waiter/shipper)
+   * Query params: ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD&roleName=waiter|shipper
+   */
+  getOrdersByRole = asyncHandler(async (req, res) => {
+    const { startDate, endDate, roleName } = req.query;
+
+    const data = await analyticsService.getOrdersByRole({
+      startDate,
+      endDate,
+      roleName: roleName || null
+    });
+
+    res.json({
+      success: true,
+      data
+    });
+  });
 }
 
 export default new AnalyticsController();

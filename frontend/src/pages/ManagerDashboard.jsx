@@ -11,7 +11,7 @@ import BatchExpiryNotification from '../components/BatchExpiryNotification.jsx';
 import ExportButtons from '../components/reports/ExportButtons.jsx';
 import DropdownMenu, { DropdownMenuItem, DropdownMenuDivider } from '../components/DropdownMenu.jsx';
 
-export default function ManagerDashboard() {
+export default function ManagerDashboard({ embedded = false }) {
   const navigate = useNavigate();
 
   // Get user info
@@ -45,6 +45,9 @@ export default function ManagerDashboard() {
     return date.toISOString().split('T')[0];
   });
   const [customEndDate, setCustomEndDate] = useState(new Date().toISOString().split('T')[0]);
+  // State cho thống kê theo role
+  const [roleStats, setRoleStats] = useState(null);
+  const [loadingRoleStats, setLoadingRoleStats] = useState(false);
   const [invoicePage, setInvoicePage] = useState(1);
   const invoicesPerPage = 20;
   
@@ -197,6 +200,7 @@ export default function ManagerDashboard() {
         const totalRevenue = revenueResponse.data.datasets[0].data.reduce((sum, val) => sum + val, 0);
         const dineInRevenue = revenueResponse.data.datasets[1].data.reduce((sum, val) => sum + val, 0);
         const takeawayRevenue = revenueResponse.data.datasets[2].data.reduce((sum, val) => sum + val, 0);
+        const deliveryRevenue = revenueResponse.data.datasets[3]?.data?.reduce((sum, val) => sum + val, 0) || 0;
         
         // Lọc invoices trong khoảng thời gian HIỆN TẠI
         const [startYear, startMonth, startDay] = timeParams.startDate.split('-').map(Number);
@@ -225,6 +229,7 @@ export default function ManagerDashboard() {
         const cancelledOrders = invoicesInRange.filter(inv => inv.status === 'CANCELLED').length;
         const dineInOrders = invoicesInRange.filter(inv => inv.order_type === 'DINE_IN' && inv.status === 'PAID').length;
         const takeawayOrders = invoicesInRange.filter(inv => inv.order_type === 'TAKEAWAY' && inv.status === 'PAID').length;
+        const deliveryOrders = invoicesInRange.filter(inv => inv.order_type === 'DELIVERY' && inv.status === 'PAID').length;
         
         // Tính số bàn được sử dụng trong khoảng thời gian - filter riêng theo opened_at
         const invoicesOpenedInRange = allInvoices.filter(invoice => {
@@ -304,7 +309,8 @@ export default function ManagerDashboard() {
           },
           order_types: {
             dine_in: dineInOrders,
-            takeaway: takeawayOrders
+            takeaway: takeawayOrders,
+            delivery: deliveryOrders
           }
         });
         console.log('✅ KPI calculated from revenue chart and invoices:', { 
@@ -402,6 +408,42 @@ export default function ManagerDashboard() {
     }
   }, [timeRange, customDate, customStartDate, customEndDate]); // Reload when any of these changes
 
+  // Load thống kê theo role khi tab được chọn
+  const loadRoleStats = async () => {
+    if (activeTab !== 'waiter-delivery') return;
+    
+    setLoadingRoleStats(true);
+    try {
+      let startDate, endDate;
+      if (timeRange === 'custom') {
+        startDate = customStartDate;
+        endDate = customEndDate;
+      } else {
+        const timeParams = getTimeRangeParams(timeRange, customDate);
+        startDate = timeParams.startDate;
+        endDate = timeParams.endDate;
+      }
+      
+      const response = await api.getOrdersByRole({
+        startDate,
+        endDate,
+        roleName: null // null = lấy cả waiter và shipper
+      });
+      setRoleStats(response.data);
+    } catch (error) {
+      console.error('Error loading role stats:', error);
+    } finally {
+      setLoadingRoleStats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'waiter-delivery') {
+      loadRoleStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, timeRange, customDate, customStartDate, customEndDate]);
+
   // Handler: Xem chi tiết hoá đơn
   const handleViewInvoice = async (invoice) => {
     try {
@@ -491,10 +533,10 @@ export default function ManagerDashboard() {
     }
   };
 
-  return (
-    <AuthedLayout>
+  const content = (
+    <>
       {/* Batch Expiry Notification */}
-      <BatchExpiryNotification />
+      {!embedded && <BatchExpiryNotification />}
 
       {/* Header Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
@@ -722,6 +764,11 @@ export default function ManagerDashboard() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
+            )},
+            { id: 'waiter-delivery', name: 'Phục vụ & Giao hàng', icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
             )}
           ].map((tab) => (
             <button
@@ -929,7 +976,7 @@ export default function ManagerDashboard() {
               {(() => {
                 const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
                 if (isToday) {
-                  return kpis ? <span>{kpis.order_types?.dine_in || 0} tại bàn, {kpis.order_types?.takeaway || 0} mang đi</span> : <span>0 tại bàn, 0 mang đi</span>;
+                  return kpis ? <span>{kpis.order_types?.dine_in || 0} tại bàn, {kpis.order_types?.takeaway || 0} mang đi, {kpis.order_types?.delivery || 0} giao hàng</span> : <span>0 tại bàn, 0 mang đi, 0 giao hàng</span>;
                 } else {
                   return kpis && kpis.orders?.paid > 0
                     ? <span>Trong {kpis.orders.paid} đơn hàng</span>
@@ -993,6 +1040,12 @@ export default function ManagerDashboard() {
                     {revenueChart.datasets?.[2]?.data?.reduce((sum, val) => sum + val, 0)?.toLocaleString('vi-VN') || '0'} VNĐ
                   </p>
                 </div>
+                <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f3f4f6', borderRadius: '8px' }}>
+                  <p style={{ margin: '0 0 5px 0', color: '#6b7280', fontSize: '14px' }}>Giao hàng</p>
+                  <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold', color: '#9333ea' }}>
+                    {revenueChart.datasets?.[3]?.data?.reduce((sum, val) => sum + val, 0)?.toLocaleString('vi-VN') || '0'} VNĐ
+                  </p>
+                </div>
               </div>
               <div style={{ height: '400px', marginTop: '20px', backgroundColor: '#fafafa', borderRadius: '8px', padding: '20px' }}>
                 <h4 style={{ margin: '0 0 20px 0', color: '#374151', fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1006,7 +1059,8 @@ export default function ManagerDashboard() {
                     date: label,
                     total: revenueChart.datasets?.[0]?.data?.[index] || 0,
                     dineIn: revenueChart.datasets?.[1]?.data?.[index] || 0,
-                    takeaway: revenueChart.datasets?.[2]?.data?.[index] || 0
+                    takeaway: revenueChart.datasets?.[2]?.data?.[index] || 0,
+                    delivery: revenueChart.datasets?.[3]?.data?.[index] || 0
                   })) || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
@@ -1022,7 +1076,7 @@ export default function ManagerDashboard() {
                     <Tooltip 
                       formatter={(value, name) => [
                         `${value?.toLocaleString('vi-VN')} VNĐ`, 
-                        name === 'total' ? 'Tổng' : name === 'dineIn' ? 'Tại bàn' : 'Mang đi'
+                        name === 'total' ? 'Tổng' : name === 'dineIn' ? 'Tại bàn' : name === 'takeaway' ? 'Mang đi' : 'Giao hàng'
                       ]}
                       labelStyle={{ color: '#374151' }}
                       contentStyle={{ 
@@ -1056,6 +1110,14 @@ export default function ManagerDashboard() {
                       strokeWidth={2}
                       name="Mang đi"
                       dot={{ fill: COLORS.accent.main, strokeWidth: 2, r: 3 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="delivery" 
+                      stroke="#9333ea"
+                      strokeWidth={2}
+                      name="Giao hàng"
+                      dot={{ fill: "#9333ea", strokeWidth: 2, r: 3 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1094,6 +1156,170 @@ export default function ManagerDashboard() {
               : getTimeRangeParams(timeRange, customDate).endDate
           }
         />
+      )}
+
+      {activeTab === 'waiter-delivery' && (
+        <div className="pb-32">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                Thống kê Phục vụ & Giao hàng
+              </h3>
+              <div className="text-sm text-gray-600">
+                {(() => {
+                  const params = getTimeRangeParams(timeRange, customDate);
+                  return `${params.startDate} đến ${params.endDate}`;
+                })()}
+              </div>
+            </div>
+
+            {loadingRoleStats ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-500">Đang tải dữ liệu...</div>
+              </div>
+            ) : roleStats ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border-l-4 border-amber-500">
+                    <div className="text-sm text-amber-700 mb-1">Tổng nhân viên</div>
+                    <div className="text-2xl font-bold text-amber-900">{roleStats.summary?.total_employees || 0}</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-l-4 border-blue-500">
+                    <div className="text-sm text-blue-700 mb-1">Tổng đơn hàng</div>
+                    <div className="text-2xl font-bold text-blue-900">{roleStats.summary?.total_orders || 0}</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-l-4 border-green-500">
+                    <div className="text-sm text-green-700 mb-1">Tổng doanh thu</div>
+                    <div className="text-2xl font-bold text-green-900">
+                      {(roleStats.summary?.total_revenue || 0).toLocaleString('vi-VN')} đ
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border-l-4 border-purple-500">
+                    <div className="text-sm text-purple-700 mb-1">Đơn giao hàng</div>
+                    <div className="text-2xl font-bold text-purple-900">{roleStats.summary?.total_delivery_orders || 0}</div>
+                  </div>
+                </div>
+
+                {/* Breakdown by Order Type */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Tại bàn</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {roleStats.summary?.total_dine_in_orders || 0} đơn
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {(roleStats.summary?.total_dine_in_orders > 0 && roleStats.summary?.total_orders > 0) 
+                        ? Math.round((roleStats.summary.total_dine_in_orders / roleStats.summary.total_orders) * 100) 
+                        : 0}% tổng đơn
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Mang đi</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {roleStats.summary?.total_takeaway_orders || 0} đơn
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {(roleStats.summary?.total_takeaway_orders > 0 && roleStats.summary?.total_orders > 0) 
+                        ? Math.round((roleStats.summary.total_takeaway_orders / roleStats.summary.total_orders) * 100) 
+                        : 0}% tổng đơn
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="text-sm text-gray-600 mb-1">Giao hàng</div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      {roleStats.summary?.total_delivery_orders || 0} đơn
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {(roleStats.summary?.total_delivery_orders > 0 && roleStats.summary?.total_orders > 0) 
+                        ? Math.round((roleStats.summary.total_delivery_orders / roleStats.summary.total_orders) * 100) 
+                        : 0}% tổng đơn
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employee Table */}
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h4 className="text-lg font-semibold text-gray-900">Thống kê theo nhân viên</h4>
+                  </div>
+                  {roleStats.employees && roleStats.employees.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nhân viên</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng đơn</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tại bàn</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Mang đi</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Giao hàng</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Doanh thu</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {roleStats.employees.map((emp) => (
+                            <tr key={emp.user_id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{emp.name}</div>
+                                <div className="text-xs text-gray-500">{emp.username}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                                {emp.total_orders}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600">
+                                {emp.dine_in_orders}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600">
+                                {emp.takeaway_orders}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-600">
+                                {emp.delivery_orders}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-green-600">
+                                {emp.total_revenue.toLocaleString('vi-VN')} đ
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-gray-50">
+                          <tr>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">Tổng cộng</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                              {roleStats.summary?.total_orders || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                              {roleStats.summary?.total_dine_in_orders || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                              {roleStats.summary?.total_takeaway_orders || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                              {roleStats.summary?.total_delivery_orders || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-green-600">
+                              {(roleStats.summary?.total_revenue || 0).toLocaleString('vi-VN')} đ
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="px-6 py-12 text-center text-gray-500">
+                      Không có dữ liệu trong khoảng thời gian này
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                Chưa có dữ liệu
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {activeTab === 'invoices' && (
@@ -1485,9 +1711,21 @@ export default function ManagerDashboard() {
                       <span style={{ fontSize: '16px', fontWeight: '600' }}>#{selectedInvoice.id}</span>
                     </div>
                     <div style={{ marginBottom: '12px' }}>
-                      <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Thu ngân</span>
-                      <span style={{ fontWeight: '500' }}>{invoiceDetail.header?.thu_ngan || 'N/A'}</span>
+                      <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Người tạo đơn</span>
+                      <span style={{ fontWeight: '500' }}>{invoiceDetail.header?.nguoi_tao_don || invoiceDetail.header?.thu_ngan || 'N/A'}</span>
                     </div>
+                    {invoiceDetail.header?.nguoi_tao_don && invoiceDetail.header?.thu_ngan && invoiceDetail.header.nguoi_tao_don !== invoiceDetail.header.thu_ngan && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Thu ngân</span>
+                        <span style={{ fontWeight: '500' }}>{invoiceDetail.header.thu_ngan}</span>
+                      </div>
+                    )}
+                    {(!invoiceDetail.header?.nguoi_tao_don || invoiceDetail.header.nguoi_tao_don === invoiceDetail.header?.thu_ngan) && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Thu ngân</span>
+                        <span style={{ fontWeight: '500' }}>{invoiceDetail.header?.thu_ngan || 'N/A'}</span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <div style={{ marginBottom: '12px' }}>
@@ -1780,6 +2018,18 @@ export default function ManagerDashboard() {
         </div>
       )}
 
+    </>
+  );
+
+  // Nếu embedded, không render AuthedLayout
+  if (embedded) {
+    return content;
+  }
+
+  // Nếu không embedded, render với AuthedLayout như bình thường
+  return (
+    <AuthedLayout>
+      {content}
     </AuthedLayout>
   );
 }

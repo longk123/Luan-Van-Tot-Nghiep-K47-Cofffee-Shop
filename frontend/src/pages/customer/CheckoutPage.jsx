@@ -52,15 +52,35 @@ export default function CheckoutPage() {
     deliveryFee: 0        // Phí giao hàng
   });
   
-  // Store location (gần Đại học Cần Thơ)
+  // Store location (địa chỉ ảo cho demo)
   const STORE_LOCATION = {
     lat: 10.0310,
     lng: 105.7690,
-    address: 'Đường 3/2, Ninh Kiều, Cần Thơ' // Gần Đại học Cần Thơ
+    address: '123 Đường 3/2, Phường Xuân Khánh, Ninh Kiều, Cần Thơ' // Địa chỉ demo
   };
   
-  const MAX_DELIVERY_DISTANCE = 2; // 2km
   const DELIVERY_FEE = 8000; // Phí giao hàng cố định
+  
+  // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
+  const checkIsNinhKieu = (address) => {
+    if (!address) return false;
+    const addressLower = address.toLowerCase();
+    // Kiểm tra có chứa "ninh kiều" hoặc các phường trong quận Ninh Kiều
+    const ninhKieuKeywords = [
+      'ninh kiều',
+      'xuân khánh',
+      'an khánh',
+      'an hòa',
+      'an thới',
+      'bình thủy',
+      'cái khế',
+      'hưng lợi',
+      'tân an',
+      'thới bình',
+      'thới an đông'
+    ];
+    return ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+  };
   
   // Payment method
   const [paymentMethod, setPaymentMethod] = useState('CASH'); // CASH, ONLINE, CARD
@@ -69,7 +89,6 @@ export default function CheckoutPage() {
   const autocompleteRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
-  const circleRef = useRef(null);
   const storeMarkerRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -119,10 +138,7 @@ export default function CheckoutPage() {
       mapInstanceRef.current?.removeLayer(markerRef.current);
       markerRef.current = null;
     }
-    if (circleRef.current) {
-      mapInstanceRef.current?.removeLayer(circleRef.current);
-      circleRef.current = null;
-    }
+    // Không cần xóa circle nữa - đã bỏ vòng tròn bán kính
     if (storeMarkerRef.current) {
       mapInstanceRef.current?.removeLayer(storeMarkerRef.current);
       storeMarkerRef.current = null;
@@ -177,24 +193,12 @@ export default function CheckoutPage() {
         .addTo(map)
         .bindPopup('Quán của chúng tôi');
 
-      // Add delivery radius circle (2km)
-      circleRef.current = L.circle([STORE_LOCATION.lat, STORE_LOCATION.lng], {
-        color: '#FF0000',
-        fillColor: '#FF0000',
-        fillOpacity: 0.15,
-        radius: MAX_DELIVERY_DISTANCE * 1000 // Convert km to meters
-      }).addTo(map);
+      // Không cần vòng tròn bán kính - chỉ giao hàng trong quận Ninh Kiều
 
       // Add click listener to map for selecting location
       map.on('click', async (e) => {
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
-        const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
-
-        if (distance > MAX_DELIVERY_DISTANCE) {
-          toast.error(`Vị trí này cách quán ${distance.toFixed(2)}km, vượt quá bán kính giao hàng ${MAX_DELIVERY_DISTANCE}km. Vui lòng chọn vị trí gần hơn.`);
-          return;
-        }
 
         // Reverse geocoding using Nominatim (free, no API key needed)
         try {
@@ -205,6 +209,14 @@ export default function CheckoutPage() {
 
           if (data && data.display_name) {
             const address = data.display_name;
+            
+            // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
+            if (!checkIsNinhKieu(address)) {
+              toast.error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ. Vui lòng chọn địa chỉ khác.');
+              return;
+            }
+            
+            const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
             const deliveryFee = DELIVERY_FEE;
 
             // Update delivery info
@@ -278,16 +290,17 @@ export default function CheckoutPage() {
   const handleAddressSelect = (result) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
-    const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
-
-    if (distance > MAX_DELIVERY_DISTANCE) {
-      toast.error(`Địa chỉ này cách quán ${distance.toFixed(2)}km, vượt quá bán kính giao hàng ${MAX_DELIVERY_DISTANCE}km. Vui lòng chọn địa chỉ gần hơn.`);
+    const address = result.display_name;
+    
+    // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
+    if (!checkIsNinhKieu(address)) {
+      toast.error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ. Vui lòng chọn địa chỉ khác.');
       setSearchQuery('');
       setSearchResults([]);
       return;
     }
-
-    const address = result.display_name;
+    
+    const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
     const deliveryFee = DELIVERY_FEE;
 
     // Update delivery info
@@ -415,8 +428,9 @@ export default function CheckoutPage() {
         toast.warning('Vui lòng chọn địa chỉ từ bản đồ');
         return;
       }
-      if (deliveryInfo.distance > MAX_DELIVERY_DISTANCE) {
-        toast.error(`Địa chỉ này vượt quá bán kính giao hàng ${MAX_DELIVERY_DISTANCE}km`);
+      // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
+      if (!checkIsNinhKieu(deliveryInfo.deliveryAddress)) {
+        toast.error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ. Vui lòng chọn địa chỉ khác.');
         return;
       }
       if (!deliveryInfo.deliveryPhone.trim()) {
@@ -672,7 +686,7 @@ export default function CheckoutPage() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-blue-900">Địa chỉ quán:</p>
                       <p className="text-sm text-blue-800">{STORE_LOCATION.address}</p>
-                      <p className="text-xs text-blue-600 mt-1">Bán kính giao hàng: {MAX_DELIVERY_DISTANCE}km</p>
+                      <p className="text-xs text-blue-600 mt-1">Giao hàng: Toàn quận Ninh Kiều, Cần Thơ</p>
                     </div>
                   </div>
                 </div>
@@ -752,10 +766,10 @@ export default function CheckoutPage() {
                         )}
                       </div>
                     )}
-                    {deliveryInfo.distance !== null && deliveryInfo.distance > MAX_DELIVERY_DISTANCE && (
+                    {deliveryInfo.deliveryAddress && !checkIsNinhKieu(deliveryInfo.deliveryAddress) && (
                       <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800 flex items-center gap-2">
                         <AlertCircle className="w-4 h-4" />
-                        <span>Địa chỉ này vượt quá bán kính giao hàng {MAX_DELIVERY_DISTANCE}km</span>
+                        <span>Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ</span>
                       </div>
                     )}
                   </div>
@@ -778,7 +792,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      Click trên bản đồ hoặc nhập địa chỉ để chọn vị trí giao hàng (trong bán kính 2km)
+                      Click trên bản đồ hoặc nhập địa chỉ để chọn vị trí giao hàng (chỉ giao hàng trong quận Ninh Kiều, Cần Thơ)
                     </p>
                   </div>
                   <div>

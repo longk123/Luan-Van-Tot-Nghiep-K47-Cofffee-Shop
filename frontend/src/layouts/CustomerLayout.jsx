@@ -2,6 +2,7 @@
 import { Outlet } from 'react-router-dom';
 import CustomerHeader from '../components/customer/CustomerHeader';
 import CustomerFooter from '../components/customer/CustomerFooter';
+import ChatbotWidget from '../components/customer/ChatbotWidget';
 
 export default function CustomerLayout() {
   return (
@@ -16,6 +17,9 @@ export default function CustomerLayout() {
       
       {/* Footer */}
       <CustomerFooter />
+      
+      {/* Chatbot Widget */}
+      <ChatbotWidget />
     </div>
   );
 }

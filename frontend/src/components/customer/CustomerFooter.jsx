@@ -55,19 +55,19 @@ export default function CustomerFooter() {
               <li className="flex items-start space-x-2">
                 <MapPin className="w-5 h-5 text-[#c9975b] mt-0.5 flex-shrink-0" />
                 <span className="text-gray-400 text-sm">
-                  123 Đường ABC, Quận XYZ, TP.HCM
+                  123 Đường 3/2, Phường Xuân Khánh, Ninh Kiều, Cần Thơ
                 </span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-5 h-5 text-[#c9975b] flex-shrink-0" />
-                <a href="tel:0123456789" className="text-gray-400 hover:text-[#c9975b] transition text-sm">
-                  0123 456 789
+                <a href="tel:0292388888" className="text-gray-400 hover:text-[#c9975b] transition text-sm">
+                  0292 388 888
                 </a>
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="w-5 h-5 text-[#c9975b] flex-shrink-0" />
-                <a href="mailto:info@coffeeshop.vn" className="text-gray-400 hover:text-[#c9975b] transition text-sm">
-                  info@coffeeshop.vn
+                <a href="mailto:info@coffeeshop-demo.vn" className="text-gray-400 hover:text-[#c9975b] transition text-sm">
+                  info@coffeeshop-demo.vn
                 </a>
               </li>
             </ul>

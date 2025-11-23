@@ -30,7 +30,8 @@ export default {
           COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN') AS open_orders,
           COUNT(*) FILTER (WHERE o.trang_thai = 'CANCELLED') AS cancelled_orders,
           COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN' AND o.order_type = 'DINE_IN') AS dine_in_orders,
-          COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN' AND o.order_type = 'TAKEAWAY') AS takeaway_orders
+          COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN' AND o.order_type = 'TAKEAWAY') AS takeaway_orders,
+          COUNT(*) FILTER (WHERE o.trang_thai = 'OPEN' AND o.order_type = 'DELIVERY') AS delivery_orders
         FROM don_hang o
         WHERE o.opened_at >= timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp)
           AND o.opened_at < timezone('Asia/Ho_Chi_Minh', ($1 || ' 00:00:00')::timestamp + INTERVAL '1 day')
@@ -107,6 +108,7 @@ export default {
         atn.active_tables,
         tod.dine_in_orders,
         tod.takeaway_orders,
+        tod.delivery_orders,
         ys.yesterday_revenue,
         ys.yesterday_orders,
         kq.queue_count,
@@ -174,6 +176,9 @@ export default {
           SUM(
             CASE WHEN o.order_type = 'TAKEAWAY' THEN 1 ELSE 0 END
           ) AS takeaway_orders,
+          SUM(
+            CASE WHEN o.order_type = 'DELIVERY' THEN 1 ELSE 0 END
+          ) AS delivery_orders,
           COALESCE(SUM(
             (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
              FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
@@ -189,7 +194,13 @@ export default {
               (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
                FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
             ELSE 0 END
-          ), 0) AS takeaway_revenue
+          ), 0) AS takeaway_revenue,
+          COALESCE(SUM(
+            CASE WHEN o.order_type = 'DELIVERY' THEN
+              (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
+               FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+            ELSE 0 END
+          ), 0) AS delivery_revenue
         FROM don_hang o
         WHERE o.trang_thai = 'PAID'
           AND o.closed_at IS NOT NULL
@@ -202,9 +213,11 @@ export default {
         COALESCE(dr.total_orders, 0) AS total_orders,
         COALESCE(dr.dine_in_orders, 0) AS dine_in_orders,
         COALESCE(dr.takeaway_orders, 0) AS takeaway_orders,
+        COALESCE(dr.delivery_orders, 0) AS delivery_orders,
         COALESCE(dr.total_revenue, 0) AS total_revenue,
         COALESCE(dr.dine_in_revenue, 0) AS dine_in_revenue,
-        COALESCE(dr.takeaway_revenue, 0) AS takeaway_revenue
+        COALESCE(dr.takeaway_revenue, 0) AS takeaway_revenue,
+        COALESCE(dr.delivery_revenue, 0) AS delivery_revenue
       FROM date_series ds
       LEFT JOIN daily_revenue dr ON to_char(ds.date, 'YYYY-MM-DD') = dr.date_str
       ORDER BY ds.date
@@ -291,6 +304,19 @@ export default {
         kv.ten AS khu_vuc_ten,
         u.full_name AS nhan_vien,
         u.username,
+        -- Thông tin người thanh toán (từ payment đầu tiên)
+        (SELECT u_payer.full_name 
+         FROM order_payment op
+         LEFT JOIN users u_payer ON u_payer.user_id = op.created_by
+         WHERE op.order_id = o.id AND op.status = 'CAPTURED'
+         ORDER BY op.created_at ASC
+         LIMIT 1) AS thu_ngan,
+        (SELECT u_payer.username 
+         FROM order_payment op
+         LEFT JOIN users u_payer ON u_payer.user_id = op.created_by
+         WHERE op.order_id = o.id AND op.status = 'CAPTURED'
+         ORDER BY op.created_at ASC
+         LIMIT 1) AS thu_ngan_username,
         ca.id AS ca_lam_id,
         ca.started_at AS ca_bat_dau,
         -- Calculate total from order details
@@ -347,8 +373,8 @@ export default {
     const sql = `
       SELECT 
         m.id,
-        m.ten_mon,
-        m.gia,
+        m.ten AS ten_mon,
+        COALESCE(mb.gia, m.gia_mac_dinh) AS gia,
         mb.ten_bien_the,
         COUNT(*) AS so_luong_ban,
         SUM(d.so_luong) AS tong_so_luong,
@@ -361,7 +387,7 @@ export default {
       WHERE o.trang_thai = 'PAID'
         AND o.closed_at IS NOT NULL
         AND DATE(o.closed_at) >= CURRENT_DATE - INTERVAL '${days} days'
-      GROUP BY m.id, m.ten_mon, m.gia, mb.ten_bien_the
+      GROUP BY m.id, m.ten, m.gia_mac_dinh, mb.ten_bien_the, mb.gia
       ORDER BY tong_doanh_thu DESC
       LIMIT ${limit}
     `;
@@ -616,6 +642,86 @@ export default {
     `;
 
     const { rows } = await query(sql, [startDate, endDate]);
+    return rows;
+  },
+
+  /**
+   * Lấy thống kê đơn hàng theo role (waiter/shipper)
+   * @param {Object} params - { startDate, endDate, roleName }
+   */
+  async getOrdersByRole({ startDate, endDate, roleName = null }) {
+    let whereConditions = [
+      "o.trang_thai = 'PAID'",
+      "o.closed_at IS NOT NULL"
+    ];
+    const params = [];
+
+    if (startDate) {
+      params.push(startDate);
+      whereConditions.push(`to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') >= $${params.length}`);
+    }
+
+    if (endDate) {
+      params.push(endDate);
+      whereConditions.push(`to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') <= $${params.length}`);
+    }
+
+    // Filter theo role nếu có
+    let roleFilter = '';
+    if (roleName) {
+      params.push(roleName.toLowerCase());
+      roleFilter = `
+        AND EXISTS (
+          SELECT 1 
+          FROM user_roles ur
+          JOIN roles r ON r.role_id = ur.role_id
+          WHERE ur.user_id = o.nhan_vien_id
+            AND LOWER(r.role_name) = $${params.length}
+        )
+      `;
+    }
+
+    const sql = `
+      SELECT 
+        u.user_id,
+        u.full_name AS nhan_vien_ten,
+        u.username,
+        COUNT(*) AS total_orders,
+        COUNT(*) FILTER (WHERE o.order_type = 'DINE_IN') AS dine_in_orders,
+        COUNT(*) FILTER (WHERE o.order_type = 'TAKEAWAY') AS takeaway_orders,
+        COUNT(*) FILTER (WHERE o.order_type = 'DELIVERY') AS delivery_orders,
+        COALESCE(SUM(
+          (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
+           FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+        ), 0) AS total_revenue,
+        COALESCE(SUM(
+          CASE WHEN o.order_type = 'DINE_IN' THEN
+            (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
+             FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+          ELSE 0 END
+        ), 0) AS dine_in_revenue,
+        COALESCE(SUM(
+          CASE WHEN o.order_type = 'TAKEAWAY' THEN
+            (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
+             FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+          ELSE 0 END
+        ), 0) AS takeaway_revenue,
+        COALESCE(SUM(
+          CASE WHEN o.order_type = 'DELIVERY' THEN
+            (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
+             FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+          ELSE 0 END
+        ), 0) AS delivery_revenue
+      FROM don_hang o
+      LEFT JOIN users u ON u.user_id = o.nhan_vien_id
+      WHERE ${whereConditions.join(' AND ')}
+        AND o.nhan_vien_id IS NOT NULL
+        ${roleFilter}
+      GROUP BY u.user_id, u.full_name, u.username
+      ORDER BY total_orders DESC, total_revenue DESC
+    `;
+
+    const { rows } = await query(sql, params);
     return rows;
   }
 };

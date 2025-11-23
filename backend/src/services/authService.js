@@ -97,6 +97,47 @@ class AuthService {
     return { ...user, roles };
   }
 
+  // Cập nhật thông tin cá nhân (nhân viên tự cập nhật)
+  async updateMyProfile(userId, updates) {
+    const { full_name, email, phone, current_password, new_password } = updates;
+
+    // Lấy user hiện tại
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new Error('User không tồn tại');
+    }
+
+    // Nếu đổi mật khẩu, cần xác nhận mật khẩu cũ
+    if (new_password) {
+      if (!current_password) {
+        throw new Error('Vui lòng nhập mật khẩu hiện tại');
+      }
+
+      const isValidPassword = await bcrypt.compare(current_password, user.password_hash);
+      if (!isValidPassword) {
+        throw new Error('Mật khẩu hiện tại không đúng');
+      }
+
+      // Hash mật khẩu mới
+      updates.passwordHash = await bcrypt.hash(new_password, 10);
+      delete updates.new_password;
+      delete updates.current_password;
+    }
+
+    // Cập nhật thông tin
+    const updatedUser = await userRepository.update(userId, {
+      fullName: full_name,
+      email,
+      phone,
+      passwordHash: updates.passwordHash
+    });
+
+    // Lấy roles
+    const roles = await userRepository.getUserRoles(userId);
+
+    return { ...updatedUser, roles };
+  }
+
   // Verify JWT token
   verifyToken(token) {
     try {

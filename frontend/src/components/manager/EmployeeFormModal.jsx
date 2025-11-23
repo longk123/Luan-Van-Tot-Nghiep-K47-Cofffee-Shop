@@ -1,9 +1,15 @@
 // src/components/manager/EmployeeFormModal.jsx
 import { useState, useEffect } from 'react';
 import { api } from '../../api.js';
+import { getUser } from '../../auth.js';
 
 export default function EmployeeFormModal({ employee, roles, onClose, onSuccess }) {
   const isEdit = !!employee;
+  
+  // Check if current user is admin
+  const user = getUser();
+  const userRoles = user?.roles || [];
+  const isAdmin = userRoles.some(role => role.toLowerCase() === 'admin');
 
   const [formData, setFormData] = useState({
     username: '',
@@ -261,20 +267,36 @@ export default function EmployeeFormModal({ employee, roles, onClose, onSuccess 
               Vai trò <span className="text-red-500">*</span>
             </label>
             <div className="space-y-2">
-              {roles.map(role => (
-                <label
-                  key={role.role_id}
-                  className="flex items-center gap-2 p-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.roles.includes(role.role_id)}
-                    onChange={() => handleRoleToggle(role.role_id)}
-                    className="w-4 h-4 text-[#c9975b] border-gray-300 rounded focus:ring-[#c9975b]"
-                  />
-                  <span className="text-sm font-medium text-gray-700">{role.role_name}</span>
-                </label>
-              ))}
+              {roles.map(role => {
+                const roleName = role.role_name.toLowerCase();
+                const isManagerOrAdmin = roleName === 'manager' || roleName === 'admin';
+                const isDisabled = isManagerOrAdmin && !isAdmin;
+                
+                return (
+                  <label
+                    key={role.role_id}
+                    className={`flex items-center gap-2 p-3 border-2 rounded-lg ${
+                      isDisabled 
+                        ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-60' 
+                        : 'border-gray-200 hover:bg-gray-50 cursor-pointer'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.roles.includes(role.role_id)}
+                      onChange={() => handleRoleToggle(role.role_id)}
+                      disabled={isDisabled}
+                      className="w-4 h-4 text-[#c9975b] border-gray-300 rounded focus:ring-[#c9975b] disabled:cursor-not-allowed"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {role.role_name}
+                      {isDisabled && (
+                        <span className="ml-2 text-xs text-gray-500">(Chỉ Admin)</span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
             {errors.roles && <p className="text-red-500 text-sm mt-1">{errors.roles}</p>}
           </div>

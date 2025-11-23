@@ -90,7 +90,14 @@ class InvoiceController {
     
     // Cột phải
     currentY = infoY;
-    doc.text('Thu ngân: ' + (header.thu_ngan ?? '-'), infoRight, currentY);
+    // Hiển thị người tạo đơn và người thanh toán (nếu khác nhau)
+    if (header.nguoi_tao_don && header.thu_ngan && header.nguoi_tao_don !== header.thu_ngan) {
+      doc.text('Người tạo đơn: ' + (header.nguoi_tao_don ?? '-'), infoRight, currentY);
+      currentY += lineHeight;
+      doc.text('Thu ngân: ' + (header.thu_ngan ?? '-'), infoRight, currentY);
+    } else {
+      doc.text('Thu ngân: ' + (header.thu_ngan ?? header.nguoi_tao_don ?? '-'), infoRight, currentY);
+    }
     currentY += lineHeight;
     doc.text('Mở: ' + new Date(header.opened_at).toLocaleString('vi-VN'), infoRight, currentY);
     

@@ -39,7 +39,9 @@ export default function OrderDrawer({
   onTableChanged,
   onItemsChange,
   onPendingItemsChange,
-  viewOnly = false
+  viewOnly = false,
+  userRoles = [],
+  isWaiter = false
 }) {
   const orderId = order?.id;
   const [localOrder, setLocalOrder] = useState(order);
@@ -677,6 +679,10 @@ export default function OrderDrawer({
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
+                ) : localOrder?.order_type === 'DELIVERY' ? (
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 ) : (
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -686,7 +692,10 @@ export default function OrderDrawer({
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">
-                {!localOrder ? 'Đơn hàng' : (localOrder.order_type === 'TAKEAWAY' ? 'Mang đi' : `Bàn ${localOrder.ban_id || ''}`)}
+                {!localOrder ? 'Đơn hàng' : 
+                 localOrder.order_type === 'TAKEAWAY' ? 'Mang đi' : 
+                 localOrder.order_type === 'DELIVERY' ? 'Giao hàng' : 
+                 `Bàn ${localOrder.ban_id || ''}`}
               </h2>
               {orderId && <p className="text-sm text-gray-600 font-medium">Đơn #{orderId}</p>}
             </div>
@@ -1048,8 +1057,8 @@ export default function OrderDrawer({
           </div>
         </div>
 
-        {/* Payment Section - Multi-tender payments */}
-        {items.length > 0 && !hasPendingItems && (
+        {/* Payment Section - Multi-tender payments - Ẩn nếu là Waiter */}
+        {items.length > 0 && !hasPendingItems && !isWaiter && (
           <div className="mt-4">
             <PaymentSection
               orderId={orderId}
@@ -1084,6 +1093,21 @@ export default function OrderDrawer({
             />
           </div>
         )}
+        
+        {/* Thông báo cho Waiter - cần Cashier thanh toán */}
+        {items.length > 0 && !hasPendingItems && isWaiter && !isPaid && (
+          <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="font-semibold text-blue-900">Vui lòng gọi Cashier để thanh toán</p>
+                <p className="text-sm text-blue-700 mt-1">Waiter không có quyền thanh toán đơn hàng</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action buttons */}
         {!isPaid && (
@@ -1109,37 +1133,39 @@ export default function OrderDrawer({
               </>
             )}
             
-            {/* Nút hủy đơn - chỉ enable nếu TẤT CẢ món đều PENDING hoặc không có món nào đang làm */}
-            <button
-              onClick={() => setShowCancelDialog(true)}
-              disabled={hasAnyConfirmedItems && hasItemsInProgress}
-              className={`w-full py-3.5 px-4 rounded-xl border-2 transition-all duration-300 font-bold flex items-center justify-center gap-2 shadow-lg outline-none focus:outline-none ${
-                hasAnyConfirmedItems && hasItemsInProgress
-                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-red-500 via-red-550 to-red-500 border-red-500 text-white hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-red-600 hover:border-red-500 hover:shadow-xl hover:-translate-y-0.5'
-              }`}
-              title={
-                allItemsPending ? 'Hủy đơn hàng' :
-                hasAnyConfirmedItems && hasItemsInProgress ? 'Không thể hủy: Có món đang làm hoặc đã hoàn tất' : 
-                'Hủy đơn hàng'
-              }
-            >
-              {hasAnyConfirmedItems && hasItemsInProgress ? (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  Không thể hủy
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Hủy đơn
-                </>
-              )}
-            </button>
+            {/* Nút hủy đơn - Ẩn nếu là Waiter, chỉ enable nếu TẤT CẢ món đều PENDING hoặc không có món nào đang làm */}
+            {!isWaiter && (
+              <button
+                onClick={() => setShowCancelDialog(true)}
+                disabled={hasAnyConfirmedItems && hasItemsInProgress}
+                className={`w-full py-3.5 px-4 rounded-xl border-2 transition-all duration-300 font-bold flex items-center justify-center gap-2 shadow-lg outline-none focus:outline-none ${
+                  hasAnyConfirmedItems && hasItemsInProgress
+                    ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-red-500 via-red-550 to-red-500 border-red-500 text-white hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-red-600 hover:border-red-500 hover:shadow-xl hover:-translate-y-0.5'
+                }`}
+                title={
+                  allItemsPending ? 'Hủy đơn hàng' :
+                  hasAnyConfirmedItems && hasItemsInProgress ? 'Không thể hủy: Có món đang làm hoặc đã hoàn tất' : 
+                  'Hủy đơn hàng'
+                }
+              >
+                {hasAnyConfirmedItems && hasItemsInProgress ? (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Không thể hủy
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Hủy đơn
+                  </>
+                )}
+              </button>
+            )}
             {hasAnyConfirmedItems && hasItemsInProgress && (
               <p className="text-xs text-red-600 text-center font-semibold flex items-center justify-center gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1287,9 +1313,13 @@ export default function OrderDrawer({
                     <span className="font-bold text-gray-900">#{order?.id}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">Bàn:</span>
+                    <span className="text-gray-600 font-medium">
+                      {order?.order_type === 'DELIVERY' ? 'Loại đơn:' : 'Bàn:'}
+                    </span>
                     <span className="font-bold text-gray-900">
-                      {order?.ban_id ? `Bàn ${order.ban_id}` : 'Mang đi'}
+                      {order?.order_type === 'DELIVERY' ? 'Giao hàng' :
+                       order?.order_type === 'TAKEAWAY' ? 'Mang đi' :
+                       order?.ban_id ? `Bàn ${order.ban_id}` : 'Mang đi'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

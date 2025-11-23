@@ -234,7 +234,12 @@ export default function InvoicesList() {
                     {invoice.table?.area && (
                       <div className="text-sm text-gray-500">{invoice.table.area}</div>
                     )}
-                    <div className="text-sm text-gray-500">{invoice.staff?.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {invoice.staff?.name}
+                      {invoice.staff?.payer_name && invoice.staff.payer_name !== invoice.staff.name && (
+                        <span className="text-gray-400"> • Thu ngân: {invoice.staff.payer_name}</span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

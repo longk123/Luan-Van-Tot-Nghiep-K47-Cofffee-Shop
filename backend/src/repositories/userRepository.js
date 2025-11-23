@@ -300,6 +300,26 @@ class UserRepository {
     
     return rows;
   }
+
+  // Lấy users theo role
+  async getUsersByRole(roleName) {
+    const { rows } = await pool.query(
+      `SELECT 
+        u.user_id,
+        u.username,
+        u.full_name,
+        u.email,
+        u.phone,
+        u.is_active
+      FROM users u
+      JOIN user_roles ur ON ur.user_id = u.user_id
+      JOIN roles r ON r.role_id = ur.role_id
+      WHERE r.role_name = $1 AND u.is_active = TRUE
+      ORDER BY u.full_name ASC`,
+      [roleName]
+    );
+    return rows;
+  }
 }
 
 export default new UserRepository();

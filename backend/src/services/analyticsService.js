@@ -33,7 +33,8 @@ class AnalyticsService {
         },
         order_types: {
           dine_in: Number(kpis.dine_in_orders || 0),
-          takeaway: Number(kpis.takeaway_orders || 0)
+          takeaway: Number(kpis.takeaway_orders || 0),
+          delivery: Number(kpis.delivery_orders || 0)
         }
       };
     } catch (error) {
@@ -79,6 +80,13 @@ class AnalyticsService {
             borderColor: 'rgb(251, 146, 60)',
             backgroundColor: 'rgba(251, 146, 60, 0.1)',
             tension: 0.4
+          },
+          {
+            label: 'Giao hàng',
+            data: data.map(row => Number(row.delivery_revenue)),
+            borderColor: 'rgb(147, 51, 234)',
+            backgroundColor: 'rgba(147, 51, 234, 0.1)',
+            tension: 0.4
           }
         ]
       };
@@ -110,8 +118,11 @@ class AnalyticsService {
           area: invoice.khu_vuc_ten
         },
         staff: {
-          name: invoice.nhan_vien,
-          username: invoice.username
+          name: invoice.nhan_vien, // Người tạo đơn
+          username: invoice.username,
+          // Thêm thông tin người thanh toán nếu có
+          payer_name: invoice.thu_ngan || null,
+          payer_username: invoice.thu_ngan_username || null
         },
         shift: {
           name: invoice.ten_ca_lam,
@@ -222,7 +233,8 @@ class AnalyticsService {
         totalOrders: data.length,
         margin: 0,
         dineInOrders: 0,
-        takeawayOrders: 0
+        takeawayOrders: 0,
+        deliveryOrders: 0
       };
 
       const details = data.map(order => {
@@ -521,6 +533,42 @@ class AnalyticsService {
       };
     } catch (error) {
       console.error('Error getting profit comparison:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Lấy thống kê đơn hàng theo role (waiter/shipper)
+   */
+  async getOrdersByRole({ startDate, endDate, roleName = null }) {
+    try {
+      const data = await analyticsRepository.getOrdersByRole({ startDate, endDate, roleName });
+      
+      return {
+        summary: {
+          total_employees: data.length,
+          total_orders: data.reduce((sum, emp) => sum + (emp.total_orders || 0), 0),
+          total_revenue: data.reduce((sum, emp) => sum + (emp.total_revenue || 0), 0),
+          total_dine_in_orders: data.reduce((sum, emp) => sum + (emp.dine_in_orders || 0), 0),
+          total_takeaway_orders: data.reduce((sum, emp) => sum + (emp.takeaway_orders || 0), 0),
+          total_delivery_orders: data.reduce((sum, emp) => sum + (emp.delivery_orders || 0), 0)
+        },
+        employees: data.map(emp => ({
+          user_id: emp.user_id,
+          name: emp.nhan_vien_ten,
+          username: emp.username,
+          total_orders: Number(emp.total_orders || 0),
+          dine_in_orders: Number(emp.dine_in_orders || 0),
+          takeaway_orders: Number(emp.takeaway_orders || 0),
+          delivery_orders: Number(emp.delivery_orders || 0),
+          total_revenue: Number(emp.total_revenue || 0),
+          dine_in_revenue: Number(emp.dine_in_revenue || 0),
+          takeaway_revenue: Number(emp.takeaway_revenue || 0),
+          delivery_revenue: Number(emp.delivery_revenue || 0)
+        }))
+      };
+    } catch (error) {
+      console.error('Error getting orders by role:', error);
       throw error;
     }
   }

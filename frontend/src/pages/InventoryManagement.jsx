@@ -66,6 +66,9 @@ export default function InventoryManagement() {
     daysThreshold: ''
   });
 
+  // Export states
+  const [exporting, setExporting] = useState(false);
+
   // Load data when tab changes
   useEffect(() => {
     loadData();
@@ -285,6 +288,40 @@ export default function InventoryManagement() {
     });
   };
 
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const params = {
+        tab: activeTab,
+        from_date: activeTab === 'export' ? exportDateFrom : activeTab === 'import' ? importDateFrom : undefined,
+        to_date: activeTab === 'export' ? exportDateTo : activeTab === 'import' ? importDateTo : undefined
+      };
+      await api.exportReport('inventory', 'excel', params);
+      alert('✅ Xuất Excel thành công!');
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const params = {
+        tab: activeTab,
+        from_date: activeTab === 'export' ? exportDateFrom : activeTab === 'import' ? importDateFrom : undefined,
+        to_date: activeTab === 'export' ? exportDateTo : activeTab === 'import' ? importDateTo : undefined
+      };
+      await api.exportReport('inventory', 'pdf', params);
+      alert('✅ Xuất PDF thành công!');
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     if (status === 'HET_HANG') {
       return (
@@ -339,15 +376,55 @@ export default function InventoryManagement() {
 
           {/* Right: Action Buttons */}
           <div className="flex flex-wrap gap-3 justify-end">
-            <button
-              onClick={() => navigate('/manager')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span>Quay lại Dashboard</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportExcel}
+                disabled={exporting}
+                className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 font-semibold shadow-md"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Đang xuất...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Xuất Excel</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleExportPDF}
+                disabled={exporting}
+                className="px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 font-semibold shadow-md"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Đang xuất...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span>Xuất PDF</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => navigate('/manager')}
+                className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Quay lại Dashboard</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
