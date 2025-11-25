@@ -340,16 +340,47 @@ export default function CheckoutPage() {
     toast.success(`Địa chỉ hợp lệ! Cách quán ${distance.toFixed(2)}km - Phí ship: ${DELIVERY_FEE.toLocaleString()}đ`);
   };
 
+  // Enrich cart items with price information
+  const enrichCartItems = async (items) => {
+    const enriched = await Promise.all(
+      items.map(async (item) => {
+        try {
+          const { data: itemDetail } = await customerApi.getItemDetail(item.item_id);
+          const variant = itemDetail.variants?.find(v => v.id === item.variant_id);
+          
+          return {
+            ...item,
+            price: variant?.gia || itemDetail.gia_mac_dinh || 0
+          };
+        } catch (error) {
+          console.error(`Error loading item ${item.item_id}:`, error);
+          return {
+            ...item,
+            price: 0
+          };
+        }
+      })
+    );
+    return enriched;
+  };
+
   const loadCart = async () => {
     try {
       setLoading(true);
       const { data } = await customerApi.getCart();
-      setCart(data);
       
       if (data.items.length === 0) {
         toast.warning('Giỏ hàng trống');
         navigate('/customer/cart');
+        return;
       }
+
+      // Enrich cart items with price information
+      const enrichedItems = await enrichCartItems(data.items);
+      setCart({
+        ...data,
+        items: enrichedItems
+      });
     } catch (error) {
       console.error('Error loading cart:', error);
       navigate('/customer/cart');

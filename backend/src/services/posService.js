@@ -126,8 +126,47 @@ export default {
   },
 
   // Lấy danh sách đơn mang đi chưa giao
-  async getTakeawayOrders() {
+  // Nếu userId được truyền và user là waiter, chỉ trả về đơn đã thanh toán
+  async getTakeawayOrders(userId = null) {
     const { pool } = await import('../db.js');
+    
+    // Kiểm tra xem user có phải là waiter không
+    let isWaiterUser = false;
+    if (userId) {
+      const userResult = await pool.query(
+        `SELECT r.role_name 
+         FROM users u
+         JOIN user_roles ur ON ur.user_id = u.user_id
+         JOIN roles r ON r.role_id = ur.role_id
+         WHERE u.user_id = $1 AND LOWER(r.role_name) = 'waiter'
+         AND NOT EXISTS (
+           SELECT 1 FROM user_roles ur2
+           JOIN roles r2 ON r2.role_id = ur2.role_id
+           WHERE ur2.user_id = u.user_id 
+           AND LOWER(r2.role_name) IN ('cashier', 'manager', 'admin')
+         )`,
+        [userId]
+      );
+      isWaiterUser = userResult.rows.length > 0;
+    }
+    
+    // Nếu là waiter, lấy TẤT CẢ đơn TAKEAWAY (để hỗ trợ khách hàng và làm việc nhóm)
+    // Frontend sẽ có filter "Đơn của tôi" để waiter dễ tìm đơn do mình tạo
+    // Quyền chỉnh sửa vẫn giới hạn: chỉ có thể sửa đơn do mình tạo
+    if (isWaiterUser && userId) {
+      const { rows } = await pool.query(`
+        SELECT 
+          vtp.*,
+          dh.nhan_vien_id,
+          dh.ly_do_huy
+        FROM v_takeaway_pending vtp
+        JOIN don_hang dh ON dh.id = vtp.id
+        ORDER BY dh.opened_at DESC
+      `);
+      return rows;
+    }
+    
+    // Nếu không phải waiter (cashier/manager/admin), lấy tất cả đơn (OPEN + PAID)
     const { rows } = await pool.query(`
       SELECT * FROM v_takeaway_pending
     `);
@@ -136,68 +175,152 @@ export default {
   },
 
   // Lấy danh sách đơn giao hàng chưa giao
-  async getDeliveryOrders() {
+  // Nếu userId được truyền và user là waiter, chỉ trả về đơn được phân công cho waiter đó
+  async getDeliveryOrders(userId = null) {
     const { pool } = await import('../db.js');
+    
+    // Kiểm tra xem user có phải là waiter không
+    let isWaiterUser = false;
+    if (userId) {
+      const userResult = await pool.query(
+        `SELECT r.role_name 
+         FROM users u
+         JOIN user_roles ur ON ur.user_id = u.user_id
+         JOIN roles r ON r.role_id = ur.role_id
+         WHERE u.user_id = $1 AND LOWER(r.role_name) = 'waiter'
+         AND NOT EXISTS (
+           SELECT 1 FROM user_roles ur2
+           JOIN roles r2 ON r2.role_id = ur2.role_id
+           WHERE ur2.user_id = u.user_id 
+           AND LOWER(r2.role_name) IN ('cashier', 'manager', 'admin')
+         )`,
+        [userId]
+      );
+      isWaiterUser = userResult.rows.length > 0;
+    }
+    
+    // Nếu là waiter, lấy:
+    // 1. Tất cả đơn PENDING (chưa có shipper_id) - để claim
+    // 2. Đơn đã được phân công cho họ (shipper_id = userId) - để giao hàng
+    // Loại trừ đơn FAILED (giao thất bại)
+    if (isWaiterUser && userId) {
+      const { rows } = await pool.query(`
+        SELECT * FROM v_delivery_pending
+        WHERE (shipper_id IS NULL OR shipper_id = $1)
+          AND (delivery_status IS NULL OR delivery_status != 'FAILED')
+        ORDER BY 
+          CASE 
+            WHEN shipper_id IS NULL THEN 0  -- Đơn PENDING ưu tiên hiển thị trước
+            ELSE 1
+          END,
+          opened_at DESC
+      `, [userId]);
+      return rows;
+    }
+    
+    // Nếu không phải waiter (cashier/manager/admin), lấy tất cả đơn (trừ FAILED)
     const { rows } = await pool.query(`
       SELECT * FROM v_delivery_pending
+      WHERE delivery_status IS NULL OR delivery_status != 'FAILED'
     `);
     
     return rows;
   },
 
   // Phân công đơn giao hàng cho nhân viên phục vụ
-  async assignDeliveryOrder(orderId, shipperId, assignedBy) {
+  // Claim delivery orders - Nhân viên phục vụ tự nhận đơn (1 hoặc nhiều đơn)
+  async claimDeliveryOrders(orderIds, shipperId) {
     const { pool } = await import('../db.js');
     
-    // Kiểm tra đơn có tồn tại và là DELIVERY không
-    const orderCheck = await pool.query(
-      `SELECT id, order_type, trang_thai FROM don_hang WHERE id = $1`,
-      [orderId]
-    );
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      const err = new Error('Danh sách đơn hàng không hợp lệ');
+      err.status = 400;
+      throw err;
+    }
     
-    if (orderCheck.rows.length === 0) {
-      const err = new Error('Không tìm thấy đơn hàng');
+    // Giới hạn tối đa 10 đơn mỗi lần
+    if (orderIds.length > 10) {
+      const err = new Error('Chỉ có thể nhận tối đa 10 đơn mỗi lần');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Kiểm tra tất cả đơn có tồn tại, là DELIVERY và đang PENDING không
+    const orderCheck = await pool.query(`
+      SELECT 
+        dh.id,
+        dh.order_type,
+        dh.trang_thai,
+        di.delivery_status,
+        di.shipper_id
+      FROM don_hang dh
+      LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      WHERE dh.id = ANY($1::int[])
+    `, [orderIds]);
+    
+    if (orderCheck.rows.length !== orderIds.length) {
+      const err = new Error('Một hoặc nhiều đơn hàng không tồn tại');
       err.status = 404;
       throw err;
     }
     
-    if (orderCheck.rows[0].order_type !== 'DELIVERY') {
-      const err = new Error('Chỉ có thể phân công đơn DELIVERY');
+    // Kiểm tra từng đơn
+    const invalidOrders = [];
+    const alreadyAssigned = [];
+    
+    for (const order of orderCheck.rows) {
+      if (order.order_type !== 'DELIVERY') {
+        invalidOrders.push(order.id);
+      } else if (order.delivery_status === 'ASSIGNED' && order.shipper_id !== shipperId) {
+        alreadyAssigned.push(order.id);
+      } else if (order.delivery_status === 'OUT_FOR_DELIVERY' || 
+                 order.delivery_status === 'DELIVERED' || 
+                 order.delivery_status === 'FAILED') {
+        invalidOrders.push(order.id);
+      }
+    }
+    
+    if (invalidOrders.length > 0) {
+      const err = new Error(`Đơn ${invalidOrders.join(', ')} không phải đơn DELIVERY hoặc đã được xử lý`);
       err.status = 400;
       throw err;
     }
     
-    // Kiểm tra xem đã có delivery_info chưa
-    const existingDeliveryInfo = await pool.query(
-      `SELECT order_id FROM don_hang_delivery_info WHERE order_id = $1`,
-      [orderId]
-    );
-    
-    if (existingDeliveryInfo.rows.length === 0) {
-      const err = new Error('Đơn hàng chưa có thông tin giao hàng. Vui lòng tạo đơn từ Customer Portal hoặc thêm thông tin giao hàng trước.');
+    if (alreadyAssigned.length > 0) {
+      const err = new Error(`Đơn ${alreadyAssigned.join(', ')} đã được phân công cho nhân viên khác`);
       err.status = 400;
       throw err;
     }
     
-    // Chỉ UPDATE khi đã có delivery_info (vì delivery_address là NOT NULL)
+    // Claim tất cả đơn (chỉ claim đơn PENDING hoặc chưa có shipper_id)
     const result = await pool.query(`
       UPDATE don_hang_delivery_info
-      SET shipper_id = $2,
+      SET shipper_id = $1,
           delivery_status = 'ASSIGNED',
           updated_at = NOW()
-      WHERE order_id = $1
+      WHERE order_id = ANY($2::int[])
+        AND (delivery_status = 'PENDING' OR delivery_status IS NULL OR shipper_id IS NULL)
       RETURNING *
-    `, [orderId, shipperId]);
+    `, [shipperId, orderIds]);
     
-    // Emit event
+    // Emit event cho từng đơn
     const { emitEvent } = await import('../utils/sse.js');
-    emitEvent('delivery.assigned', { orderId, shipperId, assignedBy });
+    for (const order of result.rows) {
+      emitEvent('delivery.assigned', { 
+        orderId: order.order_id, 
+        shipperId, 
+        assignedBy: shipperId // Tự nhận nên assignedBy = shipperId
+      });
+    }
     
-    return result.rows[0];
+    return {
+      claimed: result.rows.length,
+      orderIds: result.rows.map(r => r.order_id)
+    };
   },
 
   // Cập nhật trạng thái giao hàng
-  async updateDeliveryStatus(orderId, status, shipperId = null) {
+  async updateDeliveryStatus(orderId, status, shipperId = null, failureReason = null) {
     const { pool } = await import('../db.js');
     
     const validStatuses = ['PENDING', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'];
@@ -239,13 +362,25 @@ export default {
     }
     
     // Cập nhật trạng thái
-    const result = await pool.query(`
+    let updateQuery = `
       UPDATE don_hang_delivery_info
       SET delivery_status = $1,
           updated_at = NOW()
-      WHERE order_id = $2
-      RETURNING *
-    `, [status, orderId]);
+    `;
+    const params = [status, orderId];
+    
+    // Nếu là FAILED và có lý do, thêm lý do vào query
+    if (status === 'FAILED' && failureReason) {
+      updateQuery += `, delivery_failure_reason = $3`;
+      params.splice(1, 0, failureReason);
+    } else if (status !== 'FAILED') {
+      // Nếu không phải FAILED, xóa lý do cũ
+      updateQuery += `, delivery_failure_reason = NULL`;
+    }
+    
+    updateQuery += ` WHERE order_id = $${params.length} RETURNING *`;
+    
+    const result = await pool.query(updateQuery, params);
     
     if (result.rows.length === 0) {
       const err = new Error('Không tìm thấy thông tin giao hàng');
@@ -439,6 +574,8 @@ export default {
     }
     
     // Lưu hoặc cập nhật delivery info
+    // Đảm bảo phí giao hàng luôn là 8000đ (cố định)
+    const deliveryFee = 8000;
     const result = await pool.query(
       `INSERT INTO don_hang_delivery_info (
         order_id, delivery_address, delivery_phone, delivery_notes, 
@@ -449,7 +586,7 @@ export default {
         delivery_address = EXCLUDED.delivery_address,
         delivery_phone = EXCLUDED.delivery_phone,
         delivery_notes = EXCLUDED.delivery_notes,
-        delivery_fee = EXCLUDED.delivery_fee,
+        delivery_fee = $5,
         latitude = EXCLUDED.latitude,
         longitude = EXCLUDED.longitude,
         distance_km = EXCLUDED.distance_km,
@@ -461,7 +598,7 @@ export default {
         data.deliveryAddress,
         data.deliveryPhone || null,
         data.deliveryNotes || null,
-        data.deliveryFee || 0,
+        deliveryFee, // Luôn là 8000đ
         data.latitude ? parseFloat(data.latitude) : null,
         data.longitude ? parseFloat(data.longitude) : null,
         data.distance ? parseFloat(data.distance) : null,

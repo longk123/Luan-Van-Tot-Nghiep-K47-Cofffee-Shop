@@ -1,6 +1,6 @@
 // === src/pages/Dashboard.jsx ===
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { api } from '../api.js';
 import { getUser } from '../auth.js';
@@ -16,9 +16,21 @@ import CloseShiftModal from '../components/CloseShiftModal.jsx';
 import OpenShiftModal from '../components/OpenShiftModal.jsx';
 import OpenOrdersDialog from '../components/OpenOrdersDialog.jsx';
 import CurrentShiftOrders from '../components/CurrentShiftOrders.jsx';
+import TakeawayOrderCard from '../components/TakeawayOrderCard.jsx';
 
 export default function Dashboard({ defaultMode = 'dashboard' }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Đọc tab từ URL query hoặc defaultMode
+  const getInitialTab = () => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl === 'takeaway') return 'takeaway';
+    if (defaultMode === 'takeaway') return 'takeaway';
+    return 'tables';
+  };
+  
+  const initialTab = getInitialTab();
   const [areas, setAreas] = useState([]);
   const [activeArea, setActiveArea] = useState(null);
   const [tables, setTables] = useState([]);
@@ -33,6 +45,29 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   
   // POS mode states
   const [posMode, setPosMode] = useState(defaultMode === 'pos');
+  
+  // Tab state for Cashier Dashboard
+  const [activeTab, setActiveTab] = useState(initialTab); // 'tables' or 'takeaway'
+  
+  // Cập nhật URL khi đổi tab (nhưng không reload page)
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (activeTab === 'takeaway' && currentTab !== 'takeaway') {
+      searchParams.set('tab', 'takeaway');
+      setSearchParams(searchParams, { replace: true });
+    } else if (activeTab === 'tables' && currentTab === 'takeaway') {
+      searchParams.delete('tab');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [activeTab, searchParams, setSearchParams]);
+  
+  // Takeaway orders state (for takeaway tab)
+  const [takeawayOrders, setTakeawayOrders] = useState([]);
+  const [deliveryOrders, setDeliveryOrders] = useState([]);
+  const [takeawayLoading, setTakeawayLoading] = useState(false);
+  const [takeawayFilterTab, setTakeawayFilterTab] = useState('TAKEAWAY'); // 'TAKEAWAY', 'DELIVERY'
+  const [selectedDeliveryOrders, setSelectedDeliveryOrders] = useState([]); // Các đơn DELIVERY đã chọn để claim
+  const [deliveryFilterTab, setDeliveryFilterTab] = useState('ALL'); // 'ALL', 'HUNTING', 'MY_CLAIMED' - Filter cho tab Giao hàng
   
   // Confirmation dialog states
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
@@ -130,9 +165,75 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     } finally { setLoading(false); }
   }
 
+  async function loadTakeawayOrders() {
+    setTakeawayLoading(true);
+    try {
+      // Lấy các đơn TAKEAWAY còn món chưa xong
+      const takeawayRes = await api.get('/pos/takeaway-orders');
+      const takeawayData = takeawayRes?.data || takeawayRes || [];
+      console.log('📦 Takeaway orders loaded:', takeawayData.length, takeawayData);
+      setTakeawayOrders(takeawayData);
+      
+      // Lấy các đơn DELIVERY còn món chưa xong
+      const deliveryRes = await api.get('/pos/delivery-orders');
+      const deliveryData = deliveryRes?.data || deliveryRes || [];
+      console.log('🚚 Delivery orders loaded:', deliveryData.length, deliveryData);
+      setDeliveryOrders(deliveryData);
+      
+      // Lấy danh sách nhân viên phục vụ (nếu là Cashier/Manager, không phải Waiter)
+      if (!isManagerViewMode && !isWaiter) {
+      }
+    } catch (err) {
+      console.error('Error loading takeaway orders:', err);
+    } finally {
+      setTakeawayLoading(false);
+    }
+  }
+
+  const handleDeliver = async (order) => {
+    try {
+      await api.post(`/pos/orders/${order.id}/deliver`);
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Giao hàng thành công!',
+        message: `Đơn #${order.id} đã giao cho khách`
+      });
+      loadTakeawayOrders();
+    } catch (err) {
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message || 'Không thể giao hàng'
+      });
+    }
+  };
+
+
+  const handleUpdateDeliveryStatus = async (order, status, failureReason = null) => {
+    try {
+      await api.updateDeliveryStatus(order.id, status, failureReason);
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Cập nhật thành công!',
+        message: `Đã cập nhật trạng thái giao hàng cho đơn #${order.id}`
+      });
+      loadTakeawayOrders();
+    } catch (err) {
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Lỗi',
+        message: err.message || 'Không thể cập nhật trạng thái giao hàng'
+      });
+    }
+  };
+
   async function loadShift() {
     try {
-      // Nếu là Waiter, lấy ca Cashier đang mở thay vì ca của mình
+      // Nếu là Waiter, ưu tiên lấy ca của chính mình, nếu không có thì lấy ca Cashier
       const isWaiterUser = userRoles.some(role =>
         role.toLowerCase() === 'waiter'
       ) && !userRoles.some(role =>
@@ -140,14 +241,25 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       );
       
       if (isWaiterUser) {
-        const res = await api.getOpenCashierShift();
-        const shiftData = res?.data || res || null;
-        console.log('📊 Loaded cashier shift for waiter:', shiftData);
-        setShift(shiftData);
+        // Ưu tiên lấy ca của chính waiter
+        const myShiftRes = await api.getMyOpenShift();
+        const myShift = myShiftRes?.data || myShiftRes || null;
         
-        // Load transferred orders (orders from previous shift)
-        if (shiftData?.id) {
-          loadTransferredOrders(shiftData.id);
+        if (myShift) {
+          console.log('📊 Loaded waiter own shift:', myShift);
+          setShift(myShift);
+          if (myShift.id) {
+            loadTransferredOrders(myShift.id);
+          }
+        } else {
+          // Nếu waiter chưa mở ca, lấy ca Cashier đang mở (nếu có)
+          const cashierShiftRes = await api.getOpenCashierShift();
+          const cashierShift = cashierShiftRes?.data || cashierShiftRes || null;
+          console.log('📊 Waiter has no shift, loaded cashier shift:', cashierShift);
+          setShift(cashierShift);
+          if (cashierShift?.id) {
+            loadTransferredOrders(cashierShift.id);
+          }
         }
       } else {
         const res = await api.getCurrentShift();
@@ -181,8 +293,41 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     }
   }
 
-  useEffect(() => { loadAreas(); }, []);
-  useEffect(() => { loadTables(); }, []);
+  useEffect(() => { 
+    loadAreas(); 
+  }, []);
+  
+  useEffect(() => {
+    if (activeTab === 'tables') {
+      loadTables();
+    } else if (activeTab === 'takeaway') {
+      loadTakeawayOrders();
+    }
+  }, [activeTab, refreshTick]);
+  
+  // SSE auto refresh
+  useSSE('/api/v1/pos/events', (evt) => {
+    // Refresh takeaway orders when in takeaway tab
+    if (activeTab === 'takeaway' && (
+      evt.type === 'order.items.changed' || 
+      evt.type === 'kitchen.line.updated' ||
+      evt.type === 'order.confirmed' ||
+      evt.type === 'order.completed' ||
+      evt.type === 'order.created' ||
+      evt.type === 'order.updated' ||
+      evt.type === 'delivery.assigned' ||
+      evt.type === 'delivery.status.updated'
+    )) {
+      loadTakeawayOrders();
+    }
+    // Auto refresh tables when order changes
+    if (activeTab === 'tables' && (
+      evt.type === 'order.updated' ||
+      evt.type === 'table.updated'
+    )) {
+      loadTables();
+    }
+  });
 
   // Load shift info
   useEffect(() => {
@@ -331,24 +476,17 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     setShowCreateConfirm(false);
     
     try {
-      // Nếu là Waiter, cần có ca Cashier đang mở
-      let cashierShiftId = null;
+      // Waiter có thể dùng ca của chính mình hoặc ca cashier (nếu có)
+      let shiftId = null;
       if (isWaiter) {
-        if (!shift || shift.status !== 'OPEN') {
-          setToast({
-            show: true,
-            type: 'warning',
-            title: 'Chưa có ca làm việc',
-            message: 'Chưa có ca Cashier đang mở. Vui lòng đợi Cashier mở ca.'
-          });
-          setPendingOrderCreation(null);
-          return;
+        // Waiter có thể dùng ca của chính mình
+        if (shift && shift.status === 'OPEN') {
+          shiftId = shift.id;
         }
-        cashierShiftId = shift.id;
       }
       
       const res = await api.createOrderForTable(table.id, {
-        ca_lam_id: cashierShiftId
+        ca_lam_id: shiftId
       });
       const newOrder = res?.data || res;
       console.log('New order created:', newOrder);
@@ -358,7 +496,10 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         order: { 
           id: newOrder.id,
           ban_id: table.id, 
-          order_type: 'DINE_IN' 
+          order_type: 'DINE_IN',
+          trang_thai: newOrder.trang_thai || 'OPEN',
+          status: newOrder.status || newOrder.trang_thai || 'OPEN',
+          nhan_vien_id: newOrder.nhan_vien_id
         } 
       };
       console.log('Setting drawer:', drawerData);
@@ -395,15 +536,13 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   };
 
   async function handleCreateTakeaway() {
-    // Kiểm tra có ca đang mở không
+    // Kiểm tra có ca đang mở không (waiter có thể dùng ca của chính mình)
     if (!shift || shift.status !== 'OPEN') {
       setToast({
         show: true,
         type: 'warning',
         title: 'Chưa mở ca',
-        message: isWaiter 
-          ? 'Chưa có ca Cashier đang mở. Vui lòng đợi Cashier mở ca.'
-          : 'Vui lòng mở ca làm việc trước khi tạo đơn hàng.'
+        message: 'Vui lòng mở ca làm việc trước khi tạo đơn hàng.'
       });
       return;
     }
@@ -418,30 +557,20 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     setShowCreateConfirm(false);
     
     try {
-      // Nếu là Waiter, cần có ca Cashier đang mở
-      let cashierShiftId = null;
-      if (isWaiter) {
-        if (!shift || shift.status !== 'OPEN') {
-          setToast({
-            show: true,
-            type: 'warning',
-            title: 'Chưa có ca làm việc',
-            message: 'Chưa có ca Cashier đang mở. Vui lòng đợi Cashier mở ca.'
-          });
-          setPendingOrderCreation(null);
-          return;
-        }
-        cashierShiftId = shift.id;
-      }
+      // Waiter có thể dùng ca của chính mình
+      const shiftId = (shift && shift.status === 'OPEN') ? shift.id : null;
       
-      const res = await api.createTakeawayOrder(cashierShiftId ? { ca_lam_id: cashierShiftId } : {});
+      const res = await api.createTakeawayOrder(shiftId ? { ca_lam_id: shiftId } : {});
       const newOrder = res?.data || res;
       
       setDrawer({ 
         open: true, 
         order: { 
           id: newOrder.id,
-          order_type: 'TAKEAWAY' 
+          order_type: newOrder.order_type || 'TAKEAWAY',
+          trang_thai: newOrder.trang_thai || 'OPEN',
+          status: newOrder.status || newOrder.trang_thai || 'OPEN',
+          nhan_vien_id: newOrder.nhan_vien_id
         } 
       });
       
@@ -546,6 +675,21 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     });
   }
 
+  // Hàm mở đơn mang đi/giao hàng
+  function handleOpenOrder(order) {
+    setDrawer({
+      open: true,
+      order: {
+        id: order.id,
+        order_type: order.order_type || order._type || 'TAKEAWAY',
+        nhan_vien_id: order.nhan_vien_id, // Truyền nhan_vien_id để kiểm tra quyền chỉnh sửa
+        trang_thai: order.trang_thai || 'OPEN',
+        status: order.status || order.trang_thai || 'OPEN',
+        ban_id: order.ban_id
+      }
+    });
+  }
+
   const showWorkpane = drawer.open; // Hiển thị menu khi có drawer mở (dù mode nào)
   const drawerWidth = posMode ? 680 : 640;
   const rightPad = showWorkpane ? drawerWidth + 16 : 0; // Thêm 16px khoảng cách để scrollbar nằm giữa
@@ -639,8 +783,9 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   <span className="whitespace-nowrap">Quay lại Manager Dashboard</span>
                 </button>
               )}
-              {/* Thứ tự: Đặt bàn -> DS Đặt bàn -> DS Mang đi -> Lịch sử đơn -> Mở/Đóng ca */}
-              {!isManagerViewMode && (
+              {/* Thứ tự: Đặt bàn -> DS Đặt bàn -> Lịch sử đơn -> Mở/Đóng ca */}
+              {/* Waiter không cần đặt bàn, chỉ cần xem danh sách đặt bàn */}
+              {!isManagerViewMode && !isWaiter && (
                 <button
                   onClick={() => setShowReservationPanel(true)}
                   className="px-4 py-2.5 bg-indigo-600 text-white border-2 border-indigo-600 rounded-xl hover:bg-white hover:text-indigo-600 hover:border-indigo-600 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none focus:ring-2 focus:ring-indigo-300 flex items-center gap-2.5 shadow-md"
@@ -659,15 +804,6 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
                 <span className="whitespace-nowrap">DS Đặt bàn</span>
-              </button>
-              <button
-                onClick={() => window.location.href = '/takeaway'}
-                className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
-              >
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                <span className="whitespace-nowrap">DS Mang đi</span>
               </button>
               {canViewCurrentShiftOrders && (
                 <button
@@ -711,10 +847,46 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               </div>
           </div>
           
-          {/* Area Tabs - Improved */}
-          <div className="mt-6">
-            <AreaTabs areas={areas} activeId={activeArea} onChange={setActiveArea} />
-          </div>
+          {/* Main Tabs - Bàn và Đơn mang đi */}
+          {!isManagerViewMode && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+              <div className="flex border-b border-gray-200 overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab('tables')}
+                  className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${
+                    activeTab === 'tables'
+                      ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span>Bàn</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('takeaway')}
+                  className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${
+                    activeTab === 'takeaway'
+                      ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                  <span>Đơn mang đi</span>
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Area Tabs - Only show for tables tab */}
+          {activeTab === 'tables' && (
+            <div className="mt-6">
+              <AreaTabs areas={areas} activeId={activeArea} onChange={setActiveArea} />
+            </div>
+          )}
         </>
       )}
 
@@ -753,18 +925,26 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               orderId={drawer.order?.id}
               onAdded={() => setRefreshTick((x) => x + 1)}
               onShowToast={setToast}
-              disabled={drawer.order?.trang_thai === 'PAID' || drawer.order?.status === 'PAID' || !shift || shift.status !== 'OPEN'}
+              disabled={
+                drawer.order?.trang_thai === 'PAID' || 
+                drawer.order?.status === 'PAID' || 
+                !shift || 
+                shift.status !== 'OPEN' ||
+                (isWaiter && drawer.order?.nhan_vien_id !== getUser()?.user_id) // Waiter chỉ có thể thêm món vào đơn do mình tạo
+              }
             />
           </div>
         </div>
       )}
 
-      {/* Tables grid */}
+      {/* Content based on active tab */}
       {!showWorkpane && (
         <div className="mt-6">
-          {loading ? (
-            <div className="p-6 text-gray-500">Đang tải bàn...</div>
-          ) : posMode ? (
+          {activeTab === 'tables' ? (
+            // Tables tab
+            loading ? (
+              <div className="p-6 text-gray-500">Đang tải bàn...</div>
+            ) : posMode ? (
             // POS mode - all tables by area
             <div className="space-y-6">
               {tablesByArea.map(area => (
@@ -804,6 +984,286 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               ))}
               {!currentAreaTables.length && <div className="text-gray-500">Không có bàn.</div>}
             </div>
+          )
+          ) : (
+            // Takeaway orders tab
+            takeawayLoading ? (
+              <div className="p-6 text-gray-500">Đang tải đơn mang đi...</div>
+            ) : (
+              <div className="space-y-4">
+                {/* Filter Tabs - Mang đi / Giao hàng */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setTakeawayFilterTab('TAKEAWAY')}
+                      className={`flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all ${
+                        takeawayFilterTab === 'TAKEAWAY'
+                          ? 'bg-[#c9975b] text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Mang đi ({takeawayOrders.length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTakeawayFilterTab('DELIVERY');
+                        setDeliveryFilterTab('ALL'); // Reset filter khi chuyển sang tab Giao hàng
+                      }}
+                      className={`flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all ${
+                        takeawayFilterTab === 'DELIVERY'
+                          ? 'bg-[#c9975b] text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Giao hàng ({deliveryOrders.length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter cho tab Giao hàng (chỉ hiển thị khi tab DELIVERY được chọn) */}
+                {takeawayFilterTab === 'DELIVERY' && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-4">
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => setDeliveryFilterTab('ALL')}
+                        className={`flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all ${
+                          deliveryFilterTab === 'ALL'
+                            ? 'bg-[#c9975b] text-white shadow-md'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        Tất cả ({deliveryOrders.length})
+                      </button>
+                      {isWaiter && (
+                        <>
+                          <button
+                            onClick={() => setDeliveryFilterTab('HUNTING')}
+                            className={`flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all ${
+                              deliveryFilterTab === 'HUNTING'
+                                ? 'bg-emerald-500 text-white shadow-md'
+                                : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                            }`}
+                          >
+                            Săn đơn ({(() => {
+                              const huntingOrders = deliveryOrders.filter(
+                                o => o.order_type === 'DELIVERY' && 
+                                (o.delivery_status === 'PENDING' || !o.delivery_status || !o.shipper_id)
+                              );
+                              return huntingOrders.length;
+                            })()})
+                          </button>
+                          <button
+                            onClick={() => setDeliveryFilterTab('MY_CLAIMED')}
+                            className={`flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all ${
+                              deliveryFilterTab === 'MY_CLAIMED'
+                                ? 'bg-blue-500 text-white shadow-md'
+                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            }`}
+                          >
+                            Đơn đã nhận ({(() => {
+                              const myClaimedOrders = deliveryOrders.filter(
+                                o => o.order_type === 'DELIVERY' && 
+                                o.shipper_id === getUser()?.user_id
+                              );
+                              return myClaimedOrders.length;
+                            })()})
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Filtered Orders */}
+                {(() => {
+                  let filteredOrders = takeawayFilterTab === 'TAKEAWAY' 
+                    ? takeawayOrders 
+                    : takeawayFilterTab === 'DELIVERY' 
+                    ? (() => {
+                        // Filter cho tab DELIVERY
+                        if (deliveryFilterTab === 'HUNTING' && isWaiter) {
+                          // Săn đơn: chỉ đơn PENDING (chưa có shipper_id)
+                          return deliveryOrders.filter(
+                            o => o.order_type === 'DELIVERY' && 
+                            (o.delivery_status === 'PENDING' || !o.delivery_status || !o.shipper_id)
+                          );
+                        } else if (deliveryFilterTab === 'MY_CLAIMED' && isWaiter) {
+                          // Đơn đã nhận: chỉ đơn đã được waiter này claim
+                          return deliveryOrders.filter(
+                            o => o.order_type === 'DELIVERY' && 
+                            o.shipper_id === getUser()?.user_id
+                          );
+                        } else {
+                          // Tất cả: tất cả đơn DELIVERY chưa giao xong
+                          // Sắp xếp: đơn chưa được nhận trước, đơn đã được nhận/đang giao ở cuối
+                          return [...deliveryOrders].sort((a, b) => {
+                            const aIsPending = (a.delivery_status === 'PENDING' || !a.delivery_status || !a.shipper_id);
+                            const bIsPending = (b.delivery_status === 'PENDING' || !b.delivery_status || !b.shipper_id);
+                            
+                            // Đơn chưa được nhận (PENDING) hiển thị trước
+                            if (aIsPending && !bIsPending) return -1;
+                            if (!aIsPending && bIsPending) return 1;
+                            
+                            // Nếu cùng trạng thái, sắp xếp theo ID (mới nhất trước)
+                            return b.id - a.id;
+                          });
+                        }
+                      })()
+                    : takeawayOrders; // Default to TAKEAWAY if invalid tab
+
+                  if (filteredOrders.length === 0) {
+                    return (
+                      <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
+                        <svg className="w-24 h-24 mx-auto text-[#d4a574] mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <p className="text-[#8b6f47] font-bold text-xl">
+                          {takeawayFilterTab === 'TAKEAWAY' ? 'Chưa có đơn mang đi' :
+                           takeawayFilterTab === 'DELIVERY' ? (
+                             deliveryFilterTab === 'HUNTING' ? 'Chưa có đơn nào để săn' :
+                             deliveryFilterTab === 'MY_CLAIMED' ? 'Chưa có đơn nào bạn đã nhận' :
+                             'Chưa có đơn giao hàng'
+                           ) :
+                           'Chưa có đơn nào'}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // Tính tổng tiền cho các đơn đã chọn (chỉ cho waiter và đơn DELIVERY)
+                  const pendingDeliveryOrders = filteredOrders.filter(
+                    o => o.order_type === 'DELIVERY' && 
+                    (o.delivery_status === 'PENDING' || !o.delivery_status || !o.shipper_id)
+                  );
+                  const selectedPendingOrders = pendingDeliveryOrders.filter(
+                    o => selectedDeliveryOrders.includes(o.id)
+                  );
+                  const totalAmount = selectedPendingOrders.reduce((sum, order) => {
+                    const orderTotal = order.grand_total || 0;
+                    const deliveryFee = order.delivery_fee || 0;
+                    return sum + orderTotal + deliveryFee;
+                  }, 0);
+
+                  return (
+                    <>
+                      {/* Hiển thị tổng tiền và nút "Nhận tất cả đã chọn" khi có đơn được chọn */}
+                      {isWaiter && selectedPendingOrders.length > 0 && (
+                        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl shadow-lg border-2 border-blue-600 p-4 mb-4 sticky top-4 z-10">
+                          <div className="flex items-center justify-between">
+                            <div className="text-white">
+                              <p className="text-sm font-medium opacity-90">Đã chọn {selectedPendingOrders.length} đơn</p>
+                              <p className="text-2xl font-bold mt-1">
+                                Tổng: {totalAmount.toLocaleString('vi-VN')}đ
+                              </p>
+                              <p className="text-xs opacity-75 mt-1">
+                                (Bao gồm phí ship)
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setSelectedDeliveryOrders([])}
+                                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all border border-white/30"
+                              >
+                                Bỏ chọn
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (selectedPendingOrders.length === 0) return;
+                                  try {
+                                    // Đảm bảo orderIds là array of integers
+                                    const orderIds = selectedPendingOrders.map(o => parseInt(o.id)).filter(id => !isNaN(id));
+                                    if (orderIds.length === 0) {
+                                      throw new Error('Không có đơn nào được chọn');
+                                    }
+                                    await api.claimDeliveryOrders(orderIds);
+                                    setToast({
+                                      show: true,
+                                      type: 'success',
+                                      title: 'Nhận đơn thành công!',
+                                      message: `Đã nhận ${selectedPendingOrders.length} đơn giao hàng`
+                                    });
+                                    setSelectedDeliveryOrders([]);
+                                    loadTakeawayOrders();
+                                  } catch (err) {
+                                    setToast({
+                                      show: true,
+                                      type: 'error',
+                                      title: 'Lỗi',
+                                      message: err.message || 'Không thể nhận đơn'
+                                    });
+                                  }
+                                }}
+                                disabled={selectedPendingOrders.length === 0 || selectedPendingOrders.length > 10}
+                                className="px-6 py-2 bg-white text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Nhận {selectedPendingOrders.length} đơn
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredOrders.map((order) => (
+                          <TakeawayOrderCard
+                            key={order.id}
+                            order={order}
+                          onOpenOrder={handleOpenOrder}
+                          onDeliver={handleDeliver}
+                          onUpdateDeliveryStatus={handleUpdateDeliveryStatus}
+                          isManagerViewMode={isManagerViewMode}
+                          isWaiter={isWaiter}
+                            selectedDeliveryOrders={selectedDeliveryOrders}
+                            onToggleSelectOrder={(orderId) => {
+                              setSelectedDeliveryOrders(prev => {
+                                if (prev.includes(orderId)) {
+                                  return prev.filter(id => id !== orderId);
+                                } else {
+                                  if (prev.length >= 10) {
+                                    setToast({
+                                      show: true,
+                                      type: 'warning',
+                                      title: 'Giới hạn',
+                                      message: 'Chỉ có thể chọn tối đa 10 đơn mỗi lần'
+                                    });
+                                    return prev;
+                                  }
+                                  return [...prev, orderId];
+                                }
+                              });
+                            }}
+                            onClaimOrder={async (orderId) => {
+                              try {
+                                // Đảm bảo orderId là integer
+                                const id = parseInt(orderId);
+                                if (isNaN(id)) {
+                                  throw new Error('ID đơn hàng không hợp lệ');
+                                }
+                                await api.claimDeliveryOrders([id]);
+                                setToast({
+                                  show: true,
+                                  type: 'success',
+                                  title: 'Nhận đơn thành công!',
+                                  message: `Đã nhận đơn #${orderId}`
+                                });
+                                loadTakeawayOrders();
+                              } catch (err) {
+                                setToast({
+                                  show: true,
+                                  type: 'error',
+                                  title: 'Lỗi',
+                                  message: err.message || 'Không thể nhận đơn'
+                                });
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )
           )}
         </div>
       )}
@@ -823,18 +1283,37 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               setTriggerCancelDialog(true);
             } else {
               setDrawer({ open: false, order: null });
-              loadTables();
+              if (activeTab === 'tables') {
+                loadTables();
+              } else if (activeTab === 'takeaway') {
+                loadTakeawayOrders();
+              }
             }
           } else {
             // Đơn bàn: Đóng luôn
             setDrawer({ open: false, order: null });
-            loadTables();
+            if (activeTab === 'tables') {
+              loadTables();
+            } else if (activeTab === 'takeaway') {
+              loadTakeawayOrders();
+            }
           }
         }}
         onPendingItemsChange={(hasPending) => setDrawerHasPendingItems(hasPending)}
+        onOrderUpdate={(updatedOrder) => {
+          // Cập nhật drawer.order với thông tin đầy đủ từ OrderDrawer
+          setDrawer(prev => ({
+            ...prev,
+            order: updatedOrder
+          }));
+        }}
         onPaid={async (data) => {
           console.log('onPaid callback received:', data);
-          await loadTables();
+          if (activeTab === 'tables') {
+            await loadTables();
+          } else if (activeTab === 'takeaway') {
+            await loadTakeawayOrders();
+          }
           // Reload transferred orders vì đơn đã PAID sẽ không còn trong danh sách transferred orders
           if (shift?.id) {
             await loadTransferredOrders(shift.id);
@@ -1101,7 +1580,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <CurrentShiftOrders key={shiftOrdersRefreshKey} viewOnly={isManagerViewMode} />
+              <CurrentShiftOrders key={shiftOrdersRefreshKey} viewOnly={isManagerViewMode} isWaiter={isWaiter} />
             </div>
           </div>
         </div>

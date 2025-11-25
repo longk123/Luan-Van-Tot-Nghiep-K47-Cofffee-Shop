@@ -283,6 +283,22 @@ export default {
   }),
 
   /**
+   * GET /api/v1/customer/menu/items/:id/toppings
+   * Get toppings for an item (optional variant_id)
+   */
+  getItemToppings: asyncHandler(async (req, res) => {
+    const itemId = parseInt(req.params.id);
+    const variantId = req.query.bien_the_id ? parseInt(req.query.bien_the_id) : null;
+
+    const toppings = await customerService.getItemToppings(itemId, variantId);
+
+    res.json({
+      success: true,
+      data: toppings
+    });
+  }),
+
+  /**
    * GET /api/v1/customer/menu/search
    * Search items
    */

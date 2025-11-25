@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { customerApi } from '../../api/customerApi';
 import { useToast } from '../../components/CustomerToast';
-import { ShoppingCart, Plus, Minus, Trash2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, ArrowRight, ArrowLeft, Edit2 } from 'lucide-react';
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -229,7 +229,20 @@ export default function CartPage() {
                   {item.item_name}
                 </h3>
                 {item.variant_name && (
-                  <p className="text-sm text-gray-600 mb-2">Size: {item.variant_name}</p>
+                  <p className="text-sm text-gray-600 mb-1">Size: {item.variant_name}</p>
+                )}
+                {item.options && Object.keys(item.options).length > 0 && (
+                  <p className="text-xs text-gray-500 mb-1">
+                    Tùy chọn: {Object.entries(item.options).map(([optId, mucId]) => {
+                      // This is simplified - in real app, you'd load option names
+                      return 'Đã chọn';
+                    }).join(', ')}
+                  </p>
+                )}
+                {item.toppings && Object.keys(item.toppings).length > 0 && (
+                  <p className="text-xs text-gray-500 mb-1">
+                    Topping: {Object.keys(item.toppings).length} loại
+                  </p>
                 )}
                 {item.notes && (
                   <p className="text-xs text-gray-500 mb-2">Ghi chú: {item.notes}</p>
@@ -261,15 +274,29 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Remove Button */}
-              <button
-                onClick={() => removeItem(index)}
-                disabled={updating}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                title="Xóa"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={async () => {
+                    // Xóa item cũ và điều hướng đến trang chi tiết để chọn lại
+                    await removeItem(index);
+                    navigate(`/customer/menu/${item.item_id}`);
+                  }}
+                  disabled={updating}
+                  className="p-2 text-[#c9975b] hover:bg-amber-50 rounded-lg transition disabled:opacity-50 border border-[#c9975b]"
+                  title="Sửa"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => removeItem(index)}
+                  disabled={updating}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                  title="Xóa"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

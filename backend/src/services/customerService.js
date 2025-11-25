@@ -447,14 +447,37 @@ export default {
       throw new NotFound('Sản phẩm không tồn tại');
     }
 
-    const variants = await customerRepository.getItemVariants(itemId);
+    let variants = await customerRepository.getItemVariants(itemId);
+    
+    // Nếu không có variants, tạo variant mặc định từ gia_mac_dinh
+    if (!variants || variants.length === 0) {
+      const giaMacDinh = await customerRepository.getItemDefaultPrice(itemId);
+      if (giaMacDinh && giaMacDinh > 0) {
+        variants = [{
+          id: null, // Không có variant_id, sẽ dùng null khi add to cart
+          mon_id: itemId,
+          ten_bien_the: 'Mặc định',
+          gia: giaMacDinh,
+          active: true,
+          thu_tu: 0
+        }];
+      }
+    }
+
     const options = await customerRepository.getItemOptions(itemId);
 
     return {
       ...item,
-      variants,
-      options
+      variants: variants || [],
+      options: options || []
     };
+  },
+
+  /**
+   * Get item toppings
+   */
+  async getItemToppings(itemId, variantId = null) {
+    return await customerRepository.getItemToppings(itemId, variantId);
   },
 
   /**

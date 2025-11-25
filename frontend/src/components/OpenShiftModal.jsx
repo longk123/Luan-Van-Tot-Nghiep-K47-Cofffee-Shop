@@ -18,17 +18,31 @@ export default function OpenShiftModal({ open, onClose, onSuccess, onShowToast }
     const isKitchenStaff = userRoles.some(role =>
       ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
     );
+    const isWaiter = userRoles.some(role =>
+      role.toLowerCase() === 'waiter'
+    ) && !userRoles.some(role =>
+      ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
+    );
     
     console.log('🔍 OpenShiftModal - User roles:', userRoles);
     console.log('🔍 OpenShiftModal - Is kitchen staff:', isKitchenStaff);
+    console.log('🔍 OpenShiftModal - Is waiter:', isWaiter);
     
-    setUserRole(isKitchenStaff ? 'kitchen' : 'cashier');
+    if (isKitchenStaff) {
+      setUserRole('kitchen');
+    } else if (isWaiter) {
+      setUserRole('waiter');
+    } else {
+      setUserRole('cashier');
+    }
   }, []);
   
   const isKitchenStaff = ['kitchen', 'barista', 'chef', 'cook'].includes(userRole);
+  const isWaiter = userRole === 'waiter';
 
   const handleOpen = async () => {
-    if (!isKitchenStaff && (openingCash === '' || openingCash === null)) {
+    // Cashier cần nhập opening_cash, Waiter và Kitchen không cần
+    if (!isKitchenStaff && !isWaiter && (openingCash === '' || openingCash === null)) {
       onShowToast?.({
         show: true,
         type: 'error',
@@ -41,16 +55,18 @@ export default function OpenShiftModal({ open, onClose, onSuccess, onShowToast }
     setLoading(true);
     try {
       await api.post('/shifts/open', {
-        opening_cash: isKitchenStaff ? 0 : (parseInt(openingCash) || 0),
+        opening_cash: (isKitchenStaff || isWaiter) ? 0 : (parseInt(openingCash) || 0),
         shift_type: isKitchenStaff ? 'KITCHEN' : 'CASHIER'
       });
 
       onShowToast?.({
         show: true,
         type: 'success',
-        title: isKitchenStaff ? 'Bắt đầu ca thành công!' : 'Mở ca thành công!',
+        title: isKitchenStaff ? 'Bắt đầu ca thành công!' : (isWaiter ? 'Mở ca thành công!' : 'Mở ca thành công!'),
         message: isKitchenStaff 
           ? 'Ca làm việc đã được bắt đầu. Đang tải lại trang...' 
+          : isWaiter
+          ? 'Đã mở ca phục vụ. Đang tải lại trang...'
           : `Đã mở ca mới. Đang tải lại trang...`
       });
 
@@ -87,6 +103,13 @@ export default function OpenShiftModal({ open, onClose, onSuccess, onShowToast }
                     </svg>
                     Bắt đầu ca làm việc
                   </>
+                ) : isWaiter ? (
+                  <>
+                    <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Mở ca phục vụ
+                  </>
                 ) : (
                   <>
                     <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +120,7 @@ export default function OpenShiftModal({ open, onClose, onSuccess, onShowToast }
                 )}
               </h3>
               <p className="text-sm text-gray-600">
-                {isKitchenStaff ? 'Bắt đầu ca pha chế/chế biến' : 'Bắt đầu ca thu ngân mới'}
+                {isKitchenStaff ? 'Bắt đầu ca pha chế/chế biến' : isWaiter ? 'Bắt đầu ca phục vụ/giao hàng' : 'Bắt đầu ca thu ngân mới'}
               </p>
             </div>
             <button
@@ -143,6 +166,44 @@ export default function OpenShiftModal({ open, onClose, onSuccess, onShowToast }
                     Hệ thống sẽ tính số món bạn làm trong ca
                   </p>
                   <p className="text-sm text-blue-900 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Thời gian làm việc sẽ được tracking
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : isWaiter ? (
+            /* Waiter - không cần nhập tiền */
+            <>
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-5 border-2 border-purple-200 mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-purple-900">Ca phục vụ/Giao hàng</h4>
+                    <p className="text-sm text-purple-700">Tracking thời gian làm việc và đơn đã xử lý</p>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-xl p-4 border border-purple-200 space-y-2">
+                  <p className="text-sm text-purple-900 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Giờ vào ca sẽ được ghi nhận
+                  </p>
+                  <p className="text-sm text-purple-900 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Bạn có thể tạo đơn và quản lý đơn giao hàng
+                  </p>
+                  <p className="text-sm text-purple-900 flex items-center gap-2">
                     <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
@@ -217,7 +278,7 @@ export default function OpenShiftModal({ open, onClose, onSuccess, onShowToast }
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
-                {isKitchenStaff ? 'Bắt đầu ca' : 'Mở ca thu ngân'}
+                {isKitchenStaff ? 'Bắt đầu ca' : isWaiter ? 'Mở ca phục vụ' : 'Mở ca thu ngân'}
               </>
             )}
           </button>

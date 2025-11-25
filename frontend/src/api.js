@@ -76,9 +76,8 @@ export const api = {
   createDeliveryOrder: () => request('POST', '/pos/orders', { order_type: 'DELIVERY' }),
   saveDeliveryInfo: (orderId, deliveryInfo) => request('POST', `/pos/orders/${orderId}/delivery-info`, deliveryInfo),
   // Delivery assignment
-  getWaiters: () => request('GET', '/pos/waiters'),
-  assignDeliveryOrder: (orderId, shipperId) => request('POST', `/pos/orders/${orderId}/assign-delivery`, { shipperId }),
-  updateDeliveryStatus: (orderId, status) => request('PATCH', `/pos/orders/${orderId}/delivery-status`, { status }),
+  claimDeliveryOrders: (orderIds) => request('POST', '/pos/orders/claim-delivery', { orderIds }), // Nhân viên tự nhận đơn (1 hoặc nhiều đơn)
+  updateDeliveryStatus: (orderId, status, failureReason = null) => request('PATCH', `/pos/orders/${orderId}/delivery-status`, { status, failure_reason: failureReason }),
   getMyAssignedDeliveries: (status) => request('GET', `/pos/delivery/my-assigned${status ? `?status=${status}` : ''}`),
   getOrderItems: (orderId) => request('GET', `/pos/orders/${orderId}/items`),
   getOrderSummary: (orderId) => request('GET', `/pos/orders/${orderId}/summary`),

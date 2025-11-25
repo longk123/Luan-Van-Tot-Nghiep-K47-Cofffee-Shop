@@ -76,6 +76,7 @@ async function create() {
       WHERE dh.order_type = 'DELIVERY'
         AND dh.trang_thai IN ('OPEN', 'PAID')
         AND (dh.delivered_at IS NULL OR di.actual_delivered_at IS NULL)
+        AND (di.delivery_status IS NULL OR di.delivery_status != 'FAILED')
       GROUP BY dh.id, dh.trang_thai, dh.order_type, dh.opened_at, dh.closed_at, dh.delivered_at,
                dh.customer_account_id, ca.full_name, ca.phone, ca.email,
                di.delivery_address, di.delivery_phone, di.delivery_notes, di.delivery_fee,

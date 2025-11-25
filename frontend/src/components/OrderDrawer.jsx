@@ -39,6 +39,7 @@ export default function OrderDrawer({
   onTableChanged,
   onItemsChange,
   onPendingItemsChange,
+  onOrderUpdate,
   viewOnly = false,
   userRoles = [],
   isWaiter = false
@@ -48,6 +49,14 @@ export default function OrderDrawer({
   console.log('OrderDrawer render:', { open, orderId, order });
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  
+  // Kiểm tra quyền chỉnh sửa: Waiter chỉ có thể sửa đơn do mình tạo
+  const currentUser = getUser();
+  const canEditOrder = useMemo(() => {
+    if (!isWaiter) return true; // Cashier/Manager/Admin có thể sửa tất cả
+    // Waiter chỉ có thể sửa đơn do mình tạo
+    return localOrder?.nhan_vien_id === currentUser?.user_id;
+  }, [isWaiter, localOrder?.nhan_vien_id, currentUser?.user_id]);
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingTables, setLoadingTables] = useState(false);
   const [editDialog, setEditDialog] = useState({ open: false, line: null });
@@ -233,13 +242,19 @@ export default function OrderDrawer({
       const res = await api.getOrderSummary(orderId);
       const orderData = res?.data || res;
       console.log('Fetched order summary:', orderData);
-      setLocalOrder(prev => ({
-        ...prev,
+      const updatedOrder = {
+        ...order,
         ...orderData,
         trang_thai: orderData.trang_thai || orderData.status,
         status: orderData.status || orderData.trang_thai,
-        da_thanh_toan: orderData.da_thanh_toan
-      }));
+        da_thanh_toan: orderData.da_thanh_toan,
+        nhan_vien_id: orderData.nhan_vien_id || order?.nhan_vien_id // Giữ nhan_vien_id từ orderData hoặc order ban đầu
+      };
+      setLocalOrder(updatedOrder);
+      // Cập nhật lại drawer.order trong Dashboard
+      if (onOrderUpdate) {
+        onOrderUpdate(updatedOrder);
+      }
     } catch (error) {
       console.error('Error fetching order info:', error);
     }
@@ -784,10 +799,11 @@ export default function OrderDrawer({
                 key={line.line_id}
                 line={line}
                 orderStatus={localOrder?.trang_thai || localOrder?.status}
-                onEdit={handleEditLine}
-                onDelete={handleDeleteLine}
+                onEdit={canEditOrder ? handleEditLine : undefined}
+                onDelete={canEditOrder ? handleDeleteLine : undefined}
                 onChangeStatus={handleChangeLineStatus}
                 userRole="cashier"
+                viewOnly={!canEditOrder}
               />
             ))}
           </div>
@@ -1133,8 +1149,8 @@ export default function OrderDrawer({
               </>
             )}
             
-            {/* Nút hủy đơn - Ẩn nếu là Waiter, chỉ enable nếu TẤT CẢ món đều PENDING hoặc không có món nào đang làm */}
-            {!isWaiter && (
+            {/* Nút hủy đơn - Waiter chỉ có thể hủy đơn do mình tạo */}
+            {canEditOrder && (
               <button
                 onClick={() => setShowCancelDialog(true)}
                 disabled={hasAnyConfirmedItems && hasItemsInProgress}

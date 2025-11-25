@@ -20,6 +20,7 @@ router.post('/customer/auth/logout', customerAuth, customerController.logout);
 router.get('/customer/menu/categories', customerController.getCategories);
 router.get('/customer/menu/items', customerController.getMenuItems);
 router.get('/customer/menu/items/:id', customerController.getItemDetail);
+router.get('/customer/menu/items/:id/toppings', customerController.getItemToppings);
 router.get('/customer/menu/search', customerController.searchItems);
 
 // ==================== PUBLIC TABLES ====================

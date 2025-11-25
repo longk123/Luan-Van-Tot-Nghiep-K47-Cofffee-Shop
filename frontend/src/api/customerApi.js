@@ -62,6 +62,10 @@ export const customerApi = {
     return request('GET', `/menu/items${query}`);
   },
   getItemDetail: (itemId) => request('GET', `/menu/items/${itemId}`),
+  getItemToppings: (itemId, variantId = null) => {
+    const query = variantId ? `?bien_the_id=${variantId}` : '';
+    return request('GET', `/menu/items/${itemId}/toppings${query}`);
+  },
   searchItems: (keyword) => request('GET', `/menu/search?keyword=${encodeURIComponent(keyword)}`),
 
   // ==================== CART ====================

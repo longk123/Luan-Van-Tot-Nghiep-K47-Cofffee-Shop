@@ -183,7 +183,7 @@ export default function UserBadge() {
                 <button
                   onClick={() => {
                     setShowDropdown(false);
-                    navigate('/waiter/delivery');
+                    navigate('/dashboard?tab=takeaway');
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors mb-2"
                 >

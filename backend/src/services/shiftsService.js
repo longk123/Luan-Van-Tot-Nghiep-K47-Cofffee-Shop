@@ -101,7 +101,7 @@ export async function close(id, { closingCash, note, closedBy }) {
 /**
  * Get shift summary (live) - for preview before closing
  */
-export async function getShiftSummary(shiftId) {
+export async function getShiftSummary(shiftId, userId = null) {
   const shift = await getById(shiftId);
   if (!shift) {
     const err = new Error('Không tìm thấy ca làm.');
@@ -161,10 +161,69 @@ export async function getShiftSummary(shiftId) {
     };
   }
   
+  // Thêm waiter stats nếu là ca WAITER hoặc nếu user đang đóng ca là waiter
+  let waiterStats = null;
+  const { pool } = await import('../db.js');
+  
+  // Kiểm tra xem user có phải là waiter không
+  let isWaiterUser = false;
+  if (userId) {
+    const userResult = await pool.query(
+      `SELECT r.role_name 
+       FROM users u
+       JOIN user_roles ur ON ur.user_id = u.user_id
+       JOIN roles r ON r.role_id = ur.role_id
+       WHERE u.user_id = $1 AND LOWER(r.role_name) = 'waiter'
+       AND NOT EXISTS (
+         SELECT 1 FROM user_roles ur2
+         JOIN roles r2 ON r2.role_id = ur2.role_id
+         WHERE ur2.user_id = u.user_id 
+         AND LOWER(r2.role_name) IN ('cashier', 'manager', 'admin')
+       )`,
+      [userId]
+    );
+    isWaiterUser = userResult.rows.length > 0;
+  }
+  
+  // Tính waiter stats nếu là ca WAITER hoặc nếu user là waiter
+  if (shift.shift_type === 'WAITER' || (isWaiterUser && userId)) {
+    // Sử dụng userId nếu user là waiter (có thể đang đóng ca của cashier)
+    // Ngược lại, sử dụng shift.nhan_vien_id (ca WAITER của chính waiter)
+    const waiterId = (isWaiterUser && userId) ? userId : shift.nhan_vien_id;
+    
+    // Tính số đơn giao hàng được phân công cho waiter này trong ca
+    const deliveryStats = await pool.query(
+      `SELECT 
+         COUNT(*) as total_deliveries,
+         COUNT(*) FILTER (WHERE di.delivery_status = 'DELIVERED') as delivered_count,
+         COUNT(*) FILTER (WHERE di.delivery_status = 'FAILED') as failed_count
+       FROM don_hang dh
+       JOIN don_hang_delivery_info di ON di.order_id = dh.id
+       WHERE dh.ca_lam_id = $1
+         AND dh.order_type = 'DELIVERY'
+         AND di.shipper_id = $2`,
+      [shiftId, waiterId]
+    );
+    
+    waiterStats = {
+      total_deliveries: Number(deliveryStats.rows[0]?.total_deliveries || 0),
+      delivered_count: Number(deliveryStats.rows[0]?.delivered_count || 0),
+      failed_count: Number(deliveryStats.rows[0]?.failed_count || 0)
+    };
+    
+    // Cập nhật summary.totals để frontend có thể dùng
+    if (summary && summary.totals) {
+      summary.totals.total_orders = waiterStats.total_deliveries;
+      summary.totals.delivered_orders = waiterStats.delivered_count;
+      summary.totals.failed_deliveries = waiterStats.failed_count;
+    }
+  }
+  
   return {
     shift,
     summary,
-    kitchenStats
+    kitchenStats,
+    waiterStats
   };
 }
 
@@ -216,6 +275,33 @@ export async function closeShiftEnhanced({ shiftId, userId, actualCash, note }) 
     err.code = 'OPEN_ORDERS_EXIST';
     err.openOrders = openOrders.rows; // Gửi danh sách đơn về client
     throw err;
+  }
+
+  // 2.5) Kiểm tra đơn DELIVERY đã claim nhưng chưa giao xong (chỉ cho ca WAITER)
+  const isWaiterShift = current.shift_type === 'WAITER';
+  if (isWaiterShift) {
+    // Kiểm tra xem còn đơn DELIVERY đã claim nhưng chưa giao xong không
+    const pendingDeliveries = await pool.query(`
+      SELECT 
+        dh.id,
+        dh.order_type,
+        di.delivery_status,
+        di.delivery_address
+      FROM don_hang dh
+      JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      WHERE dh.ca_lam_id = $1
+        AND dh.order_type = 'DELIVERY'
+        AND di.shipper_id = $2
+        AND di.delivery_status NOT IN ('DELIVERED', 'FAILED')
+    `, [shiftId, userId]);
+    
+    if (pendingDeliveries.rows.length > 0) {
+      const err = new Error(`Còn ${pendingDeliveries.rows.length} đơn giao hàng chưa hoàn thành. Vui lòng cập nhật trạng thái giao hàng (Đã giao/Thất bại) trước khi đóng ca.`);
+      err.status = 400;
+      err.code = 'PENDING_DELIVERIES_EXIST';
+      err.pendingDeliveries = pendingDeliveries.rows; // Gửi danh sách đơn về client
+      throw err;
+    }
   }
 
   // 3) Aggregate số liệu chốt ca

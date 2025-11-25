@@ -335,10 +335,14 @@ export default {
         m.hinh_anh AS hinh_anh_url,
         m.active,
         m.thu_tu,
-        (
-          SELECT MIN(gia)
-          FROM mon_bien_the
-          WHERE mon_id = m.id AND active = TRUE
+        COALESCE(
+          (
+            SELECT MIN(gia)
+            FROM mon_bien_the
+            WHERE mon_id = m.id AND active = TRUE
+          ),
+          m.gia_mac_dinh,
+          0
         ) AS gia_tu
       FROM mon m
       LEFT JOIN loai_mon l ON l.id = m.loai_id
@@ -369,6 +373,7 @@ export default {
         m.loai_id AS loai_mon_id,
         l.ten AS loai_ten,
         m.hinh_anh AS hinh_anh_url,
+        m.gia_mac_dinh,
         m.active
       FROM mon m
       LEFT JOIN loai_mon l ON l.id = m.loai_id
@@ -406,6 +411,19 @@ export default {
   },
 
   /**
+   * Get item default price (gia_mac_dinh)
+   */
+  async getItemDefaultPrice(itemId) {
+    const sql = `
+      SELECT gia_mac_dinh
+      FROM mon
+      WHERE id = $1 AND active = TRUE
+    `;
+    const { rows } = await pool.query(sql, [itemId]);
+    return rows[0]?.gia_mac_dinh || null;
+  },
+
+  /**
    * Get item options
    */
   async getItemOptions(itemId) {
@@ -440,6 +458,33 @@ export default {
   },
 
   /**
+   * Get item toppings (AMOUNT type options)
+   */
+  async getItemToppings(itemId, variantId = null) {
+    const sql = `
+      SELECT
+        tc.id AS tuy_chon_id,
+        tc.ma,
+        tc.ten,
+        tc.don_vi,
+        tc.gia_mac_dinh,
+        COALESCE(
+          (SELECT gia FROM tuy_chon_gia g 
+           WHERE g.tuy_chon_id=tc.id AND g.mon_bien_the_id=$2 LIMIT 1),
+          (SELECT gia FROM tuy_chon_gia g 
+           WHERE g.tuy_chon_id=tc.id AND g.mon_id=$1 AND g.mon_bien_the_id IS NULL LIMIT 1),
+          tc.gia_mac_dinh
+        ) AS gia_moi_don_vi
+      FROM mon_tuy_chon_ap_dung m
+      JOIN tuy_chon_mon tc ON tc.id=m.tuy_chon_id
+      WHERE m.mon_id=$1 AND tc.loai='AMOUNT'
+      ORDER BY tc.ma
+    `;
+    const { rows } = await pool.query(sql, [itemId, variantId]);
+    return rows;
+  },
+
+  /**
    * Search menu items
    */
   async searchItems(keyword) {
@@ -451,10 +496,14 @@ export default {
         m.loai_id AS loai_mon_id,
         l.ten AS loai_ten,
         m.hinh_anh AS hinh_anh_url,
-        (
-          SELECT MIN(gia)
-          FROM mon_bien_the
-          WHERE mon_id = m.id AND active = TRUE
+        COALESCE(
+          (
+            SELECT MIN(gia)
+            FROM mon_bien_the
+            WHERE mon_id = m.id AND active = TRUE
+          ),
+          m.gia_mac_dinh,
+          0
         ) AS gia_tu
       FROM mon m
       LEFT JOIN loai_mon l ON l.id = m.loai_id
@@ -565,8 +614,8 @@ export default {
     // Tự động gán vào ca CASHIER đang mở (nếu có) để thu ngân thấy được đơn hàng
     let caLamId = null;
     try {
-      const { default: shiftsRepository } = await import('../repositories/shiftsRepository.js');
-      const openShift = await shiftsRepository.getOpenCashierShift();
+      const { getOpenCashierShift } = await import('../repositories/shiftsRepository.js');
+      const openShift = await getOpenCashierShift();
       if (openShift && openShift.id) {
         caLamId = openShift.id;
       }
@@ -577,9 +626,10 @@ export default {
     }
 
     // Create order - tự động gán vào ca đang mở (nếu có)
+    // QUAN TRỌNG: Set order_source = 'ONLINE' để đơn hàng xuất hiện trong v_customer_orders
     const sql = `
-      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type, customer_account_id)
-      VALUES (NULL, NULL, $1, 'OPEN', $2, $3)
+      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type, order_source, customer_account_id)
+      VALUES (NULL, NULL, $1, 'OPEN', $2, 'ONLINE', $3)
       RETURNING *
     `;
     const { rows } = await pool.query(sql, [caLamId, orderType, khachHangId || null]);
@@ -597,6 +647,25 @@ export default {
     );
     const mon = monRows[0];
 
+    // Calculate price if not provided (fallback to database)
+    let price = donGia;
+    if (price == null || price === 0) {
+      if (bienTheId) {
+        const { rows: variantRows } = await pool.query(
+          `SELECT gia FROM mon_bien_the WHERE id = $1`,
+          [bienTheId]
+        );
+        price = variantRows[0]?.gia ?? 0;
+      } else {
+        price = mon?.gia_mac_dinh ?? 0;
+      }
+    }
+
+    // Validate price
+    if (!price || price <= 0) {
+      throw new Error(`Không thể lấy giá cho món ID ${monId}${bienTheId ? `, biến thể ID ${bienTheId}` : ''}`);
+    }
+
     // If cups provided (for options/toppings), insert multiple lines
     if (cups && Array.isArray(cups) && cups.length > 0) {
       const lines = [];
@@ -611,7 +680,7 @@ export default {
           RETURNING *
         `;
         const { rows } = await pool.query(lineSql, [
-          orderId, monId, bienTheId, donGia, giamGia, ghiChu, 
+          orderId, monId, bienTheId, price, giamGia, ghiChu, 
           mon?.ten, mon?.gia_mac_dinh, JSON.stringify(cup.tuy_chon || {})
         ]);
         lines.push(rows[0]);
@@ -629,7 +698,7 @@ export default {
       RETURNING *
     `;
     const { rows } = await pool.query(sql, [
-      orderId, monId, bienTheId, soLuong, donGia, giamGia, ghiChu, 
+      orderId, monId, bienTheId, soLuong, price, giamGia, ghiChu, 
       mon?.ten, mon?.gia_mac_dinh
     ]);
     return rows[0];

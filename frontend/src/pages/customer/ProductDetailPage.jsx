@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { customerApi } from '../../api/customerApi';
 import { useToast } from '../../components/CustomerToast';
-import { ShoppingCart, ArrowLeft, Plus, Minus, Coffee } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Plus, Minus, Coffee, X } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -15,6 +15,8 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [options, setOptions] = useState({}); // { option_id: muc_id }
   const [toppings, setToppings] = useState({}); // { topping_id: quantity }
+  const [selectedToppingToAdd, setSelectedToppingToAdd] = useState(''); // ID của topping đang chọn để thêm
+  const [availableToppings, setAvailableToppings] = useState([]); // List of available toppings
   const [notes, setNotes] = useState('');
   const [addingToCart, setAddingToCart] = useState(false);
 
@@ -26,24 +28,88 @@ export default function ProductDetailPage() {
     try {
       setLoading(true);
       const { data } = await customerApi.getItemDetail(parseInt(id));
+      console.log('📦 Item data:', data);
+      console.log('📋 Options:', data.options);
+      console.log('🍰 Is drink?', isDrinkItem(data));
+      
       setItem(data);
       
       // Set default variant (first one)
       if (data.variants && data.variants.length > 0) {
         setSelectedVariant(data.variants[0]);
+      } else if (data.gia_mac_dinh && data.gia_mac_dinh > 0) {
+        // Nếu không có variants nhưng có gia_mac_dinh, tạo variant mặc định
+        setSelectedVariant({
+          id: null,
+          mon_id: data.id,
+          ten_bien_the: 'Mặc định',
+          gia: data.gia_mac_dinh
+        });
       }
       
-      // Initialize options with default values
-      if (data.options) {
-        const defaultOptions = {};
-        data.options.forEach(opt => {
-          if (opt.muc_tuy_chon && opt.muc_tuy_chon.length > 0) {
-            // Default to middle option (50%)
+      setItem(data);
+      
+      // Tách options thành PERCENT (mức đá, độ ngọt) và AMOUNT (toppings)
+      if (data.options && data.options.length > 0) {
+        // PERCENT options (SUGAR, ICE) - có muc_tuy_chon
+        const percentOptions = data.options.filter(opt => opt.loai === 'PERCENT' && opt.muc_tuy_chon && opt.muc_tuy_chon.length > 0);
+        
+        // AMOUNT options (toppings) - loại AMOUNT
+        const amountOptions = data.options.filter(opt => opt.loai === 'AMOUNT');
+        
+        // Set PERCENT options với giá trị mặc định
+        if (percentOptions.length > 0) {
+          const defaultOptions = {};
+          percentOptions.forEach(opt => {
             const middleIndex = Math.floor(opt.muc_tuy_chon.length / 2);
             defaultOptions[opt.id] = opt.muc_tuy_chon[middleIndex].id;
+          });
+          setOptions(defaultOptions);
+          console.log('✅ Default PERCENT options set:', defaultOptions);
+        }
+        
+        // Set AMOUNT options (toppings) trực tiếp từ data.options
+        if (amountOptions.length > 0) {
+          // Load giá từ API để có giá chính xác theo variant
+          const variantId = data.variants?.[0]?.id || null;
+          try {
+            const { data: toppingsData } = await customerApi.getItemToppings(data.id, variantId);
+            if (toppingsData && toppingsData.length > 0) {
+              setAvailableToppings(toppingsData);
+              console.log('✅ Toppings loaded from API:', toppingsData);
+            } else {
+              // Fallback: dùng giá mặc định từ options
+              const toppingsData = amountOptions.map(opt => ({
+                tuy_chon_id: opt.id,
+                ma: opt.ma,
+                ten: opt.ten,
+                don_vi: opt.don_vi || 'phần',
+                gia_moi_don_vi: opt.gia_mac_dinh || 0
+              }));
+              setAvailableToppings(toppingsData);
+              console.log('✅ Toppings loaded from options (fallback):', toppingsData);
+            }
+          } catch (error) {
+            console.error('Error loading toppings from API, using fallback:', error);
+            // Fallback: dùng giá mặc định từ options
+            const toppingsData = amountOptions.map(opt => ({
+              tuy_chon_id: opt.id,
+              ma: opt.ma,
+              ten: opt.ten,
+              don_vi: opt.don_vi || 'phần',
+              gia_moi_don_vi: opt.gia_mac_dinh || 0
+            }));
+            setAvailableToppings(toppingsData);
           }
-        });
-        setOptions(defaultOptions);
+        }
+      } else {
+        console.log('⚠️  No options found in data');
+      }
+
+      // Load toppings từ API nếu chưa có (fallback)
+      if (isDrinkItem(data) && (!data.options || data.options.filter(opt => opt.loai === 'AMOUNT').length === 0)) {
+        console.log('🍰 Loading toppings from API (no options)...');
+        await loadToppings(data.id, data.variants?.[0]?.id || null);
       }
     } catch (error) {
       console.error('Error loading item:', error);
@@ -54,8 +120,31 @@ export default function ProductDetailPage() {
     }
   };
 
+  // Check if item is a drink (not food)
+  const isDrinkItem = (itemData) => {
+    if (!itemData || !itemData.loai_ten) return false;
+    const categoryName = itemData.loai_ten.toLowerCase();
+    const drinkCategories = ['cà phê', 'trà', 'nước ép', 'sinh tố', 'đá xay', 'đồ uống'];
+    return drinkCategories.some(drink => categoryName.includes(drink));
+  };
+
+  // Load toppings for item
+  const loadToppings = async (itemId, variantId = null) => {
+    try {
+      const { data } = await customerApi.getItemToppings(itemId, variantId);
+      setAvailableToppings(data || []);
+    } catch (error) {
+      console.error('Error loading toppings:', error);
+      setAvailableToppings([]);
+    }
+  };
+
   const handleVariantChange = (variant) => {
     setSelectedVariant(variant);
+    // Reload toppings when variant changes
+    if (item && isDrinkItem(item)) {
+      loadToppings(item.id, variant?.id || null);
+    }
   };
 
   const handleOptionChange = (optionId, mucId) => {
@@ -70,6 +159,24 @@ export default function ProductDetailPage() {
     } else {
       setToppings({ ...toppings, [toppingId]: quantity });
     }
+  };
+
+  const handleAddTopping = () => {
+    if (!selectedToppingToAdd) {
+      toast.warning('Vui lòng chọn topping');
+      return;
+    }
+    
+    const toppingId = parseInt(selectedToppingToAdd);
+    const currentQuantity = toppings[toppingId] || 0;
+    setToppings({ ...toppings, [toppingId]: currentQuantity + 1 });
+    setSelectedToppingToAdd(''); // Reset dropdown
+  };
+
+  const handleRemoveTopping = (toppingId) => {
+    const newToppings = { ...toppings };
+    delete newToppings[toppingId];
+    setToppings(newToppings);
   };
 
   const handleQuantityChange = (delta) => {
@@ -88,8 +195,9 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = async () => {
-    if (!selectedVariant) {
-      toast.warning('Vui lòng chọn size');
+    // Kiểm tra có variant hoặc có gia_mac_dinh
+    if (!selectedVariant && (!item.gia_mac_dinh || item.gia_mac_dinh <= 0)) {
+      toast.warning('Sản phẩm chưa có giá');
       return;
     }
 
@@ -98,7 +206,7 @@ export default function ProductDetailPage() {
       
       await customerApi.addToCart({
         item_id: item.id,
-        variant_id: selectedVariant.id,
+        variant_id: selectedVariant?.id || null, // Cho phép null nếu không có variant
         quantity: quantity,
         options: options,
         toppings: toppings,
@@ -184,34 +292,46 @@ export default function ProductDetailPage() {
           )}
 
           {/* Variants (Size) */}
-          {item.variants && item.variants.length > 0 && (
+          {item.variants && item.variants.length > 0 ? (
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 mb-3">Chọn size</label>
               <div className="flex flex-wrap gap-3">
-                {item.variants.map((variant) => (
+                {item.variants.map((variant, index) => (
                   <button
-                    key={variant.id}
+                    key={variant.id || `default-${index}`}
                     onClick={() => handleVariantChange(variant)}
                     className={`px-6 py-3 rounded-lg font-medium transition ${
-                      selectedVariant?.id === variant.id
+                      selectedVariant?.id === variant.id || 
+                      (!selectedVariant?.id && !variant.id && index === 0)
                         ? 'bg-[#c9975b] text-white'
                         : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-[#c9975b]'
                     }`}
                   >
                     {variant.ten_bien_the}
                     <div className="text-xs mt-1">
-                      {variant.gia.toLocaleString('vi-VN')}đ
+                      {variant.gia ? variant.gia.toLocaleString('vi-VN') : '0'}đ
                     </div>
                   </button>
                 ))}
               </div>
             </div>
+          ) : item.gia_mac_dinh && item.gia_mac_dinh > 0 ? (
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Giá</label>
+              <div className="text-2xl font-bold text-[#c9975b]">
+                {item.gia_mac_dinh.toLocaleString('vi-VN')}đ
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6">
+              <div className="text-sm text-gray-500">Liên hệ để biết giá</div>
+            </div>
           )}
 
-          {/* Options (Sugar, Ice) */}
-          {item.options && item.options.length > 0 && (
+          {/* Options (Sugar, Ice) - Chỉ hiển thị cho đồ uống */}
+          {isDrinkItem(item) && item.options && item.options.filter(opt => opt.loai === 'PERCENT' && opt.muc_tuy_chon && opt.muc_tuy_chon.length > 0).length > 0 && (
             <div className="mb-6">
-              {item.options.map((option) => (
+              {item.options.filter(opt => opt.loai === 'PERCENT' && opt.muc_tuy_chon && opt.muc_tuy_chon.length > 0).map((option) => (
                 <div key={option.id} className="mb-4">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     {option.ten}
@@ -236,8 +356,86 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Toppings (if any) */}
-          {/* Note: Cần load toppings từ API, tạm thời bỏ qua */}
+          {/* Toppings - Chỉ hiển thị cho đồ uống */}
+          {isDrinkItem(item) && availableToppings.length > 0 && (
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Topping (tùy chọn)
+              </label>
+              
+              {/* Dropdown để chọn topping */}
+              <div className="flex gap-2 mb-4">
+                <select
+                  value={selectedToppingToAdd}
+                  onChange={(e) => setSelectedToppingToAdd(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
+                >
+                  <option value="">-- Chọn topping --</option>
+                  {availableToppings
+                    .filter(topping => !toppings[topping.tuy_chon_id] || toppings[topping.tuy_chon_id] === 0)
+                    .map((topping) => (
+                      <option key={topping.tuy_chon_id} value={topping.tuy_chon_id}>
+                        {topping.ten} - {topping.gia_moi_don_vi?.toLocaleString('vi-VN')}đ/{topping.don_vi || 'phần'}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  onClick={handleAddTopping}
+                  disabled={!selectedToppingToAdd}
+                  className="px-4 py-2 bg-[#c9975b] text-white font-medium rounded-lg hover:bg-[#d4a574] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Thêm</span>
+                </button>
+              </div>
+
+              {/* Danh sách toppings đã chọn */}
+              {Object.keys(toppings).length > 0 && (
+                <div className="space-y-2">
+                  {Object.entries(toppings).map(([toppingId, quantity]) => {
+                    if (quantity <= 0) return null;
+                    const topping = availableToppings.find(t => t.tuy_chon_id === parseInt(toppingId));
+                    if (!topping) return null;
+                    
+                    return (
+                      <div key={toppingId} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{topping.ten}</div>
+                          <div className="text-sm text-gray-500">
+                            {quantity} {topping.don_vi || 'phần'} × {topping.gia_moi_don_vi?.toLocaleString('vi-VN')}đ = {(quantity * (topping.gia_moi_don_vi || 0)).toLocaleString('vi-VN')}đ
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleToppingChange(parseInt(toppingId), quantity - 1)}
+                            className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-200 transition"
+                            title="Giảm"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-8 text-center font-semibold">{quantity}</span>
+                          <button
+                            onClick={() => handleToppingChange(parseInt(toppingId), quantity + 1)}
+                            className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-200 transition"
+                            title="Tăng"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveTopping(parseInt(toppingId))}
+                            className="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition"
+                            title="Xóa"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div className="mb-6">
@@ -279,7 +477,11 @@ export default function ProductDetailPage() {
               <div>
                 <div className="text-sm text-gray-500">Tổng cộng</div>
                 <div className="text-3xl font-bold text-[#c9975b]">
-                  {selectedVariant ? (selectedVariant.gia * quantity).toLocaleString('vi-VN') : '0'}đ
+                  {selectedVariant && selectedVariant.gia 
+                    ? (selectedVariant.gia * quantity).toLocaleString('vi-VN') 
+                    : item.gia_mac_dinh && item.gia_mac_dinh > 0
+                      ? (item.gia_mac_dinh * quantity).toLocaleString('vi-VN')
+                      : '0'}đ
                 </div>
               </div>
             </div>

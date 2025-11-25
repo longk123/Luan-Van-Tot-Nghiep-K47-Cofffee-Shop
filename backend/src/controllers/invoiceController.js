@@ -36,9 +36,59 @@ async function fetchInvoiceBundle(orderId) {
 }
 
 class InvoiceController {
+  // Kiểm tra quyền xem hóa đơn cho waiter
+  async checkWaiterAccess(orderId, userId, userRoles) {
+    const isWaiter = userRoles.some(role => 
+      role.toLowerCase() === 'waiter'
+    ) && !userRoles.some(role => 
+      ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
+    );
+    
+    if (!isWaiter) {
+      return true; // Cashier/Manager/Admin có quyền xem tất cả
+    }
+    
+    // Waiter chỉ xem được đơn do mình tạo hoặc đơn DELIVERY đã claim
+    const { rows } = await pool.query(`
+      SELECT 
+        dh.nhan_vien_id,
+        dh.order_type,
+        di.shipper_id
+      FROM don_hang dh
+      LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      WHERE dh.id = $1
+    `, [orderId]);
+    
+    if (rows.length === 0) {
+      return false;
+    }
+    
+    const order = rows[0];
+    
+    // Waiter có thể xem nếu:
+    // 1. Đơn do waiter tạo (DINE_IN hoặc TAKEAWAY)
+    // 2. Đơn DELIVERY đã được phân công cho waiter (đã claim)
+    const canAccess = 
+      (order.nhan_vien_id === userId && ['DINE_IN', 'TAKEAWAY'].includes(order.order_type)) ||
+      (order.order_type === 'DELIVERY' && order.shipper_id === userId);
+    
+    return canAccess;
+  }
+
   // GET /api/v1/hoa-don/:orderId
   getInvoiceData = asyncHandler(async (req, res) => {
     const orderId = parseInt(req.params.orderId);
+    const userId = req.user.user_id;
+    const userRoles = req.user.roles || [];
+    
+    // Kiểm tra quyền cho waiter
+    const hasAccess = await this.checkWaiterAccess(orderId, userId, userRoles);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden - Bạn chỉ có thể xem đơn do mình tạo hoặc đơn giao hàng đã được phân công cho bạn'
+      });
+    }
     
     // Nếu query ?format=pdf thì chuyển sang PDF
     if (req.query.format === 'pdf') {

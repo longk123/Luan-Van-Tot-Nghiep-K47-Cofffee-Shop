@@ -539,10 +539,16 @@ export async function getCurrentShiftOrders(req, res, next) {
     const isCashier = userRoles.some(role =>
       role.toLowerCase() === 'cashier'
     );
+    const isWaiter = userRoles.some(role =>
+      role.toLowerCase() === 'waiter'
+    ) && !isCashier && !isManager;
 
     if (isManager && !isCashier) {
       // Manager: lấy ca CASHIER đang mở
       currentShift = await shiftsService.getOpenCashierShiftService();
+    } else if (isWaiter) {
+      // Waiter: lấy ca WAITER của mình
+      currentShift = await shiftsService.getCurrentShiftService(userId);
     } else {
       // Cashier: lấy ca của mình
       currentShift = await shiftsService.getCurrentShiftService(userId);
@@ -557,7 +563,29 @@ export async function getCurrentShiftOrders(req, res, next) {
     }
 
     // Lấy đơn hàng của ca hiện tại
-    const orders = await posRepository.getCurrentShiftOrders(currentShift.id);
+    let orders = await posRepository.getCurrentShiftOrders(currentShift.id);
+
+    // Nếu là Waiter: lấy đơn do waiter tạo (DINE_IN, TAKEAWAY) và đơn DELIVERY đã được phân công cho waiter
+    if (isWaiter) {
+      const { pool } = await import('../db.js');
+      // Lấy đơn do waiter tạo (DINE_IN, TAKEAWAY) và đơn DELIVERY đã được phân công cho waiter
+      const { rows: waiterOrders } = await pool.query(`
+        SELECT DISTINCT dh.id
+        FROM don_hang dh
+        LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+        WHERE dh.ca_lam_id = $1
+          AND (
+            -- Đơn do waiter này tạo (DINE_IN hoặc TAKEAWAY)
+            (dh.nhan_vien_id = $2 AND dh.order_type IN ('DINE_IN', 'TAKEAWAY'))
+            OR
+            -- Đơn DELIVERY đã được phân công cho waiter này (đã claim)
+            (dh.order_type = 'DELIVERY' AND di.shipper_id = $2)
+          )
+      `, [currentShift.id, userId]);
+      
+      const waiterOrderIds = waiterOrders.map(o => o.id);
+      orders = orders.filter(o => waiterOrderIds.includes(o.id));
+    }
 
     // Thống kê tổng quan
     const stats = {
@@ -570,12 +598,36 @@ export async function getCurrentShiftOrders(req, res, next) {
         .reduce((sum, o) => sum + parseFloat(o.tong_tien || 0), 0)
     };
 
+    // Thêm thống kê delivery status cho waiter (chỉ đơn DELIVERY đã được phân công cho waiter)
+    if (isWaiter) {
+      const { pool } = await import('../db.js');
+      const { rows: deliveryStats } = await pool.query(`
+        SELECT 
+          di.delivery_status,
+          COUNT(*) as count
+        FROM don_hang dh
+        JOIN don_hang_delivery_info di ON di.order_id = dh.id
+        WHERE dh.ca_lam_id = $1
+          AND dh.order_type = 'DELIVERY'
+          AND di.shipper_id = $2
+        GROUP BY di.delivery_status
+      `, [currentShift.id, userId]);
+      
+      stats.delivery_stats = {
+        assigned: deliveryStats.find(s => s.delivery_status === 'ASSIGNED')?.count || 0,
+        out_for_delivery: deliveryStats.find(s => s.delivery_status === 'OUT_FOR_DELIVERY')?.count || 0,
+        delivered: deliveryStats.find(s => s.delivery_status === 'DELIVERED')?.count || 0,
+        failed: deliveryStats.find(s => s.delivery_status === 'FAILED')?.count || 0
+      };
+    }
+
     res.json({
       success: true,
       data: {
         shift: currentShift,
         orders,
-        stats
+        stats,
+        isWaiter // Flag để frontend biết là waiter view
       }
     });
   } catch (err) {

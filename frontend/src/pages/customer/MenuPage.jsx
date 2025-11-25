@@ -186,10 +186,16 @@ export default function MenuPage() {
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-gray-500">Từ </span>
-                    <span className="text-lg font-bold text-[#c9975b]">
-                      {item.gia_tu?.toLocaleString('vi-VN')}đ
-                    </span>
+                    {item.gia_tu && item.gia_tu > 0 ? (
+                      <>
+                        <span className="text-xs text-gray-500">Từ </span>
+                        <span className="text-lg font-bold text-[#c9975b]">
+                          {item.gia_tu.toLocaleString('vi-VN')}đ
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-500">Liên hệ</span>
+                    )}
                   </div>
                   <button
                     onClick={() => handleAddToCart(item)}

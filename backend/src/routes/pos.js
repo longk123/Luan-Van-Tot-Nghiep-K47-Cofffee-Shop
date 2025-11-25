@@ -141,41 +141,85 @@ router.post('/orders/:orderId/confirm', auth, async (req, res, next) => {
 });
 
 // GET /api/v1/pos/takeaway-orders - Danh sách đơn mang đi chưa hoàn tất
+// Waiter chỉ thấy đơn đã thanh toán, Cashier/Manager/Admin thấy tất cả
 router.get('/takeaway-orders', auth, async (req, res, next) => {
   try {
-    const data = await service.default.getTakeawayOrders();
+    const userId = req.user.user_id;
+    const data = await service.default.getTakeawayOrders(userId);
     res.json({ success: true, data });
   } catch (e) { next(e); }
 });
 
 // GET /api/v1/pos/delivery-orders - Danh sách đơn giao hàng chưa hoàn tất
+// Waiter chỉ thấy đơn được phân công cho mình, Cashier/Manager/Admin thấy tất cả
 router.get('/delivery-orders', auth, async (req, res, next) => {
   try {
-    const data = await service.default.getDeliveryOrders();
+    const userId = req.user.user_id;
+    const data = await service.default.getDeliveryOrders(userId);
     res.json({ success: true, data });
   } catch (e) { next(e); }
 });
 
-// GET /api/v1/pos/waiters - Lấy danh sách nhân viên phục vụ (WAITER role)
-router.get('/waiters', auth, async (req, res, next) => {
+// POST /api/v1/pos/orders/claim-delivery - Nhân viên phục vụ tự nhận đơn giao hàng (1 hoặc nhiều đơn)
+router.post('/orders/claim-delivery', auth, async (req, res, next) => {
   try {
-    const userRepository = (await import('../repositories/userRepository.js')).default;
-    const waiters = await userRepository.getUsersByRole('WAITER');
-    res.json({ success: true, data: waiters });
-  } catch (e) { next(e); }
-});
-
-// POST /api/v1/pos/orders/:orderId/assign-delivery - Phân công đơn giao hàng cho nhân viên phục vụ
-router.post('/orders/:orderId/assign-delivery', auth, async (req, res, next) => {
-  try {
-    const orderId = parseInt(req.params.orderId);
-    const schema = Joi.object({
-      shipperId: Joi.number().integer().required()
-    });
-    const { shipperId } = await schema.validateAsync(req.body);
-    const assignedBy = req.user.user_id;
+    // Log để debug
+    console.log('🔍 Claim delivery request body:', JSON.stringify(req.body, null, 2));
+    console.log('🔍 Request body type:', typeof req.body);
+    console.log('🔍 Request body keys:', Object.keys(req.body || {}));
     
-    const result = await service.default.assignDeliveryOrder(orderId, shipperId, assignedBy);
+    // Kiểm tra trực tiếp nếu có orderIds
+    if (!req.body || !req.body.orderIds) {
+      return res.status(400).json({
+        success: false,
+        error: 'orderIds là bắt buộc'
+      });
+    }
+    
+    const orderIds = req.body.orderIds;
+    
+    // Validate thủ công
+    if (!Array.isArray(orderIds)) {
+      return res.status(400).json({
+        success: false,
+        error: 'orderIds phải là một mảng'
+      });
+    }
+    
+    if (orderIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Phải chọn ít nhất 1 đơn'
+      });
+    }
+    
+    if (orderIds.length > 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chỉ có thể nhận tối đa 10 đơn mỗi lần'
+      });
+    }
+    
+    // Validate và chuyển đổi từng ID sang số nguyên
+    const validatedOrderIds = [];
+    for (const id of orderIds) {
+      const numId = parseInt(id, 10);
+      if (isNaN(numId) || numId <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: `ID đơn không hợp lệ: ${id}`
+        });
+      }
+      validatedOrderIds.push(numId);
+    }
+    
+    // Sử dụng validatedOrderIds thay vì orderIds gốc
+    const finalOrderIds = validatedOrderIds;
+    
+    const shipperId = req.user.user_id; // Nhân viên phục vụ tự claim
+    
+    console.log('✅ Validated orderIds:', finalOrderIds);
+    const result = await service.default.claimDeliveryOrders(finalOrderIds, shipperId);
     res.json({ success: true, data: result });
   } catch (e) { next(e); }
 });
@@ -185,12 +229,13 @@ router.patch('/orders/:orderId/delivery-status', auth, async (req, res, next) =>
   try {
     const orderId = parseInt(req.params.orderId);
     const schema = Joi.object({
-      status: Joi.string().valid('PENDING', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED').required()
+      status: Joi.string().valid('PENDING', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED').required(),
+      failure_reason: Joi.string().allow(null, '').optional()
     });
-    const { status } = await schema.validateAsync(req.body);
+    const { status, failure_reason } = await schema.validateAsync(req.body);
     const shipperId = req.user.user_id; // Nhân viên phục vụ tự update
     
-    const result = await service.default.updateDeliveryStatus(orderId, status, shipperId);
+    const result = await service.default.updateDeliveryStatus(orderId, status, shipperId, failure_reason);
     res.json({ success: true, data: result });
   } catch (e) { next(e); }
 });

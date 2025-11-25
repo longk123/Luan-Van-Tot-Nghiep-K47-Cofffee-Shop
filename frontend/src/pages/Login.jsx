@@ -215,7 +215,7 @@ export default function Login() {
         } else if (isKitchenStaff) {
           navigate("/kitchen?from=payment");
         } else if (isWaiter) {
-          navigate("/waiter/delivery?from=payment");
+          navigate("/dashboard?tab=takeaway&from=payment");
         }
       } else {
         // Auto-redirect theo role
@@ -223,8 +223,8 @@ export default function Login() {
           console.log('🍳 Kitchen staff → redirect to /kitchen');
           navigate("/kitchen");
         } else if (isWaiter) {
-          console.log('🚚 Waiter → redirect to /waiter/delivery');
-          navigate("/waiter/delivery");
+          console.log('🚚 Waiter → redirect to /dashboard with takeaway tab');
+          navigate("/dashboard?tab=takeaway");
         } else if (isManager) {
           console.log('👔 Manager → redirect to /manager');
           window.location.href = '/manager';

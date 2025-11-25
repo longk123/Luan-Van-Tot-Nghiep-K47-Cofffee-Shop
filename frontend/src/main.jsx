@@ -9,7 +9,6 @@ import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import POS from './pages/POS.jsx'
 import Kitchen from './pages/Kitchen.jsx'
-import TakeawayOrders from './pages/TakeawayOrders.jsx'
 import WaiterDeliveryPage from './pages/WaiterDeliveryPage.jsx'
 import UserProfile from './pages/UserProfile.jsx'
 import PaymentSuccess from './pages/PaymentSuccess.jsx'
@@ -124,7 +123,7 @@ const router = createBrowserRouter([
     path: '/takeaway', 
     element: (
       <RoleGuard allowedRoles={['cashier', 'waiter', 'manager', 'admin']}>
-        <TakeawayOrders />
+        <Dashboard defaultMode="takeaway" />
       </RoleGuard>
     )
   },
@@ -132,7 +131,7 @@ const router = createBrowserRouter([
     path: '/waiter/delivery', 
     element: (
       <RoleGuard allowedRoles={['waiter', 'manager', 'admin']}>
-        <WaiterDeliveryPage />
+        <Dashboard defaultMode="takeaway" />
       </RoleGuard>
     )
   },

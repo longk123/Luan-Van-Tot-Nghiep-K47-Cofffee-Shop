@@ -176,6 +176,7 @@ export default {
         o.order_type,
         o.opened_at,
         o.closed_at,
+        o.nhan_vien_id,
         CASE WHEN o.trang_thai = 'PAID' THEN true ELSE false END AS da_thanh_toan,
         COUNT(d.id) FILTER (WHERE d.trang_thai_che_bien != 'CANCELLED') AS total_lines,
         COALESCE(SUM(d.so_luong) FILTER (WHERE d.trang_thai_che_bien != 'CANCELLED'), 0) AS total_quantity,
@@ -183,7 +184,7 @@ export default {
       FROM don_hang o
       LEFT JOIN don_hang_chi_tiet d ON d.don_hang_id = o.id
       WHERE o.id = $1
-      GROUP BY o.id, o.ban_id, o.trang_thai, o.order_type, o.opened_at, o.closed_at
+      GROUP BY o.id, o.ban_id, o.trang_thai, o.order_type, o.opened_at, o.closed_at, o.nhan_vien_id
     `;
     const { rows } = await pool.query(sql, [orderId]);
     return rows[0] || { total_lines: 0, total_quantity: 0, subtotal: 0, trang_thai: 'OPEN', da_thanh_toan: false };
@@ -591,6 +592,8 @@ export default {
         di.delivery_notes AS delivery_notes,
         di.delivery_fee,
         di.distance_km,
+        di.delivery_status,
+        di.shipper_id,
         -- Tổng tiền đơn hàng: dùng grand_total từ v_order_settlement để bao gồm topping và discount
         -- Đơn đã hủy (CANCELLED) sẽ hiển thị 0 ₫
         CASE 

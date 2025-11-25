@@ -7,6 +7,8 @@ import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import OpenShiftModal from '../components/OpenShiftModal.jsx';
 import CloseShiftModal from '../components/CloseShiftModal.jsx';
 import OpenOrdersDialog from '../components/OpenOrdersDialog.jsx';
+import Toast from '../components/Toast.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import { getUser } from '../auth.js';
 
 export default function Kitchen() {
@@ -32,6 +34,17 @@ export default function Kitchen() {
   
   // Item detail dialog state
   const [itemDetailDialog, setItemDetailDialog] = useState({ open: false, item: null });
+  
+  // Toast notification state
+  const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '' });
+  
+  // Confirm dialog state (for shift opening)
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    open: false, 
+    title: '', 
+    message: '', 
+    onConfirm: null 
+  });
 
   // Get user info
   const user = getUser();
@@ -222,9 +235,41 @@ export default function Kitchen() {
       await api.updateKitchenLine(lineId, action, reason);
       // Force reload ngay sau action (không dùng silent)
       await loadQueue(false);
+      
+      // Hiển thị thông báo thành công
+      setToast({
+        show: true,
+        type: 'success',
+        title: 'Thành công',
+        message: action === 'start' ? 'Đã bắt đầu làm món' : 
+                 action === 'done' ? 'Đã hoàn thành món' : 
+                 'Đã hủy món'
+      });
     } catch (err) {
       console.error(`Error ${action}:`, err);
-      alert(`Lỗi: ${err.message || 'Không thể cập nhật'}`);
+      const errorMessage = err.message || 'Không thể cập nhật';
+      
+      // Nếu lỗi là chưa mở ca, hiển thị dialog xác nhận đẹp và gợi ý mở ca
+      if (errorMessage.includes('chưa mở ca') || errorMessage.includes('Bạn chưa mở ca') || 
+          errorMessage.includes('phải mở ca KITCHEN')) {
+        setConfirmDialog({
+          open: true,
+          title: 'Chưa mở ca',
+          message: `${errorMessage}\n\nBạn có muốn mở ca ngay bây giờ không?`,
+          onConfirm: () => {
+            setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+            setShowOpenShift(true);
+          }
+        });
+      } else {
+        // Hiển thị toast lỗi
+        setToast({
+          show: true,
+          type: 'error',
+          title: 'Lỗi',
+          message: errorMessage
+        });
+      }
     }
   }
 
@@ -999,6 +1044,29 @@ export default function Kitchen() {
         onForceClose={() => setShowTransferredOrdersDialog(false)}
         onGoBack={() => setShowTransferredOrdersDialog(false)}
         loading={false}
+      />
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <Toast
+          show={toast.show}
+          type={toast.type}
+          title={toast.title}
+          message={toast.message}
+          onClose={() => setToast({ ...toast, show: false })}
+        />
+      )}
+
+      {/* Confirm Dialog for Shift Opening */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Mở ca ngay"
+        cancelText="Để sau"
+        type="info"
+        onConfirm={confirmDialog.onConfirm || (() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null }))}
+        onCancel={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
       />
     </AuthedLayout>
   );

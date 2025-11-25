@@ -113,6 +113,17 @@ export default function WaiterDeliveryPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-1">Đơn giao hàng của tôi</h2>
             <p className="text-sm text-gray-600">Xem và cập nhật trạng thái đơn được phân công</p>
           </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-6 py-3 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2 shadow-md"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Tạo đơn</span>
+            </button>
+          </div>
         </div>
       </div>
 
