@@ -535,7 +535,7 @@ export default {
         
         // Lấy ca làm việc hiện tại của shipper (nếu có)
         const shiftResult = await pool.query(
-          `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND trang_thai = 'OPEN' LIMIT 1`,
+          `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND status = 'OPEN' LIMIT 1`,
           [shipperId]
         );
         const shiftId = shiftResult.rows[0]?.id || null;

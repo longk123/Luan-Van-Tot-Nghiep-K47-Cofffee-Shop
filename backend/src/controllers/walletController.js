@@ -111,7 +111,7 @@ export const walletController = {
       // Lấy ca hiện tại nếu có
       const { pool } = await import('../db.js');
       const shiftResult = await pool.query(
-        `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND trang_thai = 'OPEN' LIMIT 1`,
+        `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND status = 'OPEN' LIMIT 1`,
         [cashierId]
       );
       const shiftId = shiftResult.rows[0]?.id || null;
@@ -146,7 +146,7 @@ export const walletController = {
       // Lấy ca hiện tại nếu có
       const { pool } = await import('../db.js');
       const shiftResult = await pool.query(
-        `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND trang_thai = 'OPEN' LIMIT 1`,
+        `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND status = 'OPEN' LIMIT 1`,
         [cashierId]
       );
       const shiftId = shiftResult.rows[0]?.id || null;
@@ -271,7 +271,7 @@ export const walletController = {
       // Lấy ca hiện tại nếu có
       const { pool } = await import('../db.js');
       const shiftResult = await pool.query(
-        `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND trang_thai = 'OPEN' LIMIT 1`,
+        `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND status = 'OPEN' LIMIT 1`,
         [userId]
       );
       const shiftId = shiftResult.rows[0]?.id || null;

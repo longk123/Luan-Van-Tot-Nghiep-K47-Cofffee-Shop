@@ -46,10 +46,18 @@ const walletService = {
       return null;
     }
     
-    // Lấy thông tin đơn hàng
+    // Lấy thông tin đơn hàng với tổng tiền từ view v_order_settlement
     const { rows: orderRows } = await pool.query(
-      `SELECT id, grand_total, delivery_fee, order_type, trang_thai
-       FROM don_hang WHERE id = $1`,
+      `SELECT 
+        dh.id, 
+        dh.order_type, 
+        dh.trang_thai,
+        COALESCE(s.grand_total, 0) AS grand_total,
+        COALESCE(di.delivery_fee, 0) AS delivery_fee
+       FROM don_hang dh
+       LEFT JOIN v_order_settlement s ON s.order_id = dh.id
+       LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+       WHERE dh.id = $1`,
       [orderId]
     );
     
@@ -67,6 +75,8 @@ const walletService = {
     
     // Tính số tiền cần thu (bao gồm phí ship nếu khách trả)
     const amount = parseInt(order.grand_total || 0) + parseInt(order.delivery_fee || 0);
+    
+    console.log(`📦 Order ${orderId}: grand_total=${order.grand_total}, delivery_fee=${order.delivery_fee}, total=${amount}`);
     
     if (amount <= 0) {
       console.log(`⚠️ Order ${orderId} không có tiền cần thu (đã thanh toán online?)`);
