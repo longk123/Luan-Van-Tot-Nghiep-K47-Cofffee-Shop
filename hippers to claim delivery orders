@@ -1,0 +1,141 @@
+[1mdiff --git a/backend/src/routes/pos.js b/backend/src/routes/pos.js[m
+[1mindex b7101e0..c2706b0 100644[m
+[1m--- a/backend/src/routes/pos.js[m
+[1m+++ b/backend/src/routes/pos.js[m
+[36m@@ -67,6 +67,65 @@[m [mrouter.get('/menu/search', auth, async (req, res, next) => {[m
+   } catch (e) { next(e); }[m
+ });[m
+ [m
+[32m+[m[32m// POST /api/v1/pos/orders/claim-delivery - Nhân viên phục vụ tự nhận đơn giao hàng (1 hoặc nhiều đơn)[m
+[32m+[m[32m// ⚠️ PHẢI đặt TRƯỚC /orders/:banId để Express không match nhầm[m
+[32m+[m[32mrouter.post('/orders/claim-delivery', auth, async (req, res, next) => {[m
+[32m+[m[32m  try {[m
+[32m+[m[32m    console.log('🔍 [CLAIM-DELIVERY] Request received');[m
+[32m+[m[32m    console.log('🔍 [CLAIM-DELIVERY] Request body:', JSON.stringify(req.body, null, 2));[m
+[32m+[m[41m    [m
+[32m+[m[32m    if (!req.body || !req.body.orderIds) {[m
+[32m+[m[32m      return res.status(400).json({[m
+[32m+[m[32m        success: false,[m
+[32m+[m[32m        error: 'Dữ liệu không hợp lệ',[m
+[32m+[m[32m        details: ['orderIds là bắt buộc'][m
+[32m+[m[32m      });[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    const orderIds = req.body.orderIds;[m
+[32m+[m[41m    [m
+[32m+[m[32m    if (!Array.isArray(orderIds) || orderIds.length === 0) {[m
+[32m+[m[32m      return res.status(400).json({[m
+[32m+[m[32m        success: false,[m
+[32m+[m[32m        error: 'Dữ liệu không hợp lệ',[m
+[32m+[m[32m        details: ['orderIds phải là một mảng không rỗng'][m
+[32m+[m[32m      });[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    if (orderIds.length > 10) {[m
+[32m+[m[32m      return res.status(400).json({[m
+[32m+[m[32m        success: false,[m
+[32m+[m[32m        error: 'Dữ liệu không hợp lệ',[m
+[32m+[m[32m        details: ['Chỉ có thể nhận tối đa 10 đơn mỗi lần'][m
+[32m+[m[32m      });[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    // Validate và chuyển đổi từng ID sang số nguyên[m
+[32m+[m[32m    const validatedOrderIds = [];[m
+[32m+[m[32m    for (const id of orderIds) {[m
+[32m+[m[32m      const numId = parseInt(id, 10);[m
+[32m+[m[32m      if (isNaN(numId) || numId <= 0) {[m
+[32m+[m[32m        return res.status(400).json({[m
+[32m+[m[32m          success: false,[m
+[32m+[m[32m          error: 'Dữ liệu không hợp lệ',[m
+[32m+[m[32m          details: [`ID đơn không hợp lệ: ${id}`][m
+[32m+[m[32m        });[m
+[32m+[m[32m      }[m
+[32m+[m[32m      validatedOrderIds.push(numId);[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    const shipperId = req.user.user_id;[m
+[32m+[m[32m    console.log('✅ [CLAIM-DELIVERY] Validation passed. OrderIds:', validatedOrderIds, 'ShipperId:', shipperId);[m
+[32m+[m[41m    [m
+[32m+[m[32m    const result = await service.default.claimDeliveryOrders(validatedOrderIds, shipperId);[m
+[32m+[m[32m    console.log('✅ [CLAIM-DELIVERY] Success:', result);[m
+[32m+[m[32m    res.json({ success: true, data: result });[m
+[32m+[m[32m  } catch (e) {[m
+[32m+[m[32m    console.error('❌ [CLAIM-DELIVERY] Error:', e);[m
+[32m+[m[32m    next(e);[m
+[32m+[m[32m  }[m
+[32m+[m[32m});[m
+[32m+[m
+ // POST /api/v1/pos/orders (tạo đơn mang đi hoặc giao hàng)[m
+ // body: { order_type: 'TAKEAWAY' | 'DELIVERY', nhan_vien_id, ca_lam_id? }[m
+ router.post('/orders', auth, async (req, res, next) => {[m
+[36m@@ -160,70 +219,6 @@[m [mrouter.get('/delivery-orders', auth, async (req, res, next) => {[m
+   } catch (e) { next(e); }[m
+ });[m
+ [m
+[31m-// POST /api/v1/pos/orders/claim-delivery - Nhân viên phục vụ tự nhận đơn giao hàng (1 hoặc nhiều đơn)[m
+[31m-router.post('/orders/claim-delivery', auth, async (req, res, next) => {[m
+[31m-  try {[m
+[31m-    // Log để debug[m
+[31m-    console.log('🔍 Claim delivery request body:', JSON.stringify(req.body, null, 2));[m
+[31m-    console.log('🔍 Request body type:', typeof req.body);[m
+[31m-    console.log('🔍 Request body keys:', Object.keys(req.body || {}));[m
+[31m-    [m
+[31m-    // Kiểm tra trực tiếp nếu có orderIds[m
+[31m-    if (!req.body || !req.body.orderIds) {[m
+[31m-      return res.status(400).json({[m
+[31m-        success: false,[m
+[31m-        error: 'orderIds là bắt buộc'[m
+[31m-      });[m
+[31m-    }[m
+[31m-    [m
+[31m-    const orderIds = req.body.orderIds;[m
+[31m-    [m
+[31m-    // Validate thủ công[m
+[31m-    if (!Array.isArray(orderIds)) {[m
+[31m-      return res.status(400).json({[m
+[31m-        success: false,[m
+[31m-        error: 'orderIds phải là một mảng'[m
+[31m-      });[m
+[31m-    }[m
+[31m-    [m
+[31m-    if (orderIds.length === 0) {[m
+[31m-      return res.status(400).json({[m
+[31m-        success: false,[m
+[31m-        error: 'Phải chọn ít nhất 1 đơn'[m
+[31m-      });[m
+[31m-    }[m
+[31m-    [m
+[31m-    if (orderIds.length > 10) {[m
+[31m-      return res.status(400).json({[m
+[31m-        success: false,[m
+[31m-        error: 'Chỉ có thể nhận tối đa 10 đơn mỗi lần'[m
+[31m-      });[m
+[31m-    }[m
+[31m-    [m
+[31m-    // Validate và chuyển đổi từng ID sang số nguyên[m
+[31m-    const validatedOrderIds = [];[m
+[31m-    for (const id of orderIds) {[m
+[31m-      const numId = parseInt(id, 10);[m
+[31m-      if (isNaN(numId) || numId <= 0) {[m
+[31m-        return res.status(400).json({[m
+[31m-          success: false,[m
+[31m-          error: `ID đơn không hợp lệ: ${id}`[m
+[31m-        });[m
+[31m-      }[m
+[31m-      validatedOrderIds.push(numId);[m
+[31m-    }[m
+[31m-    [m
+[31m-    // Sử dụng validatedOrderIds thay vì orderIds gốc[m
+[31m-    const finalOrderIds = validatedOrderIds;[m
+[31m-    [m
+[31m-    const shipperId = req.user.user_id; // Nhân viên phục vụ tự claim[m
+[31m-    [m
+[31m-    console.log('✅ Validated orderIds:', finalOrderIds);[m
+[31m-    const result = await service.default.claimDeliveryOrders(finalOrderIds, shipperId);[m
+[31m-    res.json({ success: true, data: result });[m
+[31m-  } catch (e) { next(e); }[m
+[31m-});[m
+[31m-[m
+ // PATCH /api/v1/pos/orders/:orderId/delivery-status - Cập nhật trạng thái giao hàng[m
+ router.patch('/orders/:orderId/delivery-status', auth, async (req, res, next) => {[m
+   try {[m

@@ -67,6 +67,65 @@ router.get('/menu/search', auth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// POST /api/v1/pos/orders/claim-delivery - Nhân viên phục vụ tự nhận đơn giao hàng (1 hoặc nhiều đơn)
+// ⚠️ PHẢI đặt TRƯỚC /orders/:banId để Express không match nhầm
+router.post('/orders/claim-delivery', auth, async (req, res, next) => {
+  try {
+    console.log('🔍 [CLAIM-DELIVERY] Request received');
+    console.log('🔍 [CLAIM-DELIVERY] Request body:', JSON.stringify(req.body, null, 2));
+    
+    if (!req.body || !req.body.orderIds) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dữ liệu không hợp lệ',
+        details: ['orderIds là bắt buộc']
+      });
+    }
+    
+    const orderIds = req.body.orderIds;
+    
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dữ liệu không hợp lệ',
+        details: ['orderIds phải là một mảng không rỗng']
+      });
+    }
+    
+    if (orderIds.length > 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dữ liệu không hợp lệ',
+        details: ['Chỉ có thể nhận tối đa 10 đơn mỗi lần']
+      });
+    }
+    
+    // Validate và chuyển đổi từng ID sang số nguyên
+    const validatedOrderIds = [];
+    for (const id of orderIds) {
+      const numId = parseInt(id, 10);
+      if (isNaN(numId) || numId <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Dữ liệu không hợp lệ',
+          details: [`ID đơn không hợp lệ: ${id}`]
+        });
+      }
+      validatedOrderIds.push(numId);
+    }
+    
+    const shipperId = req.user.user_id;
+    console.log('✅ [CLAIM-DELIVERY] Validation passed. OrderIds:', validatedOrderIds, 'ShipperId:', shipperId);
+    
+    const result = await service.default.claimDeliveryOrders(validatedOrderIds, shipperId);
+    console.log('✅ [CLAIM-DELIVERY] Success:', result);
+    res.json({ success: true, data: result });
+  } catch (e) {
+    console.error('❌ [CLAIM-DELIVERY] Error:', e);
+    next(e);
+  }
+});
+
 // POST /api/v1/pos/orders (tạo đơn mang đi hoặc giao hàng)
 // body: { order_type: 'TAKEAWAY' | 'DELIVERY', nhan_vien_id, ca_lam_id? }
 router.post('/orders', auth, async (req, res, next) => {
@@ -157,70 +216,6 @@ router.get('/delivery-orders', auth, async (req, res, next) => {
     const userId = req.user.user_id;
     const data = await service.default.getDeliveryOrders(userId);
     res.json({ success: true, data });
-  } catch (e) { next(e); }
-});
-
-// POST /api/v1/pos/orders/claim-delivery - Nhân viên phục vụ tự nhận đơn giao hàng (1 hoặc nhiều đơn)
-router.post('/orders/claim-delivery', auth, async (req, res, next) => {
-  try {
-    // Log để debug
-    console.log('🔍 Claim delivery request body:', JSON.stringify(req.body, null, 2));
-    console.log('🔍 Request body type:', typeof req.body);
-    console.log('🔍 Request body keys:', Object.keys(req.body || {}));
-    
-    // Kiểm tra trực tiếp nếu có orderIds
-    if (!req.body || !req.body.orderIds) {
-      return res.status(400).json({
-        success: false,
-        error: 'orderIds là bắt buộc'
-      });
-    }
-    
-    const orderIds = req.body.orderIds;
-    
-    // Validate thủ công
-    if (!Array.isArray(orderIds)) {
-      return res.status(400).json({
-        success: false,
-        error: 'orderIds phải là một mảng'
-      });
-    }
-    
-    if (orderIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Phải chọn ít nhất 1 đơn'
-      });
-    }
-    
-    if (orderIds.length > 10) {
-      return res.status(400).json({
-        success: false,
-        error: 'Chỉ có thể nhận tối đa 10 đơn mỗi lần'
-      });
-    }
-    
-    // Validate và chuyển đổi từng ID sang số nguyên
-    const validatedOrderIds = [];
-    for (const id of orderIds) {
-      const numId = parseInt(id, 10);
-      if (isNaN(numId) || numId <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: `ID đơn không hợp lệ: ${id}`
-        });
-      }
-      validatedOrderIds.push(numId);
-    }
-    
-    // Sử dụng validatedOrderIds thay vì orderIds gốc
-    const finalOrderIds = validatedOrderIds;
-    
-    const shipperId = req.user.user_id; // Nhân viên phục vụ tự claim
-    
-    console.log('✅ Validated orderIds:', finalOrderIds);
-    const result = await service.default.claimDeliveryOrders(finalOrderIds, shipperId);
-    res.json({ success: true, data: result });
   } catch (e) { next(e); }
 });
 
