@@ -139,11 +139,12 @@ const walletRepository = {
         wt.*,
         dh.id AS order_code,
         dh.order_type,
-        dh.grand_total AS order_total,
+        os.grand_total AS order_total,
         u.username AS created_by_username,
         u.full_name AS created_by_name
       FROM wallet_transactions wt
       LEFT JOIN don_hang dh ON dh.id = wt.order_id
+      LEFT JOIN v_order_settlement os ON os.order_id = wt.order_id
       LEFT JOIN users u ON u.user_id = wt.created_by
       WHERE wt.wallet_id = $1
     `;
@@ -259,21 +260,22 @@ const walletRepository = {
     const { rows } = await pool.query(
       `SELECT 
         dh.id,
-        dh.grand_total,
-        dh.delivery_fee,
-        dh.delivery_status,
-        dh.paid_at,
-        dh.delivery_address
+        os.grand_total,
+        di.delivery_status,
+        dh.closed_at AS paid_at,
+        di.delivery_address
        FROM don_hang dh
-       WHERE dh.shipper_id = $1
+       LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+       LEFT JOIN v_order_settlement os ON os.order_id = dh.id
+       WHERE di.shipper_id = $1
          AND dh.order_type = 'DELIVERY'
-         AND dh.delivery_status = 'DELIVERED'
+         AND di.delivery_status = 'DELIVERED'
          AND dh.trang_thai = 'PAID'
          AND NOT EXISTS (
            SELECT 1 FROM wallet_transactions wt 
            WHERE wt.order_id = dh.id AND wt.type = 'COLLECT'
          )
-       ORDER BY dh.paid_at DESC`,
+       ORDER BY dh.closed_at DESC`,
       [shipperId]
     );
     return rows;
