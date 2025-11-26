@@ -126,6 +126,59 @@ router.post('/orders/claim-delivery', auth, async (req, res, next) => {
   }
 });
 
+// POST /api/v1/pos/orders/unclaim-delivery - Hủy nhận đơn giao hàng (để đơn quay lại pool)
+// Body: { orderIds: [1, 2, ...], reason: "Lý do hủy nhận" }
+// ⚠️ PHẢI đặt TRƯỚC /orders/:banId để Express không match nhầm
+router.post('/orders/unclaim-delivery', auth, async (req, res, next) => {
+  try {
+    console.log('🔍 [UNCLAIM-DELIVERY] Request received');
+    console.log('🔍 [UNCLAIM-DELIVERY] Request body:', JSON.stringify(req.body, null, 2));
+    
+    if (!req.body || !req.body.orderIds) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dữ liệu không hợp lệ',
+        details: ['orderIds là bắt buộc']
+      });
+    }
+    
+    const orderIds = req.body.orderIds;
+    const reason = req.body.reason || '';
+    
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dữ liệu không hợp lệ',
+        details: ['orderIds phải là một mảng không rỗng']
+      });
+    }
+    
+    // Validate và chuyển đổi từng ID sang số nguyên
+    const validatedOrderIds = [];
+    for (const id of orderIds) {
+      const numId = parseInt(id, 10);
+      if (isNaN(numId) || numId <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Dữ liệu không hợp lệ',
+          details: [`ID đơn không hợp lệ: ${id}`]
+        });
+      }
+      validatedOrderIds.push(numId);
+    }
+    
+    const shipperId = req.user.user_id;
+    console.log('✅ [UNCLAIM-DELIVERY] Validation passed. OrderIds:', validatedOrderIds, 'ShipperId:', shipperId, 'Reason:', reason);
+    
+    const result = await service.default.unclaimDeliveryOrders(validatedOrderIds, shipperId, reason);
+    console.log('✅ [UNCLAIM-DELIVERY] Success:', result);
+    res.json({ success: true, data: result });
+  } catch (e) {
+    console.error('❌ [UNCLAIM-DELIVERY] Error:', e);
+    next(e);
+  }
+});
+
 // POST /api/v1/pos/orders (tạo đơn mang đi hoặc giao hàng)
 // body: { order_type: 'TAKEAWAY' | 'DELIVERY', nhan_vien_id, ca_lam_id? }
 router.post('/orders', auth, async (req, res, next) => {

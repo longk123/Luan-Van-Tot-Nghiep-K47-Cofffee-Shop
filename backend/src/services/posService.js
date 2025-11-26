@@ -319,6 +319,133 @@ export default {
     };
   },
 
+  // Unclaim delivery orders - Hủy nhận đơn giao hàng (để đơn quay lại pool)
+  // Chỉ cho phép trong 10 phút đầu sau khi claim và yêu cầu lý do
+  async unclaimDeliveryOrders(orderIds, shipperId, reason = null) {
+    const { pool } = await import('../db.js');
+    
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      const err = new Error('Danh sách đơn hàng không hợp lệ');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Yêu cầu lý do
+    if (!reason || reason.trim().length === 0) {
+      const err = new Error('Vui lòng nhập lý do hủy nhận đơn');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Kiểm tra tất cả đơn có tồn tại, là DELIVERY và đang được shipper này claim
+    const orderCheck = await pool.query(`
+      SELECT 
+        dh.id,
+        dh.order_type,
+        dh.trang_thai,
+        di.delivery_status,
+        di.shipper_id,
+        di.updated_at AS claimed_at
+      FROM don_hang dh
+      LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      WHERE dh.id = ANY($1::int[])
+    `, [orderIds]);
+    
+    if (orderCheck.rows.length !== orderIds.length) {
+      const err = new Error('Một hoặc nhiều đơn hàng không tồn tại');
+      err.status = 404;
+      throw err;
+    }
+    
+    // Kiểm tra từng đơn
+    const invalidOrders = [];
+    const notClaimedByUser = [];
+    const cannotUnclaim = [];
+    const tooLateToUnclaim = [];
+    const UNCLAIM_TIME_LIMIT_MINUTES = 10; // Chỉ cho phép unclaim trong 10 phút đầu
+    
+    for (const order of orderCheck.rows) {
+      if (order.order_type !== 'DELIVERY') {
+        invalidOrders.push(order.id);
+      } else if (order.shipper_id !== shipperId) {
+        notClaimedByUser.push(order.id);
+      } else if (order.delivery_status === 'OUT_FOR_DELIVERY' || 
+                 order.delivery_status === 'DELIVERED' || 
+                 order.delivery_status === 'FAILED') {
+        cannotUnclaim.push(order.id);
+      } else if (order.claimed_at) {
+        // Kiểm tra thời gian: chỉ cho phép unclaim trong 10 phút đầu
+        const claimedTime = new Date(order.claimed_at);
+        const now = new Date();
+        const minutesSinceClaimed = (now - claimedTime) / (1000 * 60);
+        
+        if (minutesSinceClaimed > UNCLAIM_TIME_LIMIT_MINUTES) {
+          tooLateToUnclaim.push(order.id);
+        }
+      }
+    }
+    
+    if (invalidOrders.length > 0) {
+      const err = new Error(`Đơn ${invalidOrders.join(', ')} không phải đơn DELIVERY`);
+      err.status = 400;
+      throw err;
+    }
+    
+    if (notClaimedByUser.length > 0) {
+      const err = new Error(`Đơn ${notClaimedByUser.join(', ')} không phải do bạn nhận`);
+      err.status = 403;
+      throw err;
+    }
+    
+    if (cannotUnclaim.length > 0) {
+      const err = new Error(`Đơn ${cannotUnclaim.join(', ')} đã bắt đầu giao hoặc hoàn thành, không thể hủy nhận`);
+      err.status = 400;
+      throw err;
+    }
+    
+    if (tooLateToUnclaim.length > 0) {
+      const err = new Error(`Đơn ${tooLateToUnclaim.join(', ')} đã quá ${UNCLAIM_TIME_LIMIT_MINUTES} phút, không thể hủy nhận. Vui lòng liên hệ quản lý nếu cần thiết.`);
+      err.status = 400;
+      throw err;
+    }
+    
+    // Unclaim: set shipper_id = NULL, delivery_status = 'PENDING', và lưu lý do
+    const result = await pool.query(`
+      UPDATE don_hang_delivery_info
+      SET shipper_id = NULL,
+          delivery_status = 'PENDING',
+          unclaim_reason = $3,
+          unclaimed_at = NOW(),
+          unclaimed_by = $2,
+          updated_at = NOW()
+      WHERE order_id = ANY($1::int[])
+        AND shipper_id = $2
+        AND delivery_status IN ('ASSIGNED', 'CLAIMED')
+      RETURNING *
+    `, [orderIds, shipperId, reason.trim()]);
+    
+    if (result.rows.length === 0) {
+      const err = new Error('Không có đơn nào được hủy nhận. Vui lòng kiểm tra lại điều kiện.');
+      err.status = 400;
+      throw err;
+    }
+    
+    // Emit event cho từng đơn
+    const { emitEvent } = await import('../utils/sse.js');
+    for (const order of result.rows) {
+      emitEvent('delivery.unclaimed', { 
+        orderId: order.order_id, 
+        shipperId,
+        reason: reason.trim()
+      });
+    }
+    
+    return {
+      unclaimed: result.rows.length,
+      orderIds: result.rows.map(r => r.order_id)
+    };
+  },
+
   // Cập nhật trạng thái giao hàng
   async updateDeliveryStatus(orderId, status, shipperId = null, failureReason = null) {
     const { pool } = await import('../db.js');
@@ -401,6 +528,25 @@ export default {
         SET delivered_at = NOW()
         WHERE id = $1
       `, [orderId]);
+      
+      // ✅ Ghi nhận tiền vào ví shipper (nếu đơn COD - thanh toán tiền mặt)
+      try {
+        const walletService = (await import('./walletService.js')).default;
+        
+        // Lấy ca làm việc hiện tại của shipper (nếu có)
+        const shiftResult = await pool.query(
+          `SELECT id FROM ca_lam WHERE nhan_vien_id = $1 AND trang_thai = 'OPEN' LIMIT 1`,
+          [shipperId]
+        );
+        const shiftId = shiftResult.rows[0]?.id || null;
+        
+        // Ghi nhận tiền thu được vào ví
+        await walletService.collectFromOrder(orderId, shipperId, shiftId);
+        console.log(`✅ Đã ghi nhận tiền đơn #${orderId} vào ví shipper ${shipperId}`);
+      } catch (walletError) {
+        // Log lỗi nhưng không block flow chính
+        console.error(`⚠️ Lỗi ghi nhận tiền vào ví:`, walletError.message);
+      }
     }
     
     // Emit event

@@ -23,9 +23,15 @@ export async function listActivePromotions(req, res, next) {
   try {
     const onlyActive = String(req.query.active ?? "1") === "1";
     const sql = `
-      SELECT id, ma, ten, mo_ta, loai, gia_tri, max_giam, dieu_kien, bat_dau, ket_thuc, stackable
+      SELECT 
+        id, ma, ten, mo_ta, loai, gia_tri, max_giam, dieu_kien, bat_dau, ket_thuc, stackable,
+        CASE 
+          WHEN dieu_kien IS NOT NULL AND dieu_kien::jsonb ? 'min_order_value' 
+          THEN (dieu_kien::jsonb->>'min_order_value')::int
+          ELSE NULL
+        END AS don_hang_toi_thieu
       FROM khuyen_mai
-      ${onlyActive ? "WHERE active = TRUE AND (bat_dau IS NULL OR now()>=bat_dau) AND (ket_thuc IS NULL OR now()<=ket_thuc)" : ""}
+      ${onlyActive ? "WHERE active = TRUE AND (bat_dau IS NULL OR now() >= bat_dau) AND (ket_thuc IS NULL OR now() <= (DATE(ket_thuc) + INTERVAL '1 day' - INTERVAL '1 second'))" : ""}
       ORDER BY id DESC
     `;
     const { rows } = await pool.query(sql);
@@ -72,8 +78,8 @@ export async function applyPromotionByCode(req, res, next) {
     const { rows: promos } = await client.query(
       `SELECT * FROM khuyen_mai
        WHERE lower(ma)=lower($1) AND active=TRUE
-         AND (bat_dau IS NULL OR now()>=bat_dau)
-         AND (ket_thuc IS NULL OR now()<=ket_thuc)
+         AND (bat_dau IS NULL OR now() >= bat_dau)
+         AND (ket_thuc IS NULL OR now() <= (DATE(ket_thuc) + INTERVAL '1 day' - INTERVAL '1 second'))
        LIMIT 1`,
       [code]
     );
@@ -81,6 +87,44 @@ export async function applyPromotionByCode(req, res, next) {
       throw new BadRequest("Mã khuyến mãi không hợp lệ hoặc đã hết hạn");
     }
     const promo = promos[0];
+
+    // Kiểm tra điều kiện đơn hàng tối thiểu
+    let minOrderValue = null;
+    if (promo.dieu_kien) {
+      try {
+        const dieuKien = typeof promo.dieu_kien === 'string' 
+          ? JSON.parse(promo.dieu_kien) 
+          : promo.dieu_kien;
+        minOrderValue = dieuKien?.min_order_value || null;
+      } catch (e) {
+        console.error('Error parsing dieu_kien:', e);
+      }
+    }
+    
+    // Nếu có điều kiện đơn hàng tối thiểu, kiểm tra subtotal
+    if (minOrderValue && minOrderValue > 0) {
+      const { rows: summaryRows } = await client.query(
+        `SELECT subtotal_after_lines, subtotal FROM v_order_money_totals WHERE order_id=$1`,
+        [orderId]
+      );
+      
+      if (!summaryRows.length) {
+        throw new BadRequest("Không thể lấy thông tin đơn hàng");
+      }
+      
+      const summary = summaryRows[0];
+      const currentSubtotal = summary.subtotal_after_lines !== null && summary.subtotal_after_lines !== undefined
+        ? summary.subtotal_after_lines
+        : (summary.subtotal || 0);
+      
+      if (currentSubtotal < minOrderValue) {
+        const needed = minOrderValue - currentSubtotal;
+        throw new BadRequest(
+          `Đơn hàng tối thiểu ${new Intl.NumberFormat('vi-VN').format(minOrderValue)}₫ để sử dụng mã này. ` +
+          `Cần thêm ${new Intl.NumberFormat('vi-VN').format(needed)}₫`
+        );
+      }
+    }
 
     // Nếu promo không stackable, chặn khi đã có KM không stackable khác
     if (promo.stackable === false) {

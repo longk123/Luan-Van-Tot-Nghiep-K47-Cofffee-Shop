@@ -130,6 +130,9 @@ app.use('/api/v1', customerRouter);
 import notificationsRouter from './src/routes/notifications.js'; // <— router notifications
 app.use('/api/v1/notifications', notificationsRouter);
 
+import walletRouter from './src/routes/wallet.js'; // <— router ví giao hàng (shipper wallet)
+app.use('/api/v1/wallet', walletRouter);
+
 // Error handling middleware (phải ở cuối)
 app.use(errorHandler);
 

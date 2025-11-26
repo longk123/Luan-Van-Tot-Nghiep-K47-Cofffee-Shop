@@ -77,6 +77,7 @@ export const api = {
   saveDeliveryInfo: (orderId, deliveryInfo) => request('POST', `/pos/orders/${orderId}/delivery-info`, deliveryInfo),
   // Delivery assignment
   claimDeliveryOrders: (orderIds) => request('POST', '/pos/orders/claim-delivery', { orderIds }), // Nhân viên tự nhận đơn (1 hoặc nhiều đơn)
+  unclaimDeliveryOrders: (orderIds, reason) => request('POST', '/pos/orders/unclaim-delivery', { orderIds, reason }), // Hủy nhận đơn giao hàng (để đơn quay lại pool, yêu cầu lý do)
   updateDeliveryStatus: (orderId, status, failureReason = null) => request('PATCH', `/pos/orders/${orderId}/delivery-status`, { status, failure_reason: failureReason }),
   getMyAssignedDeliveries: (status) => request('GET', `/pos/delivery/my-assigned${status ? `?status=${status}` : ''}`),
   getOrderItems: (orderId) => request('GET', `/pos/orders/${orderId}/items`),
@@ -518,4 +519,54 @@ export const api = {
   markNotificationAsRead: (id) => request('POST', `/notifications/${id}/read`),
   markAllNotificationsAsRead: () => request('POST', '/notifications/read-all'),
   deleteNotification: (id) => request('DELETE', `/notifications/${id}`),
+
+  // ===== SHIPPER WALLET (VÍ GIAO HÀNG) =====
+  // Waiter APIs
+  getMyWallet: () => request('GET', '/wallet/me'),
+  getMyWalletTransactions: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.offset) queryParams.append('offset', params.offset);
+    if (params.type) queryParams.append('type', params.type);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.shiftId) queryParams.append('shiftId', params.shiftId);
+    const queryString = queryParams.toString();
+    return request('GET', `/wallet/transactions${queryString ? `?${queryString}` : ''}`);
+  },
+  checkWalletLimit: () => request('GET', '/wallet/check-limit'),
+  getUnrecordedOrders: () => request('GET', '/wallet/unrecorded'),
+  syncWalletOrders: () => request('POST', '/wallet/sync'),
+  
+  // Cashier/Manager APIs
+  getAllWallets: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.hasBalance) queryParams.append('hasBalance', params.hasBalance);
+    if (params.onlyActive !== undefined) queryParams.append('onlyActive', params.onlyActive);
+    const queryString = queryParams.toString();
+    return request('GET', `/wallet/all${queryString ? `?${queryString}` : ''}`);
+  },
+  getWalletPendingSummary: () => request('GET', '/wallet/pending-summary'),
+  getWalletByUser: (userId) => request('GET', `/wallet/user/${userId}`),
+  getUserWalletTransactions: (userId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.shiftId) queryParams.append('shiftId', params.shiftId);
+    const queryString = queryParams.toString();
+    return request('GET', `/wallet/user/${userId}/transactions${queryString ? `?${queryString}` : ''}`);
+  },
+  settleWallet: (shipperId, amount, note = '') => 
+    request('POST', '/wallet/settle', { shipperId, amount, note }),
+  settleAllWallet: (shipperId) => 
+    request('POST', '/wallet/settle-all', { shipperId }),
+  getWalletShiftStats: (shiftId, userId = null) => {
+    const queryString = userId ? `?userId=${userId}` : '';
+    return request('GET', `/wallet/shift-stats/${shiftId}${queryString}`);
+  },
+  
+  // Admin APIs
+  adjustWalletBalance: (shipperId, amount, note) => 
+    request('POST', '/wallet/adjust', { shipperId, amount, note }),
+  updateWalletLimit: (userId, limit) => 
+    request('PUT', `/wallet/user/${userId}/limit`, { limit }),
 };

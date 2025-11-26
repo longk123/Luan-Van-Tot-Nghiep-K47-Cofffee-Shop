@@ -12,6 +12,9 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   const [invoiceData, setInvoiceData] = useState(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('CREATED'); // 'CREATED' hoặc 'DELIVERED' (chỉ cho waiter)
+  const [showUnclaimDialog, setShowUnclaimDialog] = useState(false);
+  const [unclaimOrderId, setUnclaimOrderId] = useState(null);
+  const [unclaimReason, setUnclaimReason] = useState('');
 
   const fetchOrders = async () => {
     try {
@@ -143,6 +146,34 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
     }
   };
 
+  const handleUnclaimDelivery = (orderId) => {
+    setUnclaimOrderId(orderId);
+    setUnclaimReason('');
+    setShowUnclaimDialog(true);
+  };
+
+  const confirmUnclaimDelivery = async () => {
+    if (!unclaimReason || unclaimReason.trim().length === 0) {
+      setError('Vui lòng nhập lý do hủy nhận đơn');
+      return;
+    }
+
+    try {
+      await api.unclaimDeliveryOrders([unclaimOrderId], unclaimReason.trim());
+      // Refresh danh sách đơn
+      await fetchOrders();
+      
+      // Đóng dialog và reset
+      setShowUnclaimDialog(false);
+      setUnclaimOrderId(null);
+      setUnclaimReason('');
+      setError(null);
+    } catch (err) {
+      console.error('Error unclaiming delivery:', err);
+      setError('Không thể hủy nhận đơn: ' + (err.message || 'Lỗi không xác định'));
+    }
+  };
+
   const closeInvoiceModal = () => {
     setSelectedOrder(null);
     setInvoiceData(null);
@@ -164,6 +195,30 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
       case 'OPEN': return 'Chưa thanh toán';
       case 'CANCELLED': return 'Đã hủy';
       default: return status;
+    }
+  };
+
+  const getDeliveryStatusColor = (deliveryStatus) => {
+    switch (deliveryStatus) {
+      case 'CLAIMED':
+      case 'ASSIGNED': return 'bg-blue-50 text-blue-700 border border-blue-300 font-semibold';
+      case 'OUT_FOR_DELIVERY': return 'bg-purple-50 text-purple-700 border border-purple-300 font-semibold';
+      case 'DELIVERED': return 'bg-green-50 text-green-700 border border-green-300 font-semibold';
+      case 'FAILED': return 'bg-red-50 text-red-700 border border-red-300 font-semibold';
+      case 'PENDING': return 'bg-gray-50 text-gray-700 border border-gray-300 font-semibold';
+      default: return 'bg-gray-50 text-gray-700 border border-gray-300 font-semibold';
+    }
+  };
+
+  const getDeliveryStatusText = (deliveryStatus) => {
+    switch (deliveryStatus) {
+      case 'CLAIMED':
+      case 'ASSIGNED': return 'Đã nhận';
+      case 'OUT_FOR_DELIVERY': return 'Đang giao';
+      case 'DELIVERED': return 'Giao thành công';
+      case 'FAILED': return 'Giao thất bại';
+      case 'PENDING': return 'Chờ xử lý';
+      default: return deliveryStatus || 'Chưa xác định';
     }
   };
 
@@ -222,14 +277,15 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   // Filter orders dựa trên tab (chỉ cho waiter)
   const filteredOrders = isWaiterView ? (() => {
     if (activeTab === 'DELIVERED') {
-      // Tab "Đơn đã giao": Chỉ đơn DELIVERY có delivery_status = 'DELIVERED'
+      // Tab "Đơn đã giao": Tất cả đơn DELIVERY mà waiter đã nhận (claim)
+      // Bao gồm: CLAIMED, OUT_FOR_DELIVERY, DELIVERED, FAILED
       return orders.filter(order => 
-        order.order_type === 'DELIVERY' && order.delivery_status === 'DELIVERED'
+        order.order_type === 'DELIVERY' && order.shipper_id
       );
     } else {
-      // Tab "Đơn đã tạo": Tất cả đơn do waiter tạo (DINE_IN, TAKEAWAY) và đơn DELIVERY đã claim
+      // Tab "Đơn đã tạo": Chỉ đơn DINE_IN và TAKEAWAY (waiter không tạo đơn giao hàng)
       return orders.filter(order => 
-        order.order_type !== 'DELIVERY' || order.delivery_status !== 'DELIVERED'
+        order.order_type === 'DINE_IN' || order.order_type === 'TAKEAWAY'
       );
     }
   })() : orders;
@@ -237,15 +293,40 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   // Tính stats cho tab hiện tại (chỉ cho waiter)
   const tabStats = isWaiterView ? (() => {
     const filtered = filteredOrders;
-    return {
-      total_orders: filtered.length,
-      paid_orders: filtered.filter(o => o.trang_thai === 'PAID').length,
-      open_orders: filtered.filter(o => o.trang_thai === 'OPEN').length,
-      cancelled_orders: filtered.filter(o => o.trang_thai === 'CANCELLED').length,
-      total_revenue: filtered
-        .filter(o => o.trang_thai === 'PAID')
-        .reduce((sum, o) => sum + parseFloat(o.tong_tien || 0), 0)
-    };
+    
+    // Nếu là tab "Đơn đã giao", tính stats về đơn giao hàng
+    if (activeTab === 'DELIVERED') {
+      const deliveryOrders = filtered.filter(o => o.order_type === 'DELIVERY');
+      return {
+        total_orders: deliveryOrders.length,
+        claimed_orders: deliveryOrders.filter(o => 
+          o.delivery_status === 'CLAIMED' || o.delivery_status === 'ASSIGNED'
+        ).length,
+        out_for_delivery: deliveryOrders.filter(o => 
+          o.delivery_status === 'OUT_FOR_DELIVERY'
+        ).length,
+        delivered_orders: deliveryOrders.filter(o => 
+          o.delivery_status === 'DELIVERED'
+        ).length,
+        failed_orders: deliveryOrders.filter(o => 
+          o.delivery_status === 'FAILED'
+        ).length,
+        total_revenue: deliveryOrders
+          .filter(o => o.trang_thai === 'PAID')
+          .reduce((sum, o) => sum + parseFloat(o.tong_tien || 0), 0)
+      };
+    } else {
+      // Tab "Đơn đã tạo": stats về đơn DINE_IN và TAKEAWAY
+      return {
+        total_orders: filtered.length,
+        paid_orders: filtered.filter(o => o.trang_thai === 'PAID').length,
+        open_orders: filtered.filter(o => o.trang_thai === 'OPEN').length,
+        cancelled_orders: filtered.filter(o => o.trang_thai === 'CANCELLED').length,
+        total_revenue: filtered
+          .filter(o => o.trang_thai === 'PAID')
+          .reduce((sum, o) => sum + parseFloat(o.tong_tien || 0), 0)
+      };
+    }
   })() : stats;
   
   // Xác định loại ca dựa trên role của nhân viên, không phải shift_type từ backend
@@ -303,6 +384,36 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
         </div>
       </div>
 
+      {/* Tabs cho waiter - Di chuyển lên trên */}
+      {isWaiterView && (
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200">
+          <div className="px-6 pt-4 border-b border-gray-200">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('CREATED')}
+                className={`px-6 py-3 font-semibold rounded-t-lg transition-all ${
+                  activeTab === 'CREATED'
+                    ? 'bg-[#c9975b] text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Đơn đã tạo
+              </button>
+              <button
+                onClick={() => setActiveTab('DELIVERED')}
+                className={`px-6 py-3 font-semibold rounded-t-lg transition-all ${
+                  activeTab === 'DELIVERED'
+                    ? 'bg-[#c9975b] text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Đơn đã giao
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Thống kê tổng quan */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
         <h3 className="text-lg font-bold text-[#8b6f47] mb-5 flex items-center gap-2">
@@ -313,31 +424,58 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
           </div>
           Thống kê ca làm việc
         </h3>
-        <div className={`grid gap-4 ${isWaiterView ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-5'}`}>
-          <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-            <div className="text-sm text-blue-600 mb-1">Tổng đơn đã tạo</div>
-            <div className="text-2xl font-bold text-blue-700">{isWaiterView ? tabStats.total_orders : stats.total_orders}</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
-            <div className="text-sm text-green-600 mb-1">Đã thanh toán</div>
-            <div className="text-2xl font-bold text-green-700">{isWaiterView ? tabStats.paid_orders : stats.paid_orders}</div>
-          </div>
-          <div className="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
-            <div className="text-sm text-amber-600 mb-1">Chưa thanh toán</div>
-            <div className="text-2xl font-bold text-amber-700">{isWaiterView ? tabStats.open_orders : stats.open_orders}</div>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
-            <div className="text-sm text-red-600 mb-1">Tổng đơn đã hủy</div>
-            <div className="text-2xl font-bold text-red-700">{isWaiterView ? tabStats.cancelled_orders : stats.cancelled_orders}</div>
-          </div>
-          {/* Doanh thu - Ẩn cho waiter */}
-          {!isWaiterView && (
-            <div className="bg-[#f5ebe0] rounded-lg p-4 border-l-4 border-[#c9975b]">
-              <div className="text-sm text-[#8b6f47] mb-1">Doanh thu</div>
-              <div className="text-xl font-bold text-[#8b6f47]">{formatCurrency(stats.total_revenue)}</div>
+        {isWaiterView && activeTab === 'DELIVERED' ? (
+          // Stats cho tab "Đơn đã giao"
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <div className="text-sm text-blue-600 mb-1">Tổng đơn đã nhận</div>
+              <div className="text-2xl font-bold text-blue-700">{tabStats.total_orders}</div>
             </div>
-          )}
-        </div>
+            <div className="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+              <div className="text-sm text-purple-600 mb-1">Đã nhận</div>
+              <div className="text-2xl font-bold text-purple-700">{tabStats.claimed_orders}</div>
+            </div>
+            <div className="bg-indigo-50 rounded-lg p-4 border-l-4 border-indigo-500">
+              <div className="text-sm text-indigo-600 mb-1">Đang giao</div>
+              <div className="text-2xl font-bold text-indigo-700">{tabStats.out_for_delivery}</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <div className="text-sm text-green-600 mb-1">Giao thành công</div>
+              <div className="text-2xl font-bold text-green-700">{tabStats.delivered_orders}</div>
+            </div>
+            <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+              <div className="text-sm text-red-600 mb-1">Giao thất bại</div>
+              <div className="text-2xl font-bold text-red-700">{tabStats.failed_orders}</div>
+            </div>
+          </div>
+        ) : (
+          // Stats cho tab "Đơn đã tạo" hoặc không phải waiter
+          <div className={`grid gap-4 ${isWaiterView ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-5'}`}>
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <div className="text-sm text-blue-600 mb-1">Tổng đơn đã tạo</div>
+              <div className="text-2xl font-bold text-blue-700">{isWaiterView ? tabStats.total_orders : stats.total_orders}</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <div className="text-sm text-green-600 mb-1">Đã thanh toán</div>
+              <div className="text-2xl font-bold text-green-700">{isWaiterView ? tabStats.paid_orders : stats.paid_orders}</div>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
+              <div className="text-sm text-amber-600 mb-1">Chưa thanh toán</div>
+              <div className="text-2xl font-bold text-amber-700">{isWaiterView ? tabStats.open_orders : stats.open_orders}</div>
+            </div>
+            <div className="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+              <div className="text-sm text-red-600 mb-1">Tổng đơn đã hủy</div>
+              <div className="text-2xl font-bold text-red-700">{isWaiterView ? tabStats.cancelled_orders : stats.cancelled_orders}</div>
+            </div>
+            {/* Doanh thu - Ẩn cho waiter */}
+            {!isWaiterView && (
+              <div className="bg-[#f5ebe0] rounded-lg p-4 border-l-4 border-[#c9975b]">
+                <div className="text-sm text-[#8b6f47] mb-1">Doanh thu</div>
+                <div className="text-xl font-bold text-[#8b6f47]">{formatCurrency(stats.total_revenue)}</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Danh sách đơn hàng */}
@@ -364,34 +502,6 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
           </div>
         </div>
         
-        {/* Tabs cho waiter */}
-        {isWaiterView && (
-          <div className="px-6 pt-4 border-b border-gray-200">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('CREATED')}
-                className={`px-6 py-3 font-semibold rounded-t-lg transition-all ${
-                  activeTab === 'CREATED'
-                    ? 'bg-[#c9975b] text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Đơn đã tạo
-              </button>
-              <button
-                onClick={() => setActiveTab('DELIVERED')}
-                className={`px-6 py-3 font-semibold rounded-t-lg transition-all ${
-                  activeTab === 'DELIVERED'
-                    ? 'bg-[#c9975b] text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Đơn đã giao
-              </button>
-            </div>
-          </div>
-        )}
-        
         {filteredOrders.length === 0 ? (
           <div className="p-10 text-center">
             <div className="w-20 h-20 mx-auto mb-4 bg-[#f5ebe0] rounded-full flex items-center justify-center shadow-md">
@@ -402,7 +512,7 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
             <p className="text-[#8b6f47] font-bold text-lg">
               {isWaiterView 
                 ? (activeTab === 'DELIVERED' 
-                    ? 'Chưa có đơn giao hàng nào đã được giao thành công' 
+                    ? 'Chưa có đơn giao hàng nào đã được nhận' 
                     : 'Chưa có đơn hàng nào trong ca này')
                 : 'Chưa có đơn hàng nào trong ca này'}
             </p>
@@ -495,9 +605,16 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1.5 text-xs rounded-lg ${getStatusColor(order.trang_thai)}`}>
-                        {getStatusText(order.trang_thai)}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-3 py-1.5 text-xs rounded-lg ${getStatusColor(order.trang_thai)}`}>
+                          {getStatusText(order.trang_thai)}
+                        </span>
+                        {order.order_type === 'DELIVERY' && order.delivery_status && (
+                          <span className={`px-3 py-1.5 text-xs rounded-lg ${getDeliveryStatusColor(order.delivery_status)}`}>
+                            {getDeliveryStatusText(order.delivery_status)}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[#8b6f47]">
                       {order.so_mon}
@@ -514,7 +631,7 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         {order.trang_thai === 'PAID' && (
                           <>
                             <button
@@ -563,6 +680,23 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                               </span>
                             )}
                           </>
+                        )}
+                        {/* Nút Hủy nhận - Chỉ hiển thị cho đơn DELIVERY trong tab "Đơn đã giao" và chưa giao thành công/thất bại */}
+                        {isWaiterView && activeTab === 'DELIVERED' && 
+                         order.order_type === 'DELIVERY' && 
+                         order.delivery_status && 
+                         order.delivery_status !== 'DELIVERED' && 
+                         order.delivery_status !== 'FAILED' && (
+                          <button
+                            onClick={() => handleUnclaimDelivery(order.id)}
+                            className="text-red-600 hover:text-red-800 flex items-center gap-1 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                            title="Hủy nhận đơn (đơn sẽ quay lại mục săn đơn)"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            <span className="text-xs font-medium">Hủy nhận</span>
+                          </button>
                         )}
                       </div>
                     </td>
@@ -794,6 +928,77 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                   <p>Không thể tải chi tiết hóa đơn</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dialog hủy nhận đơn giao hàng */}
+      {showUnclaimDialog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full border border-gray-200">
+            <div className="px-6 py-5 bg-red-50 border-b border-red-200 rounded-t-3xl">
+              <h3 className="text-xl font-bold text-red-700 flex items-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Hủy nhận đơn giao hàng
+              </h3>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-gray-700 mb-2">
+                  Bạn đang hủy nhận đơn <span className="font-bold">#{unclaimOrderId}</span>
+                </p>
+                <p className="text-sm text-gray-600 mb-4">
+                  Đơn này sẽ quay lại mục "săn đơn" và có thể được nhận bởi waiter khác.
+                </p>
+                <p className="text-xs text-amber-600 mb-4 bg-amber-50 p-2 rounded">
+                  ⚠️ Chỉ có thể hủy nhận trong <strong>10 phút đầu</strong> sau khi nhận đơn. Nếu đã quá thời gian, vui lòng liên hệ quản lý.
+                </p>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do hủy nhận <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={unclaimReason}
+                  onChange={(e) => setUnclaimReason(e.target.value)}
+                  placeholder="Ví dụ: Nhận nhầm đơn, địa chỉ quá xa, không tìm được địa chỉ..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                  rows={4}
+                  required
+                />
+              </div>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowUnclaimDialog(false);
+                    setUnclaimOrderId(null);
+                    setUnclaimReason('');
+                    setError(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmUnclaimDelivery}
+                  disabled={!unclaimReason || unclaimReason.trim().length === 0}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Xác nhận hủy nhận
+                </button>
+              </div>
             </div>
           </div>
         </div>

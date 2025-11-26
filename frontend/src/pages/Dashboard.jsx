@@ -17,6 +17,8 @@ import OpenShiftModal from '../components/OpenShiftModal.jsx';
 import OpenOrdersDialog from '../components/OpenOrdersDialog.jsx';
 import CurrentShiftOrders from '../components/CurrentShiftOrders.jsx';
 import TakeawayOrderCard from '../components/TakeawayOrderCard.jsx';
+import ShipperWalletPanel from '../components/ShipperWalletPanel.jsx';
+import WalletSettlementPanel from '../components/WalletSettlementPanel.jsx';
 
 export default function Dashboard({ defaultMode = 'dashboard' }) {
   const navigate = useNavigate();
@@ -90,6 +92,11 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   const [shiftOrdersRefreshKey, setShiftOrdersRefreshKey] = useState(0);
   const [user, setUser] = useState(null);
 
+  // Wallet states (Ví giao hàng)
+  const [showWalletPanel, setShowWalletPanel] = useState(false);
+  const [showSettlementPanel, setShowSettlementPanel] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+
   // Role-based access control
   const [userRoles, setUserRoles] = useState([]);
 
@@ -142,6 +149,18 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   ) && !userRoles.some(role =>
     ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
   );
+
+  // Load wallet balance cho waiter khi component mount
+  useEffect(() => {
+    if (isWaiter) {
+      api.getMyWallet().then(res => {
+        const data = res?.data || res || {};
+        setWalletBalance(data.current_balance || 0);
+      }).catch(err => {
+        console.error('Error loading wallet:', err);
+      });
+    }
+  }, [isWaiter]);
 
   // Debug: Log drawer state changes
   useEffect(() => {
@@ -819,6 +838,35 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   <span className="whitespace-nowrap">Lịch sử đơn</span>
                 </button>
               )}
+              {/* Nút Ví giao hàng cho Waiter */}
+              {isWaiter && (
+                <button
+                  onClick={() => setShowWalletPanel(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-2 border-emerald-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-emerald-600 hover:border-emerald-600 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  <span className="whitespace-nowrap">Ví giao hàng</span>
+                  {walletBalance > 0 && (
+                    <span className="bg-white text-emerald-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                      {walletBalance.toLocaleString()}đ
+                    </span>
+                  )}
+                </button>
+              )}
+              {/* Nút Quản lý tiền thu hộ cho Cashier/Manager */}
+              {!isWaiter && !isManagerViewMode && (
+                <button
+                  onClick={() => setShowSettlementPanel(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white border-2 border-purple-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-600 hover:border-purple-600 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span className="whitespace-nowrap">Tiền thu hộ</span>
+                </button>
+              )}
               {!isManagerViewMode && (
                 shift && shift.status === 'OPEN' ? (
                   <button
@@ -1138,7 +1186,12 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   const selectedPendingOrders = pendingDeliveryOrders.filter(
                     o => selectedDeliveryOrders.includes(o.id)
                   );
-                  const totalAmount = selectedPendingOrders.reduce((sum, order) => {
+                  
+                  // Chỉ tính tổng cho các đơn chưa thanh toán
+                  const unpaidOrders = selectedPendingOrders.filter(o => o.trang_thai !== 'PAID');
+                  const paidOrders = selectedPendingOrders.filter(o => o.trang_thai === 'PAID');
+                  
+                  const totalAmount = unpaidOrders.reduce((sum, order) => {
                     const orderTotal = order.grand_total || 0;
                     const deliveryFee = order.delivery_fee || 0;
                     return sum + orderTotal + deliveryFee;
@@ -1151,13 +1204,28 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                         <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl shadow-lg border-2 border-blue-600 p-4 mb-4 sticky top-4 z-10">
                           <div className="flex items-center justify-between">
                             <div className="text-white">
-                              <p className="text-sm font-medium opacity-90">Đã chọn {selectedPendingOrders.length} đơn</p>
-                              <p className="text-2xl font-bold mt-1">
-                                Tổng: {totalAmount.toLocaleString('vi-VN')}đ
+                              <p className="text-sm font-medium opacity-90">
+                                Đã chọn {selectedPendingOrders.length} đơn
+                                {paidOrders.length > 0 && (
+                                  <span className="ml-2 text-xs opacity-75">
+                                    ({paidOrders.length} đơn đã thanh toán)
+                                  </span>
+                                )}
                               </p>
-                              <p className="text-xs opacity-75 mt-1">
-                                (Bao gồm phí ship)
-                              </p>
+                              {unpaidOrders.length > 0 ? (
+                                <>
+                                  <p className="text-2xl font-bold mt-1">
+                                    Tổng: {totalAmount.toLocaleString('vi-VN')}đ
+                                  </p>
+                                  <p className="text-xs opacity-75 mt-1">
+                                    (Bao gồm phí ship - chỉ tính cho {unpaidOrders.length} đơn chưa thanh toán)
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-lg font-semibold mt-1 opacity-90">
+                                  Tất cả đơn đã được thanh toán
+                                </p>
+                              )}
                             </div>
                             <div className="flex gap-2">
                               <button
@@ -1586,7 +1654,21 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         </div>
       )}
 
+      {/* Shipper Wallet Panel - cho Waiter xem ví của mình */}
+      {showWalletPanel && (
+        <ShipperWalletPanel
+          onClose={() => setShowWalletPanel(false)}
+          onBalanceUpdate={(balance) => setWalletBalance(balance)}
+        />
+      )}
 
+      {/* Wallet Settlement Panel - cho Cashier/Manager quản lý tiền thu hộ */}
+      {showSettlementPanel && (
+        <WalletSettlementPanel
+          onClose={() => setShowSettlementPanel(false)}
+          onShowToast={setToast}
+        />
+      )}
 
       {/* Floating Action Button - Đơn mang đi - ENHANCED - Only for Cashier */}
       {!isManagerViewMode && (
