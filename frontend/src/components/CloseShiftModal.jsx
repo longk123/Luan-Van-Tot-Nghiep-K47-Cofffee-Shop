@@ -13,6 +13,7 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
   const [showOpenOrdersDialog, setShowOpenOrdersDialog] = useState(false);
   const [openOrders, setOpenOrders] = useState([]);
   const [pendingDeliveries, setPendingDeliveries] = useState([]);
+  const [walletInfo, setWalletInfo] = useState(null); // Thông tin ví waiter
   
   // Check user role to determine if this is a waiter
   const user = getUser();
@@ -33,6 +34,10 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
   useEffect(() => {
     if (open && shift?.id) {
       fetchSummary();
+      // Fetch wallet info nếu là waiter
+      if (isWaiterUser) {
+        fetchWalletInfo();
+      }
       // Scroll to top when modal opens
       setTimeout(() => {
         const modalContent = document.querySelector('.close-shift-modal-content');
@@ -48,8 +53,18 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
       setStep(1);
       setShowOpenOrdersDialog(false);
       setOpenOrders([]);
+      setWalletInfo(null);
     }
   }, [open, shift?.id]);
+
+  const fetchWalletInfo = async () => {
+    try {
+      const res = await api.getMyWallet();
+      setWalletInfo(res?.data || res);
+    } catch (error) {
+      console.error('Error fetching wallet info:', error);
+    }
+  };
 
   const fetchSummary = async () => {
     setLoading(true);
@@ -272,6 +287,33 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                         </p>
                       </div>
                     </div>
+                    
+                    {/* Thông tin ví tiền thu hộ */}
+                    {walletInfo && walletInfo.current_balance > 0 && (
+                      <div className="mt-4 p-4 bg-amber-50 rounded-xl border-2 border-amber-300">
+                        <div className="flex items-center gap-2 mb-3">
+                          <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          <span className="font-bold text-amber-800">Tiền thu hộ chưa nộp</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-amber-700">Số dư ví hiện tại</p>
+                            <p className="text-2xl font-bold text-amber-900">
+                              {parseInt(walletInfo.current_balance || 0).toLocaleString('vi-VN')}đ
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-amber-600">Tổng đã thu: {parseInt(walletInfo.total_collected || 0).toLocaleString('vi-VN')}đ</p>
+                            <p className="text-xs text-amber-600">Đã nộp: {parseInt(walletInfo.total_settled || 0).toLocaleString('vi-VN')}đ</p>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-xs text-amber-700 italic">
+                          ⚠️ Vui lòng nộp tiền cho thu ngân trước khi kết thúc ca
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                 /* Pha chế/Bếp - Hiển thị hiệu suất */

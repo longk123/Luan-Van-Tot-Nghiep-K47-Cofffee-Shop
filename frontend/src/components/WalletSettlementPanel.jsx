@@ -75,7 +75,7 @@ export default function WalletSettlementPanel({ onClose, onShowToast }) {
           show: true,
           type: 'success',
           title: 'Thành công',
-          message: `Đã nhận ${formatCurrency(result?.amount || settleAmount)} từ ${selectedWallet.display_name || selectedWallet.username}`
+          message: `Đã nhận ${formatCurrency(result?.amount || settleAmount)} từ ${selectedWallet.shipper_name || selectedWallet.username}`
         });
       }
     } catch (err) {
@@ -165,7 +165,7 @@ export default function WalletSettlementPanel({ onClose, onShowToast }) {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900">{selectedWallet.shipper_name}</p>
+                    <p className="font-bold text-gray-900">{selectedWallet.shipper_name || selectedWallet.display_name}</p>
                     <p className="text-sm text-gray-500">@{selectedWallet.username}</p>
                   </div>
                   <div className="ml-auto text-right">
@@ -239,7 +239,7 @@ export default function WalletSettlementPanel({ onClose, onShowToast }) {
               
               {wallets.map((wallet) => (
                 <div
-                  key={wallet.wallet_id}
+                  key={wallet.wallet_id || wallet.user_id}
                   onClick={() => handleSelectWallet(wallet)}
                   className="p-4 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-50 cursor-pointer transition-all"
                 >
