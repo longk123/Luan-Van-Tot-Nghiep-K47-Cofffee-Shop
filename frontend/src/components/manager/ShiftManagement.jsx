@@ -9,7 +9,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
   const [loading, setLoading] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [filterType, setFilterType] = useState('CASHIER'); // CASHIER, KITCHEN
+  const [filterType, setFilterType] = useState('CASHIER'); // CASHIER, KITCHEN, WAITER
   const [filterStatus, setFilterStatus] = useState('ALL'); // ALL, OPEN, CLOSED
   const [filterEmployee, setFilterEmployee] = useState('ALL'); // ALL or user_id
   const [employees, setEmployees] = useState([]);
@@ -130,6 +130,11 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
         return roleNames.some(role => 
           ['kitchen', 'barista', 'chef', 'cook'].includes(role)
         );
+      } else if (filterType === 'WAITER') {
+        // Chỉ hiển thị waiter/shipper
+        return roleNames.some(role => 
+          ['waiter', 'shipper', 'delivery'].includes(role)
+        );
       }
 
       return true;
@@ -150,7 +155,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
     return true;
   });
 
-  // Tính tổng thống kê - Tách riêng cho CASHIER vs KITCHEN
+  // Tính tổng thống kê - Tách riêng cho CASHIER vs KITCHEN vs WAITER
   const totalStats = filterType === 'CASHIER'
     ? filteredShifts.reduce((acc, shift) => ({
         total_orders: acc.total_orders + (shift.stats?.total_orders || 0),
@@ -158,11 +163,18 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
         net_amount: acc.net_amount + (shift.stats?.net_amount || 0),
         cash_diff: acc.cash_diff + (shift.stats?.cash_diff || 0),
       }), { total_orders: 0, gross_amount: 0, net_amount: 0, cash_diff: 0 })
-    : filteredShifts.reduce((acc, shift) => ({
+    : filterType === 'KITCHEN'
+    ? filteredShifts.reduce((acc, shift) => ({
         total_items_made: acc.total_items_made + (shift.stats?.total_items_made || 0),
         total_items_cancelled: acc.total_items_cancelled + (shift.stats?.total_items_cancelled || 0),
         avg_prep_time_seconds: shift.stats?.avg_prep_time_seconds || acc.avg_prep_time_seconds,
-      }), { total_items_made: 0, total_items_cancelled: 0, avg_prep_time_seconds: 0 });
+      }), { total_items_made: 0, total_items_cancelled: 0, avg_prep_time_seconds: 0 })
+    : filteredShifts.reduce((acc, shift) => ({
+        total_deliveries: acc.total_deliveries + (shift.stats?.total_deliveries || 0),
+        delivered_count: acc.delivered_count + (shift.stats?.delivered_count || 0),
+        failed_count: acc.failed_count + (shift.stats?.failed_count || 0),
+        total_collected: acc.total_collected + (shift.stats?.total_collected || 0),
+      }), { total_deliveries: 0, delivered_count: 0, failed_count: 0, total_collected: 0 });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -192,13 +204,15 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
       return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Thu ngân</span>;
     } else if (type === 'KITCHEN') {
       return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Pha chế</span>;
+    } else if (type === 'WAITER') {
+      return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Phục vụ</span>;
     }
     return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Khác</span>;
   };
 
   return (
     <div className="pb-32">
-      {/* Summary Cards - Different for CASHIER vs KITCHEN */}
+      {/* Summary Cards - Different for CASHIER vs KITCHEN vs WAITER */}
       {filterType === 'CASHIER' ? (
         // CASHIER: Show orders, revenue, cash difference
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -231,7 +245,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
             </div>
           </div>
         </div>
-      ) : (
+      ) : filterType === 'KITCHEN' ? (
         // KITCHEN: Show kitchen-specific metrics
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-400">
@@ -255,6 +269,26 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
             </div>
           </div>
         </div>
+      ) : (
+        // WAITER: Show delivery-specific metrics
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-gray-400">
+            <div className="text-sm text-gray-600 mb-1">Tổng ca</div>
+            <div className="text-2xl font-bold text-gray-800">{filteredShifts.length}</div>
+          </div>
+          <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+            <div className="text-sm text-blue-600 mb-1">🚗 Tổng đơn giao</div>
+            <div className="text-2xl font-bold text-blue-700">{totalStats.total_deliveries || 0}</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+            <div className="text-sm text-green-600 mb-1">✅ Giao thành công</div>
+            <div className="text-2xl font-bold text-green-700">{totalStats.delivered_count || 0}</div>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
+            <div className="text-sm text-amber-600 mb-1">💰 Tiền thu hộ</div>
+            <div className="text-2xl font-bold text-amber-700">{formatCurrency(totalStats.total_collected || 0)}</div>
+          </div>
+        </div>
       )}
 
       {/* Filters */}
@@ -269,6 +303,7 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
             >
               <option value="CASHIER">Thu ngân</option>
               <option value="KITCHEN">Pha chế</option>
+              <option value="WAITER">Phục vụ</option>
             </select>
           </div>
           <div>
@@ -344,6 +379,13 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Món đã làm</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Món đã hủy</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">TG trung bình</th>
+                  </>
+                )}
+                {filterType === 'WAITER' && (
+                  <>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn giao</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thành công</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tiền thu hộ</th>
                   </>
                 )}
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
@@ -423,6 +465,19 @@ export default function ShiftManagement({ timeRange, customStartDate, customEndD
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
                           {shift.stats?.avg_prep_time_seconds ? `${Math.round(shift.stats.avg_prep_time_seconds / 60)}m` : '-'}
+                        </td>
+                      </>
+                    )}
+                    {filterType === 'WAITER' && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                          {shift.stats?.total_deliveries || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-medium">
+                          {shift.stats?.delivered_count || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-amber-600 font-medium">
+                          {formatCurrency(shift.stats?.total_collected || 0)}
                         </td>
                       </>
                     )}

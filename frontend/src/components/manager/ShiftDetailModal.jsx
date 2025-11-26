@@ -95,7 +95,7 @@ export default function ShiftDetailModal({ shift, onClose }) {
           <div>
             <h2 className="text-xl font-bold">Báo cáo ca làm việc #{shift.id}</h2>
             <p className="text-sm opacity-90 mt-1">
-              {report.nhan_vien_ten} • {report.shift_type === 'CASHIER' ? 'Thu ngân' : 'Bếp'}
+              {report.nhan_vien_ten} • {report.shift_type === 'CASHIER' ? 'Thu ngân' : report.shift_type === 'WAITER' ? 'Phục vụ' : 'Bếp'}
             </p>
           </div>
           <button
@@ -143,7 +143,25 @@ export default function ShiftDetailModal({ shift, onClose }) {
               </button>
             )}
 
-            {/* Tab Đơn hàng / Món đã làm */}
+            {/* Tab Giao hàng (chỉ cho WAITER) */}
+            {report.shift_type === 'WAITER' && (
+              <button
+                onClick={() => setActiveTab('deliveries')}
+                className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
+                  activeTab === 'deliveries'
+                    ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] rounded-t-lg'
+                    : 'border-transparent text-gray-600 hover:bg-[#f5ebe0] hover:text-[#c9975b] rounded-t-lg'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Giao hàng
+              </button>
+            )}
+
+            {/* Tab Đơn hàng / Món đã làm / Đơn giao */}
             <button
               onClick={() => setActiveTab('orders')}
               className={`px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2 flex items-center gap-2 ${
@@ -156,12 +174,17 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
+              ) : report.shift_type === 'WAITER' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
               ) : (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               )}
-              {report.shift_type === 'KITCHEN' ? 'Món đã làm' : 'Đơn hàng'}
+              {report.shift_type === 'KITCHEN' ? 'Món đã làm' : report.shift_type === 'WAITER' ? 'Đơn đã giao' : 'Đơn hàng'}
             </button>
           </div>
         </div>
@@ -199,7 +222,7 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 </div>
               </div>
 
-              {/* Thống kê đơn hàng / Kitchen stats */}
+              {/* Thống kê đơn hàng / Kitchen stats / Waiter stats */}
               {report.shift_type === 'CASHIER' ? (
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 mb-3">Thống kê đơn hàng</h3>
@@ -219,6 +242,34 @@ export default function ShiftDetailModal({ shift, onClose }) {
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-sm text-gray-600">Doanh thu</div>
                       <div className="text-lg font-bold text-green-600">{formatCurrency(report.net_amount)}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : report.shift_type === 'WAITER' ? (
+                <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-4 border-2 border-green-200">
+                  <h3 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Thống kê giao hàng
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white/70 rounded-xl p-3 border border-green-200">
+                      <div className="text-sm text-gray-600 mb-1">Tổng đơn giao</div>
+                      <div className="text-2xl font-bold text-green-900">{shift.stats?.total_deliveries || report.waiterStats?.total_deliveries || 0}</div>
+                    </div>
+                    <div className="bg-white/70 rounded-xl p-3 border border-green-200">
+                      <div className="text-sm text-gray-600 mb-1">Giao thành công</div>
+                      <div className="text-2xl font-bold text-green-600">{shift.stats?.delivered_count || report.waiterStats?.delivered_count || 0}</div>
+                    </div>
+                    <div className="bg-white/70 rounded-xl p-3 border border-red-200">
+                      <div className="text-sm text-gray-600 mb-1">Giao thất bại</div>
+                      <div className="text-2xl font-bold text-red-600">{shift.stats?.failed_count || report.waiterStats?.failed_count || 0}</div>
+                    </div>
+                    <div className="bg-white/70 rounded-xl p-3 border border-amber-200">
+                      <div className="text-sm text-gray-600 mb-1">Tiền thu hộ</div>
+                      <div className="text-2xl font-bold text-amber-700">{formatCurrency(shift.stats?.total_collected || report.waiterStats?.total_collected || 0)}</div>
                     </div>
                   </div>
                 </div>
@@ -321,6 +372,44 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
                   <span className="text-dark-700 font-medium">📱 Online (PayOS)</span>
                   <span className="font-bold text-dark-900">{formatCurrency(report.online_amount)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'deliveries' && (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-dark-900 mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Thống kê giao hàng
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
+                  <span className="text-dark-700 font-medium">🚗 Tổng đơn giao</span>
+                  <span className="font-bold text-dark-900">{shift.stats?.total_deliveries || report.waiterStats?.total_deliveries || 0}</span>
+                </div>
+                
+                <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
+                  <span className="text-dark-700 font-medium">✅ Giao thành công</span>
+                  <span className="font-bold text-green-600">{shift.stats?.delivered_count || report.waiterStats?.delivered_count || 0}</span>
+                </div>
+                
+                <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
+                  <span className="text-dark-700 font-medium">❌ Giao thất bại</span>
+                  <span className="font-bold text-red-600">{shift.stats?.failed_count || report.waiterStats?.failed_count || 0}</span>
+                </div>
+                
+                <div className="flex items-center justify-between bg-amber-50 rounded-xl p-3 border border-amber-200">
+                  <span className="text-dark-700 font-medium">💰 Tổng tiền thu hộ</span>
+                  <span className="font-bold text-amber-700">{formatCurrency(shift.stats?.total_collected || report.waiterStats?.total_collected || 0)}</span>
+                </div>
+
+                <div className="flex items-center justify-between bg-blue-50 rounded-xl p-3 border border-blue-200">
+                  <span className="text-dark-700 font-medium">🏦 Đã nộp cho thu ngân</span>
+                  <span className="font-bold text-blue-700">{formatCurrency(shift.stats?.total_settled || report.waiterStats?.total_settled || 0)}</span>
                 </div>
               </div>
             </div>

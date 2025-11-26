@@ -468,7 +468,43 @@ export default {
                 )
               )
             )
-        ) AS total_items_cancelled
+        ) AS total_items_cancelled,
+        -- Waiter/Delivery stats
+        (
+          SELECT COUNT(*)
+          FROM don_hang dh
+          JOIN don_hang_delivery_info di ON di.order_id = dh.id
+          WHERE di.shipper_id = ca.nhan_vien_id
+            AND dh.opened_at >= ca.started_at
+            AND (dh.opened_at < ca.closed_at OR ca.closed_at IS NULL)
+        ) AS total_deliveries,
+        (
+          SELECT COUNT(*)
+          FROM don_hang dh
+          JOIN don_hang_delivery_info di ON di.order_id = dh.id
+          WHERE di.shipper_id = ca.nhan_vien_id
+            AND di.delivery_status = 'DELIVERED'
+            AND dh.opened_at >= ca.started_at
+            AND (dh.opened_at < ca.closed_at OR ca.closed_at IS NULL)
+        ) AS delivered_count,
+        (
+          SELECT COUNT(*)
+          FROM don_hang dh
+          JOIN don_hang_delivery_info di ON di.order_id = dh.id
+          WHERE di.shipper_id = ca.nhan_vien_id
+            AND di.delivery_status = 'FAILED'
+            AND dh.opened_at >= ca.started_at
+            AND (dh.opened_at < ca.closed_at OR ca.closed_at IS NULL)
+        ) AS failed_count,
+        (
+          SELECT COALESCE(SUM(wt.amount), 0)
+          FROM wallet_transactions wt
+          JOIN shipper_wallet sw ON sw.id = wt.wallet_id
+          WHERE sw.user_id = ca.nhan_vien_id
+            AND wt.transaction_type = 'COLLECT'
+            AND wt.created_at >= ca.started_at
+            AND (wt.created_at < ca.closed_at OR ca.closed_at IS NULL)
+        ) AS total_collected
       FROM ca_lam ca
       LEFT JOIN users u ON u.user_id = ca.opened_by
       WHERE ca.started_at >= CURRENT_DATE - INTERVAL '${days} days'

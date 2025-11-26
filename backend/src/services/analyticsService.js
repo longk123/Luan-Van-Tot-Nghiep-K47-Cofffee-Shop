@@ -198,7 +198,12 @@ class AnalyticsService {
           // Kitchen stats
           total_items_made: Number(shift.total_items_made || 0),
           avg_prep_time_seconds: Number(shift.avg_prep_time_seconds || 0),
-          total_items_cancelled: Number(shift.total_items_cancelled || 0)
+          total_items_cancelled: Number(shift.total_items_cancelled || 0),
+          // Waiter/Delivery stats
+          total_deliveries: Number(shift.total_deliveries || 0),
+          delivered_count: Number(shift.delivered_count || 0),
+          failed_count: Number(shift.failed_count || 0),
+          total_collected: Number(shift.total_collected || 0)
         }
       }));
     } catch (error) {
