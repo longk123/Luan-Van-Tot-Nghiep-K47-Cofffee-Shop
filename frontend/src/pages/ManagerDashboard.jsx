@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ProfitReport from '../components/manager/ProfitReport';
 import ShiftManagement from '../components/manager/ShiftManagement';
+import WalletOverview from '../components/manager/WalletOverview';
 import { COLORS } from '../constants/colors';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { getUser } from '../auth.js';
@@ -769,6 +770,11 @@ export default function ManagerDashboard({ embedded = false }) {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
+            )},
+            { id: 'shipper-wallet', name: 'Ví Shipper', icon: (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
             )}
           ].map((tab) => (
             <button
@@ -1319,6 +1325,21 @@ export default function ManagerDashboard({ embedded = false }) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Tab Ví Shipper */}
+      {activeTab === 'shipper-wallet' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Quản lý Ví Shipper
+            </h3>
+          </div>
+          <WalletOverview />
         </div>
       )}
 

@@ -96,6 +96,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   const [showWalletPanel, setShowWalletPanel] = useState(false);
   const [showSettlementPanel, setShowSettlementPanel] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [pendingWalletInfo, setPendingWalletInfo] = useState({ count: 0, total: 0 }); // Cashier: shipper cần đối soát
 
   // Role-based access control
   const [userRoles, setUserRoles] = useState([]);
@@ -150,6 +151,11 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
   );
 
+  // Check if user is Cashier (can view pending wallet info)
+  const isCashier = userRoles.some(role =>
+    ['cashier'].includes(role.toLowerCase())
+  );
+
   // Load wallet balance cho waiter khi component mount
   useEffect(() => {
     if (isWaiter) {
@@ -161,6 +167,29 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       });
     }
   }, [isWaiter]);
+
+  // Load pending wallet info cho cashier
+  useEffect(() => {
+    if (isCashier && !isWaiter) {
+      const loadPendingWallets = async () => {
+        try {
+          const res = await api.getPendingWalletBalance();
+          const data = res?.data || res || {};
+          setPendingWalletInfo({
+            count: parseInt(data.shipper_count) || 0,
+            total: parseInt(data.total_balance) || 0
+          });
+        } catch (err) {
+          console.error('Error loading pending wallets:', err);
+        }
+      };
+      
+      loadPendingWallets();
+      // Refresh every 30 seconds
+      const interval = setInterval(loadPendingWallets, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isCashier, isWaiter]);
 
   // Debug: Log drawer state changes
   useEffect(() => {
@@ -859,12 +888,17 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               {!isWaiter && !isManagerViewMode && (
                 <button
                   onClick={() => setShowSettlementPanel(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white border-2 border-purple-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-600 hover:border-purple-600 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  className="relative px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white border-2 border-purple-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-600 hover:border-purple-600 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                   <span className="whitespace-nowrap">Tiền thu hộ</span>
+                  {pendingWalletInfo.count > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                      {pendingWalletInfo.count}
+                    </span>
+                  )}
                 </button>
               )}
               {!isManagerViewMode && (

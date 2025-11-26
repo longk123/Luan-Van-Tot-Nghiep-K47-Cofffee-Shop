@@ -547,7 +547,15 @@ export const api = {
     return request('GET', `/wallet/all${queryString ? `?${queryString}` : ''}`);
   },
   getWalletPendingSummary: () => request('GET', '/wallet/pending-summary'),
+  getPendingWalletBalance: () => request('GET', '/wallet/pending-summary'),
   getWalletByUser: (userId) => request('GET', `/wallet/user/${userId}`),
+  getWalletTransactions: (userId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.shiftId) queryParams.append('shiftId', params.shiftId);
+    const queryString = queryParams.toString();
+    return request('GET', `/wallet/user/${userId}/transactions${queryString ? `?${queryString}` : ''}`);
+  },
   getUserWalletTransactions: (userId, params = {}) => {
     const queryParams = new URLSearchParams();
     if (params.limit) queryParams.append('limit', params.limit);
