@@ -399,12 +399,35 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                 </h4>
                 
                 <div className="space-y-3">
+                  {/* Tiền mặt (bao gồm cả tiền từ đơn và COD) */}
                   <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
                     <span className="text-dark-700 font-medium">💵 Tiền mặt</span>
                     <span className="font-bold text-dark-900">
                       {formatMoney(summary?.summary?.payments?.cash)}
                     </span>
                   </div>
+                  
+                  {/* Chi tiết tiền mặt nếu có COD */}
+                  {(summary?.summary?.payments?.cod > 0 || summary?.summary?.totals?.total_refunds > 0) && (
+                    <div className="ml-4 space-y-2 text-sm">
+                      <div className="flex items-center justify-between text-dark-600">
+                        <span>↳ Từ đơn tại quán</span>
+                        <span>{formatMoney(summary?.summary?.payments?.cash_from_orders)}</span>
+                      </div>
+                      {summary?.summary?.payments?.cod > 0 && (
+                        <div className="flex items-center justify-between text-dark-600">
+                          <span>↳ Thu hộ COD (shipper nộp)</span>
+                          <span className="text-success-600">+{formatMoney(summary?.summary?.payments?.cod)}</span>
+                        </div>
+                      )}
+                      {summary?.summary?.totals?.total_refunds > 0 && (
+                        <div className="flex items-center justify-between text-dark-600">
+                          <span>↳ Hoàn tiền</span>
+                          <span className="text-red-600">-{formatMoney(summary?.summary?.totals?.total_refunds)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
                     <span className="text-dark-700 font-medium">💳 Thẻ</span>

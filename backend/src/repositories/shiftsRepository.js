@@ -148,6 +148,21 @@ export async function aggregateShift(shiftId) {
     
     const total_refunds = Number(refundsResult.rows[0]?.total_refunds || 0);
     
+    // Tính tổng tiền COD settle từ wallet_transactions
+    // Đây là tiền waiter/shipper thu hộ và nộp lại cho cashier trong ca này
+    const codResult = await client.query(`
+      SELECT COALESCE(SUM(wt.amount), 0)::INT AS total_cod
+      FROM wallet_transactions wt
+      WHERE wt.shift_id = $1
+        AND wt.type = 'SETTLE'
+    `, [shiftId]);
+    
+    const total_cod = Number(codResult.rows[0]?.total_cod || 0);
+    
+    // Tiền mặt tổng = tiền từ order_payment + tiền COD settle - refunds
+    const cashFromOrders = Number(stats.cash_amount || 0);
+    const totalCash = cashFromOrders + total_cod - total_refunds;
+    
     return {
       totals: {
         gross: Number(stats.gross_amount || 0),
@@ -158,7 +173,9 @@ export async function aggregateShift(shiftId) {
         total_refunds,
       },
       payments: {
-        cash: Number(stats.cash_amount || 0) - total_refunds, // Trừ refund khỏi tiền mặt
+        cash: totalCash, // Bao gồm tiền COD settle và trừ refund
+        cash_from_orders: cashFromOrders, // Tiền mặt từ đơn tại quán (không bao gồm COD)
+        cod: total_cod, // Tiền thu hộ từ giao hàng (waiter/shipper nộp)
         card: Number(stats.card_amount || 0),
         transfer: Number(stats.transfer_amount || 0),
         online: Number(stats.online_amount || 0),
