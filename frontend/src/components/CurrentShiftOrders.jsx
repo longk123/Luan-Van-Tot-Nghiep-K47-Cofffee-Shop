@@ -1,5 +1,5 @@
 // src/components/CurrentShiftOrders.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../api.js';
 import { getUser } from '../auth.js';
 import useSSE from '../hooks/useSSE.js';
@@ -15,6 +15,11 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   const [showUnclaimDialog, setShowUnclaimDialog] = useState(false);
   const [unclaimOrderId, setUnclaimOrderId] = useState(null);
   const [unclaimReason, setUnclaimReason] = useState('');
+  
+  // Filter và Pagination states
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
 
   const fetchOrders = async () => {
     try {
@@ -274,25 +279,51 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   const { shift, orders, stats, isWaiter: dataIsWaiter } = data;
   const isWaiterView = isWaiter || dataIsWaiter;
   
+  // Sắp xếp đơn theo thời gian mở mới nhất
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+  }, [orders]);
+  
   // Filter orders dựa trên tab (chỉ cho waiter)
-  const filteredOrders = isWaiterView ? (() => {
+  const baseFilteredOrders = isWaiterView ? (() => {
     if (activeTab === 'DELIVERED') {
-      // Tab "Đơn đã giao": Tất cả đơn DELIVERY mà waiter đã nhận (claim)
-      // Bao gồm: CLAIMED, OUT_FOR_DELIVERY, DELIVERED, FAILED
-      return orders.filter(order => 
+      return sortedOrders.filter(order => 
         order.order_type === 'DELIVERY' && order.shipper_id
       );
     } else {
-      // Tab "Đơn đã tạo": Chỉ đơn DINE_IN và TAKEAWAY (waiter không tạo đơn giao hàng)
-      return orders.filter(order => 
+      return sortedOrders.filter(order => 
         order.order_type === 'DINE_IN' || order.order_type === 'TAKEAWAY'
       );
     }
-  })() : orders;
+  })() : sortedOrders;
+  
+  // Apply status filter
+  const statusFilteredOrders = useMemo(() => {
+    if (statusFilter === 'ALL') return baseFilteredOrders;
+    if (statusFilter === 'REFUNDED') {
+      return baseFilteredOrders.filter(o => o.total_refunded > 0);
+    }
+    return baseFilteredOrders.filter(o => o.trang_thai === statusFilter);
+  }, [baseFilteredOrders, statusFilter]);
+  
+  // Pagination
+  const totalPages = Math.ceil(statusFilteredOrders.length / ordersPerPage);
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ordersPerPage;
+    return statusFilteredOrders.slice(start, start + ordersPerPage);
+  }, [statusFilteredOrders, currentPage, ordersPerPage]);
+  
+  // Reset page khi filter thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, activeTab]);
+  
+  // For backwards compatibility
+  const filteredOrders = paginatedOrders;
   
   // Tính stats cho tab hiện tại (chỉ cho waiter)
   const tabStats = isWaiterView ? (() => {
-    const filtered = filteredOrders;
+    const filtered = baseFilteredOrders;
     
     // Nếu là tab "Đơn đã giao", tính stats về đơn giao hàng
     if (activeTab === 'DELIVERED') {
@@ -481,7 +512,7 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
       {/* Danh sách đơn hàng */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-4">
             <h3 className="text-lg font-bold text-[#8b6f47] flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-[#c9975b] flex items-center justify-center shadow-sm">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,20 +520,35 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                 </svg>
               </div>
               Đơn hàng trong ca
+              <span className="text-sm font-normal text-gray-500">({statusFilteredOrders.length} đơn)</span>
             </h3>
-            <button 
-              onClick={fetchOrders}
-              className="px-4 py-2 bg-[#c9975b] hover:bg-white text-white hover:text-[#c9975b] border-2 border-[#c9975b] rounded-xl font-bold transition-all shadow-sm hover:shadow-md text-sm flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Làm mới
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Filter dropdown */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
+              >
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="PAID">Đã thanh toán</option>
+                <option value="OPEN">Chưa thanh toán</option>
+                <option value="CANCELLED">Đã hủy</option>
+                <option value="REFUNDED">Đã hoàn tiền</option>
+              </select>
+              <button 
+                onClick={fetchOrders}
+                className="px-4 py-2 bg-[#c9975b] hover:bg-white text-white hover:text-[#c9975b] border-2 border-[#c9975b] rounded-xl font-bold transition-all shadow-sm hover:shadow-md text-sm flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Làm mới
+              </button>
+            </div>
           </div>
         </div>
         
-        {filteredOrders.length === 0 ? (
+        {statusFilteredOrders.length === 0 ? (
           <div className="p-10 text-center">
             <div className="w-20 h-20 mx-auto mb-4 bg-[#f5ebe0] rounded-full flex items-center justify-center shadow-md">
               <svg className="w-10 h-10 text-[#c9975b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -514,13 +560,14 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                 ? (activeTab === 'DELIVERED' 
                     ? 'Chưa có đơn giao hàng nào đã được nhận' 
                     : 'Chưa có đơn hàng nào trong ca này')
-                : 'Chưa có đơn hàng nào trong ca này'}
+                : (statusFilter !== 'ALL' ? 'Không có đơn hàng nào với trạng thái này' : 'Chưa có đơn hàng nào trong ca này')}
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" style={{ transform: 'rotateX(180deg)' }}>
+            <div style={{ transform: 'rotateX(180deg)' }}>
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Mã đơn
@@ -709,6 +756,49 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                 ))}
               </tbody>
             </table>
+            </div>
+          </div>
+        )}
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4">
+            <div className="text-sm text-gray-600">
+              Hiển thị {((currentPage - 1) * ordersPerPage) + 1} - {Math.min(currentPage * ordersPerPage, statusFilteredOrders.length)} / {statusFilteredOrders.length} đơn
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ««
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                «
+              </button>
+              <span className="px-4 py-1.5 text-sm font-medium bg-[#c9975b] text-white rounded-lg">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                »
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                »»
+              </button>
+            </div>
           </div>
         )}
       </div>
