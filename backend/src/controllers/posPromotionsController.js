@@ -151,6 +151,32 @@ export async function applyPromotionByCode(req, res, next) {
       throw new BadRequest("Điều kiện không đạt — khuyến mãi không áp dụng được.");
     }
 
+    // Kiểm tra tổng giảm không vượt quá giá trị đơn hàng
+    // Lấy subtotal và tổng giảm hiện tại
+    const { rows: currentSummary } = await client.query(
+      `SELECT subtotal_after_lines, promo_total, manual_discount 
+       FROM v_order_money_totals WHERE order_id=$1`,
+      [orderId]
+    );
+    
+    if (currentSummary.length > 0) {
+      const subtotal = currentSummary[0].subtotal_after_lines || 0;
+      const existingPromoTotal = currentSummary[0].promo_total || 0;
+      const manualDiscount = currentSummary[0].manual_discount || 0;
+      
+      // Tổng giảm mới = (KM hiện tại + KM mới + Giảm thủ công)
+      const newTotalDiscount = existingPromoTotal + amount + manualDiscount;
+      
+      if (newTotalDiscount > subtotal) {
+        const maxAllowed = Math.max(0, subtotal - existingPromoTotal - manualDiscount);
+        throw new BadRequest(
+          `Không thể áp dụng khuyến mãi. Tổng giảm (${new Intl.NumberFormat('vi-VN').format(newTotalDiscount)}₫) ` +
+          `vượt quá giá trị đơn hàng (${new Intl.NumberFormat('vi-VN').format(subtotal)}₫). ` +
+          `Có thể giảm tối đa thêm ${new Intl.NumberFormat('vi-VN').format(maxAllowed)}₫.`
+        );
+      }
+    }
+
     // Ghi vào don_hang_khuyen_mai (upsert)
     await client.query(
       `INSERT INTO don_hang_khuyen_mai(don_hang_id, khuyen_mai_id, so_tien_giam, chi_tiet, applied_by)

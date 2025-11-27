@@ -1087,6 +1087,130 @@ async function setupDatabase() {
       ORDER BY ngay DESC, tong_don_huy DESC
     `);
 
+    // =========================================================
+    // VIEW ĐƠN MANG ĐI CHƯA GIAO (v_takeaway_pending)
+    // =========================================================
+    console.log('📝 Tạo view v_takeaway_pending...');
+    
+    // Đảm bảo cột delivered_at tồn tại
+    await pool.query(`
+      ALTER TABLE don_hang
+        ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
+    `);
+    
+    await pool.query(`
+      CREATE OR REPLACE VIEW v_takeaway_pending AS
+      SELECT 
+        dh.id,
+        dh.trang_thai,
+        dh.order_type,
+        dh.opened_at,
+        dh.closed_at,
+        dh.delivered_at,
+        dh.customer_account_id,
+        -- Thông tin khách hàng (nếu có)
+        ca.full_name AS khach_hang_ten,
+        ca.phone AS khach_hang_phone,
+        ca.email AS khach_hang_email,
+        -- Phân biệt đơn đặt trước (từ Customer Portal) vs đơn tại quán
+        CASE 
+          WHEN dh.customer_account_id IS NOT NULL THEN true
+          ELSE false
+        END AS is_pre_order,
+        settlement.grand_total,
+        json_agg(
+          json_build_object(
+            'id', ct.id,
+            'mon_ten', COALESCE(ct.ten_mon_snapshot, m.ten),
+            'bien_the_ten', btm.ten_bien_the,
+            'so_luong', ct.so_luong,
+            'trang_thai_che_bien', ct.trang_thai_che_bien,
+            'ghi_chu', ct.ghi_chu
+          ) ORDER BY ct.id
+        ) FILTER (WHERE ct.id IS NOT NULL) AS items
+      FROM don_hang dh
+      LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+      LEFT JOIN mon m ON m.id = ct.mon_id
+      LEFT JOIN mon_bien_the btm ON btm.id = ct.bien_the_id
+      LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
+      LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
+      WHERE dh.order_type = 'TAKEAWAY'
+        AND dh.trang_thai IN ('OPEN', 'PAID')
+        AND dh.delivered_at IS NULL
+      GROUP BY dh.id, dh.trang_thai, dh.order_type, dh.opened_at, dh.closed_at, dh.delivered_at, 
+               dh.customer_account_id, ca.full_name, ca.phone, ca.email, settlement.grand_total
+      ORDER BY dh.opened_at;
+    `);
+
+    // =========================================================
+    // VIEW ĐƠN GIAO HÀNG CHƯA GIAO (v_delivery_pending)
+    // =========================================================
+    console.log('📝 Tạo view v_delivery_pending...');
+    
+    await pool.query(`
+      CREATE OR REPLACE VIEW v_delivery_pending AS
+      SELECT 
+        dh.id,
+        dh.trang_thai,
+        dh.order_type,
+        dh.opened_at,
+        dh.closed_at,
+        dh.delivered_at,
+        dh.customer_account_id,
+        -- Thông tin khách hàng (nếu có)
+        ca.full_name AS khach_hang_ten,
+        ca.phone AS khach_hang_phone,
+        ca.email AS khach_hang_email,
+        -- Phân biệt đơn đặt trước (từ Customer Portal) vs đơn tại quán
+        CASE 
+          WHEN dh.customer_account_id IS NOT NULL THEN true
+          ELSE false
+        END AS is_pre_order,
+        -- Thông tin giao hàng
+        di.delivery_address,
+        di.delivery_phone,
+        di.delivery_notes,
+        di.delivery_fee,
+        di.distance_km,
+        di.latitude,
+        di.longitude,
+        di.estimated_time,
+        di.delivery_status,
+        di.shipper_id,
+        shipper.full_name AS shipper_name,
+        shipper.username AS shipper_username,
+        settlement.grand_total,
+        json_agg(
+          json_build_object(
+            'id', ct.id,
+            'mon_ten', COALESCE(ct.ten_mon_snapshot, m.ten),
+            'bien_the_ten', btm.ten_bien_the,
+            'so_luong', ct.so_luong,
+            'trang_thai_che_bien', ct.trang_thai_che_bien,
+            'ghi_chu', ct.ghi_chu
+          ) ORDER BY ct.id
+        ) FILTER (WHERE ct.id IS NOT NULL) AS items
+      FROM don_hang dh
+      LEFT JOIN don_hang_chi_tiet ct ON ct.don_hang_id = dh.id
+      LEFT JOIN mon m ON m.id = ct.mon_id
+      LEFT JOIN mon_bien_the btm ON btm.id = ct.bien_the_id
+      LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
+      LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
+      LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+      LEFT JOIN users shipper ON shipper.user_id = di.shipper_id
+      WHERE dh.order_type = 'DELIVERY'
+        AND dh.trang_thai IN ('OPEN', 'PAID')
+        AND (dh.delivered_at IS NULL OR di.actual_delivered_at IS NULL)
+        AND (di.delivery_status IS NULL OR di.delivery_status != 'FAILED')
+      GROUP BY dh.id, dh.trang_thai, dh.order_type, dh.opened_at, dh.closed_at, dh.delivered_at,
+               dh.customer_account_id, ca.full_name, ca.phone, ca.email,
+               di.delivery_address, di.delivery_phone, di.delivery_notes, di.delivery_fee,
+               di.distance_km, di.latitude, di.longitude, di.estimated_time, 
+               di.delivery_status, di.shipper_id, shipper.full_name, shipper.username,
+               settlement.grand_total
+      ORDER BY dh.opened_at;
+    `);
+
     console.log('🎉 Setup database hoàn tất!');
     console.log('\n📋 Thông tin đăng nhập:');
     console.log('👑 Admin: username=admin, password=123456 (có tất cả quyền)');

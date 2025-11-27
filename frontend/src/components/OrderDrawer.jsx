@@ -1074,8 +1074,35 @@ export default function OrderDrawer({
         </div>
 
         {/* Payment Section - Multi-tender payments - Ẩn nếu là Waiter */}
-        {items.length > 0 && !hasPendingItems && !isWaiter && (
+        {/* Cashier có thể thanh toán ngay cả khi có món PENDING (có thể xác nhận đơn trước) */}
+        {(() => {
+          const shouldShow = !loading && items.length > 0 && !isWaiter && !isPaid;
+          console.log('🔍 PaymentSection visibility check:', {
+            loading,
+            itemsLength: items.length,
+            isWaiter,
+            isPaid,
+            shouldShow,
+            hasPendingItems,
+            localOrder: localOrder?.nhan_vien_id,
+            currentUser: currentUser?.user_id,
+            userRoles
+          });
+          return shouldShow;
+        })() && (
           <div className="mt-4">
+            {hasPendingItems && (
+              <div className="mb-3 p-3 bg-amber-50 border-2 border-amber-300 rounded-xl">
+                <div className="flex items-center gap-2 text-amber-800">
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-sm font-semibold">
+                    Có món chưa xác nhận. Vui lòng xác nhận đơn trước khi thanh toán để gửi món cho bếp.
+                  </p>
+                </div>
+              </div>
+            )}
             <PaymentSection
               orderId={orderId}
               shiftId={shift?.id}
