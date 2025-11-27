@@ -296,9 +296,82 @@ export default function PaymentSection({ orderId, shiftId, isPaid, refreshTrigge
     : 0;
 
   const amountDue = settlement?.amount_due || 0;
+  const grandTotal = settlement?.grand_total || 0;
+  
+  // Đơn miễn phí (grand_total = 0) cần được xử lý đặc biệt
+  const isFreeOrder = grandTotal === 0 && !isPaid;
+
+  // Xử lý đơn miễn phí - tạo payment với amount = 0 để đánh dấu PAID
+  const handleFreeOrderPayment = async () => {
+    setLoading(true);
+    try {
+      await api.createOrderPayment(orderId, {
+        method_code: 'CASH',
+        amount: 0,
+        ca_lam_id: shiftId
+      });
+      
+      onShowToast?.({
+        show: true,
+        type: 'success',
+        title: 'Xác nhận thành công',
+        message: 'Đơn hàng miễn phí đã được xác nhận'
+      });
+      
+      await loadSettlement();
+      onPaymentComplete?.();
+    } catch (error) {
+      onShowToast?.({
+        show: true,
+        type: 'error',
+        title: 'Lỗi',
+        message: error.message || 'Không thể xác nhận đơn hàng'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
+      {/* Free order - nút xác nhận đơn miễn phí */}
+      {isFreeOrder && (
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-5 border-2 border-green-300 shadow-sm">
+          <div className="text-center mb-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-green-800">Đơn hàng miễn phí</h3>
+            <p className="text-sm text-green-600 mt-1">Được giảm 100% - Không cần thu tiền</p>
+          </div>
+          
+          <button
+            onClick={handleFreeOrderPayment}
+            disabled={loading}
+            className="w-full py-3.5 px-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-base transition-all duration-200 shadow-lg shadow-green-500/25 hover:from-green-600 hover:to-emerald-600 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Đang xử lý...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Xác nhận đơn miễn phí</span>
+              </div>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Payment Summary - chỉ hiển thị khi có payments */}
       {settlement && (settlement.payments_captured > 0 || settlement.payments_refunded > 0) && (
         <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-5 border-2 border-emerald-300 shadow-sm">

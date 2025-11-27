@@ -32,6 +32,9 @@ async function closeOrderIfPaid(client, orderId) {
     return false; // Chưa thanh toán đủ
   }
   
+  // Cho phép đơn miễn phí (grand_total = 0)
+  const isFreeOrder = settlement.grand_total === 0;
+  
   // Lấy thông tin order
   const orderInfo = await client.query(
     `SELECT order_type, trang_thai FROM don_hang WHERE id = $1`,
@@ -157,21 +160,30 @@ class PaymentsController {
       
       await assertOrderExists(client, orderId);
 
-      // Lấy amount_due
+      // Lấy amount_due và grand_total
       const { rows: dueR } = await client.query(
         `SELECT amount_due, grand_total FROM v_order_settlement WHERE order_id=$1`,
         [orderId]
       );
       const amount_due = dueR[0]?.amount_due ?? 0;
+      const grand_total = dueR[0]?.grand_total ?? 0;
+
+      // Cho phép đơn miễn phí (grand_total = 0) - tạo payment với amount = 0
+      const isFreeOrder = grand_total === 0 && amount_due === 0;
 
       // Validation cho non-cash
       if (method_code !== 'CASH') {
-        if (amount == null || amount <= 0) {
+        if (!isFreeOrder && (amount == null || amount <= 0)) {
           throw new BadRequest("amount bắt buộc và > 0 với non-cash");
         }
-        if (amount > amount_due) {
+        if (!isFreeOrder && amount > amount_due) {
           throw new BadRequest("Số tiền vượt quá số còn phải trả");
         }
+      }
+
+      // Với đơn thường, không cho phép thanh toán khi đã trả đủ (trừ đơn miễn phí)
+      if (!isFreeOrder && amount_due === 0) {
+        throw new BadRequest("Đơn hàng đã được thanh toán đủ");
       }
 
       // Insert payment
