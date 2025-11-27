@@ -227,6 +227,54 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
     }
   };
 
+  // === HOOKS PHẢI ĐƯỢC GỌI TRƯỚC CÁC RETURN SỚM ===
+  const orders = data?.orders || [];
+  const isWaiterView = isWaiter || data?.isWaiter;
+  
+  // Sắp xếp đơn theo thời gian mở mới nhất
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+  }, [orders]);
+  
+  // Filter orders dựa trên tab (chỉ cho waiter)
+  const baseFilteredOrders = useMemo(() => {
+    if (!isWaiterView) return sortedOrders;
+    if (activeTab === 'DELIVERED') {
+      return sortedOrders.filter(order => 
+        order.order_type === 'DELIVERY' && order.shipper_id
+      );
+    } else {
+      return sortedOrders.filter(order => 
+        order.order_type === 'DINE_IN' || order.order_type === 'TAKEAWAY'
+      );
+    }
+  }, [sortedOrders, isWaiterView, activeTab]);
+  
+  // Apply status filter
+  const statusFilteredOrders = useMemo(() => {
+    if (statusFilter === 'ALL') return baseFilteredOrders;
+    if (statusFilter === 'REFUNDED') {
+      return baseFilteredOrders.filter(o => o.total_refunded > 0);
+    }
+    return baseFilteredOrders.filter(o => o.trang_thai === statusFilter);
+  }, [baseFilteredOrders, statusFilter]);
+  
+  // Pagination
+  const totalPages = Math.ceil(statusFilteredOrders.length / ordersPerPage);
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ordersPerPage;
+    return statusFilteredOrders.slice(start, start + ordersPerPage);
+  }, [statusFilteredOrders, currentPage, ordersPerPage]);
+  
+  // Reset page khi filter thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, activeTab]);
+  
+  // For display
+  const filteredOrders = paginatedOrders;
+
+  // === EARLY RETURNS SAU HOOKS ===
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
@@ -276,51 +324,9 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
     );
   }
 
-  const { shift, orders, stats, isWaiter: dataIsWaiter } = data;
-  const isWaiterView = isWaiter || dataIsWaiter;
+  const { shift, stats } = data;
   
   // Sắp xếp đơn theo thời gian mở mới nhất
-  const sortedOrders = useMemo(() => {
-    return [...orders].sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
-  }, [orders]);
-  
-  // Filter orders dựa trên tab (chỉ cho waiter)
-  const baseFilteredOrders = isWaiterView ? (() => {
-    if (activeTab === 'DELIVERED') {
-      return sortedOrders.filter(order => 
-        order.order_type === 'DELIVERY' && order.shipper_id
-      );
-    } else {
-      return sortedOrders.filter(order => 
-        order.order_type === 'DINE_IN' || order.order_type === 'TAKEAWAY'
-      );
-    }
-  })() : sortedOrders;
-  
-  // Apply status filter
-  const statusFilteredOrders = useMemo(() => {
-    if (statusFilter === 'ALL') return baseFilteredOrders;
-    if (statusFilter === 'REFUNDED') {
-      return baseFilteredOrders.filter(o => o.total_refunded > 0);
-    }
-    return baseFilteredOrders.filter(o => o.trang_thai === statusFilter);
-  }, [baseFilteredOrders, statusFilter]);
-  
-  // Pagination
-  const totalPages = Math.ceil(statusFilteredOrders.length / ordersPerPage);
-  const paginatedOrders = useMemo(() => {
-    const start = (currentPage - 1) * ordersPerPage;
-    return statusFilteredOrders.slice(start, start + ordersPerPage);
-  }, [statusFilteredOrders, currentPage, ordersPerPage]);
-  
-  // Reset page khi filter thay đổi
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, activeTab]);
-  
-  // For backwards compatibility
-  const filteredOrders = paginatedOrders;
-  
   // Tính stats cho tab hiện tại (chỉ cho waiter)
   const tabStats = isWaiterView ? (() => {
     const filtered = baseFilteredOrders;
