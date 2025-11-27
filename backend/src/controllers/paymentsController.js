@@ -214,7 +214,25 @@ class PaymentsController {
         client.query(`SELECT * FROM order_payment WHERE order_id=$1 ORDER BY id`, [orderId])
       ]);
 
+      // Kiểm tra và đóng đơn nếu đã thanh toán đủ (bao gồm đơn miễn phí)
+      const newAmountDue = settle.rows[0]?.amount_due ?? 0;
+      if (newAmountDue === 0) {
+        await closeOrderIfPaid(client, orderId);
+      }
+
       await client.query("COMMIT");
+
+      // Emit SSE event để frontend cập nhật realtime
+      bus.emit('change', {
+        type: 'order.paid',
+        orderId: orderId,
+        amount: payment.amount,
+        method: payment.method_code
+      });
+      bus.emit('change', {
+        type: 'order.updated',
+        orderId: orderId
+      });
 
       res.status(201).json({
         success: true,

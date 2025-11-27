@@ -305,11 +305,14 @@ export default function PaymentSection({ orderId, shiftId, isPaid, refreshTrigge
   const handleFreeOrderPayment = async () => {
     setLoading(true);
     try {
-      await api.createOrderPayment(orderId, {
+      console.log('💰 Processing free order payment:', { orderId, shiftId });
+      const result = await api.createPayment(orderId, {
         method_code: 'CASH',
         amount: 0,
         ca_lam_id: shiftId
       });
+      
+      console.log('✅ Free order payment result:', result);
       
       onShowToast?.({
         show: true,
@@ -321,6 +324,7 @@ export default function PaymentSection({ orderId, shiftId, isPaid, refreshTrigge
       await loadSettlement();
       onPaymentComplete?.();
     } catch (error) {
+      console.error('❌ Free order payment error:', error);
       onShowToast?.({
         show: true,
         type: 'error',
