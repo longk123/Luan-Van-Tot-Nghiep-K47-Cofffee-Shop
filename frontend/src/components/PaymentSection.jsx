@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import PaymentQRPanel from './PaymentQRPanel.jsx';
 
-export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaymentComplete, onShowToast }) {
+export default function PaymentSection({ orderId, shiftId, isPaid, refreshTrigger, onPaymentComplete, onShowToast }) {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [settlement, setSettlement] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -171,7 +171,8 @@ export default function PaymentSection({ orderId, isPaid, refreshTrigger, onPaym
         method_code: selectedMethod,
         amount: amountNum,
         amount_tendered: tenderedNum,
-        tx_ref: txRef || null
+        tx_ref: txRef || null,
+        ca_lam_id: shiftId || null
       };
 
       await api.createPayment(orderId, payload);

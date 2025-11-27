@@ -606,9 +606,14 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
-                        <span className={`px-3 py-1.5 text-xs rounded-lg ${getStatusColor(order.trang_thai)}`}>
-                          {getStatusText(order.trang_thai)}
+                        <span className={`px-3 py-1.5 text-xs rounded-lg ${getStatusColor(order.trang_thai, order.total_refunded > 0)}`}>
+                          {getStatusText(order.trang_thai, order.total_refunded > 0)}
                         </span>
+                        {order.total_refunded > 0 && (
+                          <span className="px-3 py-1.5 text-xs rounded-lg bg-purple-100 text-purple-700 border border-purple-300">
+                            Hoàn: {new Intl.NumberFormat('vi-VN').format(order.total_refunded)}đ
+                          </span>
+                        )}
                         {order.order_type === 'DELIVERY' && order.delivery_status && (
                           <span className={`px-3 py-1.5 text-xs rounded-lg ${getDeliveryStatusColor(order.delivery_status)}`}>
                             {getDeliveryStatusText(order.delivery_status)}

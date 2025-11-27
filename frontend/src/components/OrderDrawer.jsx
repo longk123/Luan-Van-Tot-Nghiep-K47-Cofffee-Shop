@@ -1078,6 +1078,7 @@ export default function OrderDrawer({
           <div className="mt-4">
             <PaymentSection
               orderId={orderId}
+              shiftId={shift?.id}
               grandTotal={moneySummary?.grand_total !== undefined ? moneySummary.grand_total : (summary?.subtotal || 0)}
               isPaid={isPaid}
               refreshTrigger={moneySummary?.grand_total}

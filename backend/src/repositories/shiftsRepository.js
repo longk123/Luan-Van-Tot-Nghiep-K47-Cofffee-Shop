@@ -137,8 +137,16 @@ export async function aggregateShift(shiftId) {
     
     const stats = data?.stats || {};
     
-    // Đếm refunds nếu có bảng refunds (hiện tại chưa có)
-    const total_refunds = 0;
+    // Tính tổng refunds từ các đơn trong ca
+    const refundsResult = await client.query(`
+      SELECT COALESCE(SUM(r.amount), 0)::INT AS total_refunds
+      FROM order_payment_refund r
+      JOIN order_payment p ON p.id = r.payment_id
+      JOIN don_hang dh ON dh.id = p.order_id
+      WHERE dh.ca_lam_id = $1
+    `, [shiftId]);
+    
+    const total_refunds = Number(refundsResult.rows[0]?.total_refunds || 0);
     
     return {
       totals: {
@@ -150,7 +158,7 @@ export async function aggregateShift(shiftId) {
         total_refunds,
       },
       payments: {
-        cash: Number(stats.cash_amount || 0),
+        cash: Number(stats.cash_amount || 0) - total_refunds, // Trừ refund khỏi tiền mặt
         card: Number(stats.card_amount || 0),
         transfer: Number(stats.transfer_amount || 0),
         online: Number(stats.online_amount || 0),
