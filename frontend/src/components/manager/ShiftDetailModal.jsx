@@ -365,13 +365,8 @@ export default function ShiftDetailModal({ shift, onClose }) {
                 </div>
                 
                 <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
-                  <span className="text-dark-700 font-medium">🏦 Chuyển khoản</span>
-                  <span className="font-bold text-dark-900">{formatCurrency(report.transfer_amount || 0)}</span>
-                </div>
-                
-                <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
-                  <span className="text-dark-700 font-medium">📱 Online (PayOS)</span>
-                  <span className="font-bold text-dark-900">{formatCurrency(report.online_amount)}</span>
+                  <span className="text-dark-700 font-medium">💳 Online / Chuyển khoản</span>
+                  <span className="font-bold text-dark-900">{formatCurrency((report.transfer_amount || 0) + (report.online_amount || 0))}</span>
                 </div>
               </div>
             </div>

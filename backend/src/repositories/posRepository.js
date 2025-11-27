@@ -459,12 +459,16 @@ export default {
       const order = ordRows[0];
       if (order.trang_thai !== 'OPEN') throw new Error('Order already closed');
 
-      const { rows: totalRows } = await client.query(
-        `SELECT COALESCE(SUM(so_luong * don_gia - COALESCE(giam_gia,0)),0) AS total
-         FROM don_hang_chi_tiet WHERE don_hang_id=$1`,
+      // ✅ Lấy grand_total từ settlement (bao gồm discount/promotion)
+      const { rows: settlementRows } = await client.query(
+        `SELECT grand_total FROM v_order_settlement WHERE order_id=$1`,
         [orderId]
       );
-      const total = Number(totalRows[0].total) || 0;
+      const total = Number(settlementRows[0]?.grand_total || 0);
+      
+      if (total <= 0) {
+        throw new Error('Order total must be greater than 0');
+      }
 
       // Đơn bàn: Set PAID + closed_at
       // Đơn mang đi: Chỉ set PAID (chờ giao hàng mới closed)
@@ -484,12 +488,20 @@ export default {
         );
       }
 
-      // Create payment transaction record
+      // ✅ Tạo payment_transaction (cho hệ thống cũ)
       const refCode = `ORD${orderId}-${Date.now()}`;
       await client.query(
         `INSERT INTO payment_transaction (order_id, payment_method_code, ref_code, amount, status, created_at, updated_at)
          VALUES ($1, $2, $3, $4, 'PAID', NOW(), NOW())`,
         [orderId, payment_method || 'CASH', refCode, total]
+      );
+
+      // ✅ Tạo order_payment (cho hệ thống mới - multi-tender)
+      await client.query(
+        `INSERT INTO order_payment (order_id, method_code, amount, status, created_at, created_by, ca_lam_id)
+         VALUES ($1, $2, $3, 'CAPTURED', NOW(), $4, 
+           (SELECT id FROM ca_lam WHERE status='OPEN' AND nhan_vien_id=$4 ORDER BY started_at DESC LIMIT 1))`,
+        [orderId, payment_method || 'CASH', total, userId]
       );
 
       await client.query('COMMIT');

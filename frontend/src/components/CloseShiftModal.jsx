@@ -421,8 +421,8 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                         </div>
                       )}
                       {summary?.summary?.totals?.total_refunds > 0 && (
-                        <div className="flex items-center justify-between text-dark-600">
-                          <span>↳ Hoàn tiền</span>
+                        <div className="flex items-center justify-between text-dark-600 italic">
+                          <span>↳ Hoàn tiền (đã trừ trong "Từ đơn tại quán")</span>
                           <span className="text-red-600">-{formatMoney(summary?.summary?.totals?.total_refunds)}</span>
                         </div>
                       )}
@@ -437,16 +437,9 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                   </div>
                   
                   <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
-                    <span className="text-dark-700 font-medium">🏦 Chuyển khoản</span>
+                    <span className="text-dark-700 font-medium">💳 Online / Chuyển khoản</span>
                     <span className="font-bold text-dark-900">
-                      {formatMoney(summary?.summary?.payments?.transfer)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200">
-                    <span className="text-dark-700 font-medium">📱 Online (PayOS)</span>
-                    <span className="font-bold text-dark-900">
-                      {formatMoney(summary?.summary?.payments?.online)}
+                      {formatMoney((summary?.summary?.payments?.transfer || 0) + (summary?.summary?.payments?.online || 0))}
                     </span>
                   </div>
                 </div>

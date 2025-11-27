@@ -159,9 +159,10 @@ export async function aggregateShift(shiftId) {
     
     const total_cod = Number(codResult.rows[0]?.total_cod || 0);
     
-    // Tiền mặt tổng = tiền từ order_payment + tiền COD settle - refunds
+    // ✅ Tiền mặt tổng = tiền từ đơn (đã trừ refunds trong fn_aggregate_shift) + tiền COD settle
+    // LƯU Ý: total_refunds đã được trừ trong fn_aggregate_shift rồi, không trừ lại
     const cashFromOrders = Number(stats.cash_amount || 0);
-    const totalCash = cashFromOrders + total_cod - total_refunds;
+    const totalCash = cashFromOrders + total_cod;
     
     return {
       totals: {

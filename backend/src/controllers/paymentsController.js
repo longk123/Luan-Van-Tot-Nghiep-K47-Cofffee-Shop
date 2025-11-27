@@ -34,19 +34,51 @@ async function closeOrderIfPaid(client, orderId) {
   
   // Lấy thông tin order
   const orderInfo = await client.query(
-    `SELECT order_type FROM don_hang WHERE id = $1`,
+    `SELECT order_type, trang_thai FROM don_hang WHERE id = $1`,
     [orderId]
   );
   
+  // Nếu đã PAID rồi thì không làm gì
+  if (orderInfo.rows[0]?.trang_thai === 'PAID') {
+    return true;
+  }
+  
   // Lấy ca_lam_id từ payment cuối cùng (người thanh toán)
   const lastPayment = await client.query(
-    `SELECT ca_lam_id FROM order_payment 
+    `SELECT ca_lam_id, method_code FROM order_payment 
      WHERE order_id = $1 AND ca_lam_id IS NOT NULL 
      ORDER BY id DESC LIMIT 1`,
     [orderId]
   );
   const payerShiftId = lastPayment.rows[0]?.ca_lam_id || null;
+  const paymentMethod = lastPayment.rows[0]?.method_code || 'CASH';
   
+  // ✅ TẠO payment_transaction TRƯỚC KHI đánh dấu PAID
+  // Kiểm tra xem đã có payment_transaction chưa
+  const existingTxn = await client.query(
+    `SELECT id FROM payment_transaction WHERE order_id = $1`,
+    [orderId]
+  );
+  
+  if (existingTxn.rows.length === 0) {
+    // Tạo payment_transaction nếu chưa có
+    const refCode = `ORD${orderId}-${Date.now()}`;
+    await client.query(
+      `INSERT INTO payment_transaction (
+        order_id, 
+        payment_method_code, 
+        ref_code, 
+        amount, 
+        status, 
+        created_at, 
+        updated_at
+      )
+      VALUES ($1, $2, $3, $4, 'PAID', NOW(), NOW())`,
+      [orderId, paymentMethod, refCode, settlement.grand_total]
+    );
+  }
+  
+  // Đánh dấu đơn là PAID
   if (orderInfo.rows[0]?.order_type === 'DINE_IN') {
     await client.query(
       `UPDATE don_hang SET trang_thai = 'PAID', closed_at = NOW(), ca_lam_id = COALESCE($2, ca_lam_id) WHERE id = $1`,
