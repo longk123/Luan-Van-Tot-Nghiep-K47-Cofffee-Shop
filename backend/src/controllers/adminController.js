@@ -102,9 +102,11 @@ class AdminController {
     const businessStats = await pool.query(`
       SELECT 
         (SELECT COUNT(*) FROM users WHERE is_active = true) as total_users,
-        (SELECT COUNT(*) FROM don_hang WHERE DATE(created_at) = CURRENT_DATE) as total_orders_today,
-        (SELECT COALESCE(SUM(grand_total), 0) FROM v_order_settlement 
-         WHERE DATE(closed_at) = CURRENT_DATE AND trang_thai = 'PAID') as total_revenue_today,
+        (SELECT COUNT(*) FROM don_hang WHERE DATE(opened_at) = CURRENT_DATE) as total_orders_today,
+        (SELECT COALESCE(SUM(v.grand_total), 0) 
+         FROM v_order_settlement v
+         JOIN don_hang d ON d.id = v.order_id
+         WHERE DATE(d.opened_at) = CURRENT_DATE AND d.trang_thai = 'PAID') as total_revenue_today,
         (SELECT COUNT(*) FROM ca_lam WHERE status = 'OPEN') as active_shifts
     `);
 

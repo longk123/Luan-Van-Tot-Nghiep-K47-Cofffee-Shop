@@ -285,7 +285,7 @@ export default function SystemSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-red-500 text-white border-2 border-red-500 rounded-lg font-semibold hover:bg-white hover:text-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? 'Đang lưu...' : '💾 Lưu cấu hình'}
         </button>

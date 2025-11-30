@@ -22,8 +22,8 @@ export default function ShipperWalletPanel({ onClose, onBalanceUpdate }) {
       const res = await api.getMyWallet();
       const data = res?.data || res || {};
       setWallet(data);
-      if (onBalanceUpdate && data.current_balance !== undefined) {
-        onBalanceUpdate(data.current_balance);
+      if (onBalanceUpdate && data.balance !== undefined) { // ✅ Sửa: balance
+        onBalanceUpdate(data.balance);
       }
       setError(null);
     } catch (err) {
@@ -73,7 +73,7 @@ export default function ShipperWalletPanel({ onClose, onBalanceUpdate }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-6 text-white">
+        <div className="bg-emerald-500 p-6 text-white">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -64,12 +64,14 @@ async function migrate() {
       -- JOIN với users để lấy người tạo đơn
       LEFT JOIN users u_creator ON u_creator.user_id = dh.nhan_vien_id
       -- JOIN với order_payment để lấy người thanh toán (lấy payment đầu tiên)
+      -- Lấy payment có status = 'CAPTURED' hoặc payment đầu tiên nếu không có CAPTURED
       LEFT JOIN LATERAL (
         SELECT created_by
         FROM order_payment
         WHERE order_id = dh.id
-          AND status = 'CAPTURED'
-        ORDER BY created_at ASC
+        ORDER BY 
+          CASE WHEN status = 'CAPTURED' THEN 0 ELSE 1 END,
+          created_at ASC
         LIMIT 1
       ) first_payment ON true
       LEFT JOIN users u_payer ON u_payer.user_id = first_payment.created_by

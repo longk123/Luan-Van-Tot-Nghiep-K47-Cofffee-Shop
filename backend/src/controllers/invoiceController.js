@@ -140,14 +140,10 @@ class InvoiceController {
     
     // Cột phải
     currentY = infoY;
-    // Hiển thị người tạo đơn và người thanh toán (nếu khác nhau)
-    if (header.nguoi_tao_don && header.thu_ngan && header.nguoi_tao_don !== header.thu_ngan) {
-      doc.text('Người tạo đơn: ' + (header.nguoi_tao_don ?? '-'), infoRight, currentY);
-      currentY += lineHeight;
-      doc.text('Thu ngân: ' + (header.thu_ngan ?? '-'), infoRight, currentY);
-    } else {
-      doc.text('Thu ngân: ' + (header.thu_ngan ?? header.nguoi_tao_don ?? '-'), infoRight, currentY);
-    }
+    // Luôn hiển thị cả người tạo đơn và người thanh toán
+    doc.text('Người tạo đơn: ' + (header.nguoi_tao_don ?? '-'), infoRight, currentY);
+    currentY += lineHeight;
+    doc.text('Thu ngân: ' + (header.thu_ngan ?? header.nguoi_tao_don ?? '-'), infoRight, currentY);
     currentY += lineHeight;
     doc.text('Mở: ' + new Date(header.opened_at).toLocaleString('vi-VN'), infoRight, currentY);
     
@@ -156,8 +152,8 @@ class InvoiceController {
       doc.text('Đóng: ' + new Date(header.closed_at).toLocaleString('vi-VN'), infoRight, currentY);
     }
     
-    // Cập nhật Y để tiếp tục (lấy Y cao nhất)
-    const maxY = header.closed_at ? infoY + (lineHeight * 3) : infoY + (lineHeight * 2);
+    // Cập nhật Y để tiếp tục (lấy Y cao nhất) - 4 dòng nếu có closed_at, 3 dòng nếu không
+    const maxY = header.closed_at ? infoY + (lineHeight * 4) : infoY + (lineHeight * 3);
     doc.y = maxY + 5;
     
     doc.moveDown(0.5);

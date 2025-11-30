@@ -397,7 +397,7 @@ export default function MenuManagement() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-[#d4a574] to-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 bg-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
@@ -409,7 +409,7 @@ export default function MenuManagement() {
           </div>
           <button
             onClick={() => navigate('/manager')}
-            className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+            className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -473,10 +473,10 @@ export default function MenuManagement() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 border-2 ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                  ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
+                  : 'text-gray-600 border-transparent hover:bg-[#f5e6d3] hover:text-[#c9975b] hover:border-[#c9975b]'
               }`}
             >
               {tab.icon}
@@ -505,7 +505,7 @@ export default function MenuManagement() {
                       setCategoryForm({ id: null, ten: '', mo_ta: '', thu_tu: 0 });
                       setShowCategoryForm(true);
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] transition-all duration-200 flex items-center gap-2"
+                    className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] transition-all duration-200 flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -589,7 +589,7 @@ export default function MenuManagement() {
                       setImagePreview(null);
                       setShowItemForm(true);
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] transition-all duration-200 flex items-center gap-2 font-medium"
+                    className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] transition-all duration-200 flex items-center gap-2 font-medium"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -697,7 +697,7 @@ export default function MenuManagement() {
                       setVariantForm({ id: null, mon_id: selectedItem, ten_bien_the: '', gia: 0, thu_tu: 0 });
                       setShowVariantForm(true);
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] transition-all duration-200 flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] transition-all duration-200 flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={!selectedItem}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -855,7 +855,7 @@ export default function MenuManagement() {
                       setOptionForm({ id: null, ma: '', ten: '', loai: 'AMOUNT', don_vi: 'viên', gia_mac_dinh: 0 });
                       setShowOptionForm(true);
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] transition-all duration-200 flex items-center gap-2"
+                    className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] transition-all duration-200 flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -982,7 +982,7 @@ export default function MenuManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] font-medium"
+                  className="flex-1 px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] font-medium"
                 >
                   Lưu
                 </button>
@@ -992,7 +992,7 @@ export default function MenuManagement() {
         </div>
       )}
 
-      {/* Item Form Modal */}
+      {/* Item Form Modal */}}
       {showItemForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
@@ -1090,7 +1090,7 @@ export default function MenuManagement() {
                         onChange={handleImageSelect}
                         className="hidden"
                       />
-                      <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium">
+                      <div className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-white hover:text-blue-500 border-2 border-blue-500 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
@@ -1125,7 +1125,7 @@ export default function MenuManagement() {
                 <button
                   type="submit"
                   disabled={uploadingImage}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {uploadingImage ? (
                     <>
@@ -1195,7 +1195,7 @@ export default function MenuManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] font-medium"
+                  className="flex-1 px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] font-medium"
                 >
                   Lưu
                 </button>
@@ -1233,7 +1233,7 @@ export default function MenuManagement() {
                     setLevelForm({ id: null, tuy_chon_id: selectedOption, ten_muc: '', he_so: 0, thu_tu: 0 });
                     setShowLevelForm(true);
                   }}
-                  className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] transition-all duration-200 flex items-center gap-2 font-medium"
+                  className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] transition-all duration-200 flex items-center gap-2 font-medium"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1406,7 +1406,7 @@ export default function MenuManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] font-medium"
+                  className="flex-1 px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] font-medium"
                 >
                   Lưu
                 </button>
@@ -1416,7 +1416,7 @@ export default function MenuManagement() {
         </div>
       )}
 
-      {/* Option Form Modal (Topping/Đường-đá) */}
+      {/* Option Form Modal (Topping/Đường-đá) */}}
       {showOptionForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -1479,7 +1479,7 @@ export default function MenuManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white rounded-lg hover:from-[#c9975b] hover:to-[#b8864a] font-medium"
+                  className="flex-1 px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] font-medium"
                 >
                   Lưu
                 </button>

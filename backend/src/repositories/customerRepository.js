@@ -563,46 +563,56 @@ export default {
 
   /**
    * Upsert customer (find or create) from guest info
+   * Sử dụng bảng khach_hang cho khách vãng lai (không cần password)
    */
   async upsertCustomer({ fullName, phone, email }) {
-    // Try to find existing customer by phone
-    let customer = await this.findByPhone(phone);
+    // Try to find existing customer by phone in khach_hang table
+    const findSql = `SELECT id, ten as full_name, so_dien_thoai as phone, email FROM khach_hang WHERE so_dien_thoai = $1`;
+    const { rows: existing } = await pool.query(findSql, [phone]);
     
-    if (customer) {
+    if (existing.length > 0) {
       // Update info if provided
       if (fullName || email) {
         const updateSql = `
-          UPDATE customer_accounts
+          UPDATE khach_hang
           SET 
-            full_name = COALESCE($1, full_name),
+            ten = COALESCE($1, ten),
             email = COALESCE($2, email),
             updated_at = NOW()
           WHERE id = $3
-          RETURNING id, phone, email, full_name
+          RETURNING id, ten as full_name, so_dien_thoai as phone, email
         `;
-        const { rows } = await pool.query(updateSql, [fullName || null, email || null, customer.id]);
+        const { rows } = await pool.query(updateSql, [fullName || null, email || null, existing[0].id]);
         return rows[0];
       }
-      return customer;
+      return existing[0];
     }
 
-    // Create new customer account (without password for guest)
+    // Create new guest customer in khach_hang table (không cần password)
     const insertSql = `
-      INSERT INTO customer_accounts (phone, email, full_name, is_active)
-      VALUES ($1, $2, $3, true)
-      RETURNING id, phone, email, full_name
+      INSERT INTO khach_hang (ten, so_dien_thoai, email)
+      VALUES ($1, $2, $3)
+      RETURNING id, ten as full_name, so_dien_thoai as phone, email
     `;
-    const { rows } = await pool.query(insertSql, [phone, email || null, fullName]);
+    const { rows } = await pool.query(insertSql, [fullName, phone, email || null]);
     return rows[0];
   },
 
   /**
    * Create order from cart (for customer portal)
+   * - customerId: ID từ customer_accounts (nếu đã đăng nhập)
+   * - customerInfo: Thông tin khách vãng lai (nếu chưa đăng nhập)
    */
   async createOrderFromCart({ customerId, orderType, customerInfo }) {
-    // Get or create customer
-    let khachHangId = customerId;
-    if (!khachHangId && customerInfo) {
+    // Xác định loại khách hàng
+    let customerAccountId = null;
+    let khachHangId = null;
+    
+    if (customerId) {
+      // Registered customer - dùng customer_account_id
+      customerAccountId = customerId;
+    } else if (customerInfo) {
+      // Guest customer - tạo/tìm trong bảng khach_hang
       const customer = await this.upsertCustomer({
         fullName: customerInfo.fullName,
         phone: customerInfo.phone,
@@ -627,12 +637,14 @@ export default {
 
     // Create order - tự động gán vào ca đang mở (nếu có)
     // QUAN TRỌNG: Set order_source = 'ONLINE' để đơn hàng xuất hiện trong v_customer_orders
+    // - customer_account_id: cho khách đã đăng ký (registered customer)
+    // - khach_hang_id: cho khách vãng lai (guest customer)
     const sql = `
-      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type, order_source, customer_account_id)
-      VALUES (NULL, NULL, $1, 'OPEN', $2, 'ONLINE', $3)
+      INSERT INTO don_hang (ban_id, nhan_vien_id, ca_lam_id, trang_thai, order_type, order_source, customer_account_id, khach_hang_id)
+      VALUES (NULL, NULL, $1, 'OPEN', $2, 'ONLINE', $3, $4)
       RETURNING *
     `;
-    const { rows } = await pool.query(sql, [caLamId, orderType, khachHangId || null]);
+    const { rows } = await pool.query(sql, [caLamId, orderType, customerAccountId, khachHangId]);
     return rows[0];
   },
 

@@ -89,7 +89,7 @@ export default function SystemHealth() {
 
       {/* System Status */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border-2 border-green-200">
+        <div className="bg-green-50 rounded-xl p-6 border-2 border-green-200">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-gray-900">System Status</h3>
             <span className={`px-3 py-1 rounded text-xs font-semibold border ${getStatusColor(health.system?.status)}`}>
@@ -100,7 +100,7 @@ export default function SystemHealth() {
           <p className="text-sm text-gray-600">Version: {health.system?.version || '-'}</p>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 border-blue-200">
+        <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-gray-900">Database</h3>
             <span className={`px-3 py-1 rounded text-xs font-semibold border ${getStatusColor(health.database?.status)}`}>
@@ -113,7 +113,7 @@ export default function SystemHealth() {
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border-2 border-purple-200">
+        <div className="bg-purple-50 rounded-xl p-6 border-2 border-purple-200">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-gray-900">Performance</h3>
           </div>
@@ -122,7 +122,7 @@ export default function SystemHealth() {
           <p className="text-sm text-gray-600">Requests/min: {health.performance?.requests_per_minute || 0}</p>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border-2 border-orange-200">
+        <div className="bg-orange-50 rounded-xl p-6 border-2 border-orange-200">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-gray-900">Business</h3>
           </div>
@@ -182,7 +182,7 @@ export default function SystemHealth() {
         <button
           onClick={loadHealth}
           disabled={loading}
-          className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+          className="px-6 py-3 bg-red-500 text-white border-2 border-red-500 rounded-lg font-semibold hover:bg-white hover:text-red-500 transition-all disabled:opacity-50"
         >
           {loading ? 'Đang tải...' : '🔄 Làm mới'}
         </button>

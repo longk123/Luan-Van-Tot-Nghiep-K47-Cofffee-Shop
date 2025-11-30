@@ -39,29 +39,29 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
     so_nguoi: upcomingReservation?.so_nguoi
   } : (upcomingReservation || null);
   
-  // Màu card theo trạng thái bàn - NÂNG CẤP CHUYÊN NGHIỆP
+  // Màu card theo trạng thái bàn - DÙNG SOLID COLORS
   const getStatusColor = () => {
-    if (table.trang_thai === 'KHOA') return 'bg-gradient-to-br from-red-50 via-red-50 to-rose-100 border-red-300 shadow-red-100/50';
-    if (hasReservation && !hasOrder) return 'bg-gradient-to-br from-indigo-50 via-purple-50 to-indigo-100 border-indigo-300 shadow-indigo-100/50'; // Bàn đã đặt
-    if (!hasOrder) return 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 border-green-300 shadow-green-100/50';
-    if (isPaid) return 'bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 border-blue-300 shadow-blue-100/50';
-    return 'bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 border-amber-300 shadow-amber-100/50';
+    if (table.trang_thai === 'KHOA') return 'bg-red-50 border-red-300';
+    if (hasReservation && !hasOrder) return 'bg-indigo-50 border-indigo-300'; // Bàn đã đặt
+    if (!hasOrder) return 'bg-emerald-50 border-green-300';
+    if (isPaid) return 'bg-blue-50 border-blue-300';
+    return 'bg-amber-50 border-amber-300';
   };
 
-  // Badge trạng thái bàn - NÂNG CẤP VỚI GRADIENT
+  // Badge trạng thái bàn - DÙNG SOLID COLORS
   const getTableStatusBadge = () => {
-    if (table.trang_thai === 'KHOA') return { text: 'KHÓA', color: 'bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold shadow-md' };
-    if (hasReservation && !hasOrder) return { text: 'ĐÃ ĐẶT', color: 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold shadow-md' };
-    if (table.trang_thai === 'TRONG') return { text: 'TRỐNG', color: 'bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold shadow-md' };
-    if (table.trang_thai === 'DANG_DUNG') return { text: 'ĐANG DÙNG', color: 'bg-gradient-to-r from-purple-500 to-fuchsia-600 text-white font-bold shadow-md' };
-    return { text: 'TRỐNG', color: 'bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold shadow-md' };
+    if (table.trang_thai === 'KHOA') return { text: 'KHÓA', color: 'bg-red-500 text-white font-bold' };
+    if (hasReservation && !hasOrder) return { text: 'ĐÃ ĐẶT', color: 'bg-indigo-500 text-white font-bold' };
+    if (table.trang_thai === 'TRONG') return { text: 'TRỐNG', color: 'bg-emerald-500 text-white font-bold' };
+    if (table.trang_thai === 'DANG_DUNG') return { text: 'ĐANG DÙNG', color: 'bg-purple-500 text-white font-bold' };
+    return { text: 'TRỐNG', color: 'bg-emerald-500 text-white font-bold' };
   };
 
-  // Badge trạng thái thanh toán (chỉ khi có đơn) - NÂNG CẤP
+  // Badge trạng thái thanh toán (chỉ khi có đơn) - DÙNG SOLID COLORS
   const getPaymentStatusBadge = () => {
     if (!hasOrder) return null;
-    if (isPaid) return { text: 'ĐÃ TT', color: 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-bold shadow-md' };
-    return { text: 'CHƯA TT', color: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold shadow-md' };
+    if (isPaid) return { text: 'ĐÃ TT', color: 'bg-blue-500 text-white font-bold' };
+    return { text: 'CHƯA TT', color: 'bg-amber-500 text-white font-bold' };
   };
 
   // Lấy màu nút phù hợp với màu nền của bàn
@@ -280,7 +280,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
           <div className="min-h-[40px] mb-0">
             <div className="flex flex-wrap gap-1.5">
               {table.q_count > 0 && (
-                <span className="text-[10px] px-2 py-1 rounded-lg bg-gradient-to-r from-slate-500 to-gray-600 text-white font-bold shadow-md flex items-center gap-1">
+                <span className="text-[10px] px-2 py-1 rounded-lg bg-slate-500 text-white font-bold shadow-md flex items-center gap-1">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                   </svg>
@@ -288,7 +288,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                 </span>
               )}
               {table.m_count > 0 && (
-                <span className="text-[10px] px-2 py-1 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-bold shadow-md flex items-center gap-1 animate-pulse">
+                <span className="text-[10px] px-2 py-1 rounded-lg bg-blue-500 text-white font-bold shadow-md flex items-center gap-1 animate-pulse">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd"/>
                   </svg>
@@ -373,7 +373,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         />
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto">
-            <div className="px-6 py-4 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
+            <div className="px-6 py-4 border-b border-amber-200 bg-amber-50">
               <h3 className="text-xl font-bold text-amber-900">Khóa bàn {table.ten_ban}</h3>
               <p className="text-sm text-amber-700 mt-1">Nhập lý do khóa bàn</p>
             </div>
@@ -408,7 +408,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
                   setShowLockDialog(false);
                   setLockReason('');
                 }}
-                className="flex-[2] py-3 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
+                className="flex-[2] py-3 px-4 bg-red-500 hover:bg-white text-white hover:text-red-500 border-2 border-red-500 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
               >
                 Xác nhận khóa
               </button>
@@ -427,7 +427,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         />
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto">
-            <div className="px-6 py-4 border-b border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+            <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
               <h3 className="text-xl font-bold text-blue-900">Lý do khóa bàn {table.ten_ban}</h3>
               <p className="text-sm text-blue-700 mt-1">Thông tin về lý do khóa bàn</p>
             </div>
@@ -443,7 +443,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
             <div className="px-6 py-4 border-t border-blue-200 bg-blue-50 flex justify-end">
               <button
                 onClick={() => setShowReasonDialog(false)}
-                className="py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
+                className="py-3 px-6 bg-blue-500 hover:bg-white text-white hover:text-blue-500 border-2 border-blue-500 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
               >
                 Đóng
               </button>
@@ -462,7 +462,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
         />
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto">
-            <div className="px-6 py-4 border-b border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="px-6 py-4 border-b border-indigo-200 bg-indigo-50">
               <h3 className="text-xl font-bold text-indigo-900">Thông tin đặt bàn</h3>
               <p className="text-sm text-indigo-700 mt-1">{table.ten_ban}</p>
             </div>
@@ -508,7 +508,7 @@ export default function TableCard({ table, onClick, onCloseTable, onLockTable, o
             <div className="px-6 py-4 border-t border-indigo-200 bg-indigo-50 flex justify-end">
               <button
                 onClick={() => setShowReservationInfo(false)}
-                className="py-3 px-6 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
+                className="py-3 px-6 bg-indigo-500 hover:bg-white text-white hover:text-indigo-500 border-2 border-indigo-500 rounded-xl font-semibold transition-all shadow-md hover:shadow-lg outline-none focus:outline-none"
               >
                 Đóng
               </button>

@@ -158,8 +158,14 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   };
 
   const confirmUnclaimDelivery = async () => {
+    // ✅ Validation chi tiết
     if (!unclaimReason || unclaimReason.trim().length === 0) {
       setError('Vui lòng nhập lý do hủy nhận đơn');
+      return;
+    }
+    
+    if (unclaimReason.trim().length < 10) {
+      setError('Lý do phải có ít nhất 10 ký tự');
       return;
     }
 
@@ -175,7 +181,15 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
       setError(null);
     } catch (err) {
       console.error('Error unclaiming delivery:', err);
-      setError('Không thể hủy nhận đơn: ' + (err.message || 'Lỗi không xác định'));
+      // ✅ Error handling chi tiết
+      const errorMsg = err.response?.data?.error || err.message || 'Lỗi không xác định';
+      if (errorMsg.includes('10 phút') || errorMsg.includes('time limit') || errorMsg.includes('quá thời hạn')) {
+        setError('⏰ Đã quá thời hạn 10 phút để hủy nhận đơn. Vui lòng liên hệ quản lý.');
+      } else if (errorMsg.includes('permission') || errorMsg.includes('không có quyền')) {
+        setError('🚫 Bạn không có quyền hủy nhận đơn này.');
+      } else {
+        setError('Không thể hủy nhận đơn: ' + errorMsg);
+      }
     }
   };
 
@@ -329,7 +343,7 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   // Sắp xếp đơn theo thời gian mở mới nhất
   // Tính stats cho tab hiện tại (chỉ cho waiter)
   const tabStats = isWaiterView ? (() => {
-    const filtered = baseFilteredOrders;
+    const filtered = statusFilteredOrders; // ✅ Sửa: Sử dụng statusFilteredOrders thay vì baseFilteredOrders
     
     // Nếu là tab "Đơn đã giao", tính stats về đơn giao hàng
     if (activeTab === 'DELIVERED') {
@@ -370,6 +384,9 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
   // Vì backend lưu waiter và cashier đều là CASHIER, nhưng cần hiển thị đúng
   const getShiftTypeLabel = () => {
     if (isWaiterView) {
+      return 'PHỤC VỤ';
+    }
+    if (shift.shift_type === 'WAITER') { // ✅ Xử lý WAITER từ backend
       return 'PHỤC VỤ';
     }
     if (shift.shift_type === 'KITCHEN') {
@@ -877,14 +894,12 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Người tạo đơn</p>
-                        <p className="font-semibold">{invoiceData.header.nguoi_tao_don || invoiceData.header.thu_ngan || '-'}</p>
+                        <p className="font-semibold">{invoiceData.header.nguoi_tao_don || '-'}</p>
                       </div>
-                      {invoiceData.header.nguoi_tao_don && invoiceData.header.thu_ngan && invoiceData.header.nguoi_tao_don !== invoiceData.header.thu_ngan && (
-                        <div>
-                          <p className="text-sm text-gray-600">Thu ngân</p>
-                          <p className="font-semibold">{invoiceData.header.thu_ngan}</p>
-                        </div>
-                      )}
+                      <div>
+                        <p className="text-sm text-gray-600">Thu ngân</p>
+                        <p className="font-semibold">{invoiceData.header.thu_ngan || invoiceData.header.nguoi_tao_don || '-'}</p>
+                      </div>
                       <div>
                         <p className="text-sm text-gray-600">Thời gian</p>
                         <p className="font-semibold">{formatDateTime(invoiceData.header.opened_at)}</p>

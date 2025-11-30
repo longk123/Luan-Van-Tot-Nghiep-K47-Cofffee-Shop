@@ -6,10 +6,10 @@ export default function AreaTabs({ areas, activeId, onChange }) {
         <button
           key={a.id}
           onClick={() => onChange(a.id)}
-          className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 outline-none focus:outline-none ${
+          className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 outline-none focus:outline-none border-2 ${
             activeId === a.id 
-              ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-lg' 
-              : 'bg-white text-gray-700 border-2 border-gray-200 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b] hover:border-[#c9975b]'
+              ? 'bg-[#c9975b] text-white border-[#c9975b]' 
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-[#f5e6d3] hover:text-[#c9975b] hover:border-[#c9975b]'
           }`}
           title={a.mo_ta || ''}
         >

@@ -552,11 +552,11 @@ class AnalyticsService {
       return {
         summary: {
           total_employees: data.length,
-          total_orders: data.reduce((sum, emp) => sum + (emp.total_orders || 0), 0),
-          total_revenue: data.reduce((sum, emp) => sum + (emp.total_revenue || 0), 0),
-          total_dine_in_orders: data.reduce((sum, emp) => sum + (emp.dine_in_orders || 0), 0),
-          total_takeaway_orders: data.reduce((sum, emp) => sum + (emp.takeaway_orders || 0), 0),
-          total_delivery_orders: data.reduce((sum, emp) => sum + (emp.delivery_orders || 0), 0)
+          total_orders: data.reduce((sum, emp) => sum + Number(emp.total_orders || 0), 0),
+          total_revenue: data.reduce((sum, emp) => sum + Number(emp.total_revenue || 0), 0),
+          total_dine_in_orders: data.reduce((sum, emp) => sum + Number(emp.dine_in_orders || 0), 0),
+          total_takeaway_orders: data.reduce((sum, emp) => sum + Number(emp.takeaway_orders || 0), 0),
+          total_delivery_orders: data.reduce((sum, emp) => sum + Number(emp.delivery_orders || 0), 0)
         },
         employees: data.map(emp => ({
           user_id: emp.user_id,

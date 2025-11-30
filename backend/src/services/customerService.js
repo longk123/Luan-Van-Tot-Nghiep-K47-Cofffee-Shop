@@ -209,10 +209,11 @@ export default {
     }
 
     // Create new cart if not exists
+    // NOTE: check_cart_owner constraint requires EITHER customerId OR sessionId, not both
     if (!cart) {
       cart = await customerRepository.createCart({
-        customerId: customerId || null,
-        sessionId: sessionId || null,
+        customerId: customerId ? customerId : null,
+        sessionId: customerId ? null : sessionId,  // Only use sessionId if no customerId
         items: []
       });
     }

@@ -381,8 +381,8 @@ export default function TakeawayOrders() {
                   ) : (
                     <button
                       onClick={() => setAssigningOrder(order.id)}
-                      className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-2 border-purple-600
-                      hover:bg-white hover:from-white hover:to-white hover:text-purple-600 hover:border-purple-600 hover:scale-105 active:scale-95 transition-all duration-300 shadow-md flex items-center justify-center gap-2"
+                      className="w-full py-3 rounded-xl font-semibold bg-purple-500 text-white border-2 border-purple-500
+                      hover:bg-white hover:text-purple-600 hover:border-purple-500 hover:shadow-lg transition-all duration-200 shadow-md flex items-center justify-center gap-2"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -408,8 +408,8 @@ export default function TakeawayOrders() {
                 /* Đã thanh toán → Giao cho khách tại quán */
                 <button
                   onClick={() => handleDeliver(order)}
-                  className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white border-2 border-green-600
-                  hover:bg-white hover:from-white hover:to-white hover:text-green-600 hover:border-green-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-2xl font-bold text-lg bg-green-500 text-white border-2 border-green-500
+                  hover:bg-white hover:text-green-600 hover:border-green-500 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-500 disabled:hover:text-white transition-all duration-200 shadow-md flex items-center justify-center gap-2"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -423,8 +423,8 @@ export default function TakeawayOrders() {
                     // Mở drawer để thanh toán
                     handleOpenOrder(order);
                   }}
-                  className="w-full py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white border-2 border-amber-600
-                  hover:bg-white hover:from-white hover:to-white hover:text-amber-600 hover:border-amber-600 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-2xl font-bold text-lg bg-amber-500 text-white border-2 border-amber-500
+                  hover:bg-white hover:text-amber-600 hover:border-amber-500 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-500 disabled:hover:text-white transition-all duration-200 shadow-md flex items-center justify-center gap-2"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -470,18 +470,15 @@ export default function TakeawayOrders() {
         /* Chế độ xem danh sách */
         <>
           {/* Header Card - Improved to match Dashboard style */}
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-6">
             <div className="flex items-center justify-between gap-6">
               {/* Left: Title and Shift info */}
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
-                    <div className="relative w-12 h-12 bg-gradient-to-br from-[#8b6f47] via-[#c9975b] to-[#d4a574] rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
-                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                      </svg>
-                    </div>
+                  <div className="w-12 h-12 bg-[#c9975b] rounded-xl flex items-center justify-center shadow-md">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
                   </div>
 
                   <div>
@@ -496,7 +493,7 @@ export default function TakeawayOrders() {
                 {/* Shift info */}
                 {shift && shift.id && (
                   <div className="mt-3 flex items-center gap-4 text-sm">
-                    <span className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md font-bold">
+                    <span className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl shadow-sm font-bold">
                       <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
                       Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                     </span>
@@ -515,7 +512,7 @@ export default function TakeawayOrders() {
                   {isManagerViewMode && (
                     <button
                       onClick={() => navigate('/manager')}
-                      className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-blue-600 hover:border-blue-500 hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                      className="px-4 py-2.5 bg-blue-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:text-blue-600 hover:border-blue-500 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -527,7 +524,7 @@ export default function TakeawayOrders() {
                   {/* Nút Quay lại Dashboard - Hiển thị cho cả Cashier và Manager */}
                   <button
                     onClick={() => navigate('/dashboard')}
-                    className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                    className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -539,35 +536,35 @@ export default function TakeawayOrders() {
             </div>
           </div>
 
-          {/* Tabs để chuyển giữa TAKEAWAY và DELIVERY */}
+          {/* Tabs để chuyển giữa TAKEAWAY và DELIVERY - Với invert hover */}
           <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-2">
             <div className="flex gap-2">
               <button
                 onClick={() => setActiveTab('TAKEAWAY')}
-                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
                   activeTab === 'TAKEAWAY'
-                    ? 'bg-[#c9975b] text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]'
                 }`}
               >
                 Mang đi ({orders.length})
               </button>
               <button
                 onClick={() => setActiveTab('DELIVERY')}
-                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
                   activeTab === 'DELIVERY'
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
                 }`}
               >
                 Giao hàng ({deliveryOrders.length})
               </button>
               <button
                 onClick={() => setActiveTab('ALL')}
-                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
                   activeTab === 'ALL'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-purple-600 text-white border-purple-600 shadow-md'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-purple-600 hover:text-white hover:border-purple-600'
                 }`}
               >
                 Tất cả ({orders.length + deliveryOrders.length})
@@ -576,22 +573,23 @@ export default function TakeawayOrders() {
           </div>
 
           {loading ? (
-            <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#d4a574] border-t-[#c9975b] mx-auto mb-6"></div>
-              <p className="text-[#8b6f47] font-bold text-lg">Đang tải...</p>
+            <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-200">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-[#c9975b] mx-auto mb-6"></div>
+              <p className="text-gray-600 font-semibold text-lg">Đang tải...</p>
             </div>
           ) : (activeTab === 'TAKEAWAY' && orders.length === 0) || 
               (activeTab === 'DELIVERY' && deliveryOrders.length === 0) ||
               (activeTab === 'ALL' && orders.length === 0 && deliveryOrders.length === 0) ? (
-            <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
-              <svg className="w-24 h-24 mx-auto text-[#d4a574] mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-200">
+              <svg className="w-20 h-20 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
-              <p className="text-[#8b6f47] font-bold text-xl">
+              <p className="text-gray-600 font-bold text-xl">
                 {activeTab === 'TAKEAWAY' ? 'Không có đơn mang đi' :
                  activeTab === 'DELIVERY' ? 'Không có đơn giao hàng' :
                  'Không có đơn nào'}
               </p>
+              <p className="text-gray-400 mt-2">Các đơn hàng sẽ xuất hiện ở đây khi được tạo</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -621,8 +619,8 @@ export default function TakeawayOrders() {
                   setDrawer({ open: false, order: null });
                   loadOrders();
                 }}
-                className="inline-flex items-center gap-2 px-6 py-3 text-base font-bold text-[#8b6f47] bg-gradient-to-r from-white to-[#fef7ed] border-2 border-[#d4a574] rounded-2xl
-                hover:bg-gradient-to-r hover:from-[#c9975b] hover:to-[#d4a574] hover:text-white hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 text-base font-bold bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-2xl
+                hover:bg-white hover:text-[#c9975b] transition-all duration-200 shadow-md"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

@@ -71,8 +71,8 @@ export default function PaymentSuccess() {
   const token = getToken();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-12 text-center shadow-2xl max-w-md w-full">
+    <div className="min-h-screen bg-emerald-500 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-12 text-center shadow-2xl max-w-md w-full border-4 border-emerald-200">
         <div className="text-8xl mb-6 animate-bounce">✅</div>
         <h1 className="text-3xl font-bold text-green-600 mb-4">
           Thanh toán thành công!

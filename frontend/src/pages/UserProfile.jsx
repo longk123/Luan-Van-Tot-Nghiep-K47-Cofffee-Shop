@@ -189,7 +189,7 @@ export default function UserProfile() {
   if (loading) {
     return (
       <AuthedLayout pageName="Thông tin cá nhân" backUrl="/dashboard">
-        <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
+        <div className="text-center py-16 bg-white rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#d4a574] border-t-[#c9975b] mx-auto mb-6"></div>
           <p className="text-[#8b6f47] font-bold text-lg">Đang tải...</p>
         </div>
@@ -201,7 +201,7 @@ export default function UserProfile() {
     <AuthedLayout pageName="Thông tin cá nhân" backUrl="/dashboard">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Thông tin cá nhân</h2>
           <p className="text-sm text-gray-600">Cập nhật thông tin và mật khẩu của bạn</p>
         </div>
@@ -277,8 +277,8 @@ export default function UserProfile() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-[#c9975b] to-[#8b6f47] text-white border-2 border-[#8b6f47]
-                hover:bg-white hover:from-white hover:to-white hover:text-[#8b6f47] hover:border-[#8b6f47] hover:scale-105 active:scale-95 
+                className="w-full py-4 rounded-xl font-bold text-lg bg-[#c9975b] text-white border-2 border-[#c9975b]
+                hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b] hover:scale-105 active:scale-95 
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl"
               >
                 {saving ? 'Đang lưu...' : 'Lưu thông tin'}
@@ -353,8 +353,8 @@ export default function UserProfile() {
                 <button
                   onClick={handleChangePassword}
                   disabled={saving}
-                  className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-2 border-indigo-700
-                  hover:bg-white hover:from-white hover:to-white hover:text-indigo-600 hover:border-indigo-600 hover:scale-105 active:scale-95 
+                  className="w-full py-4 rounded-xl font-bold text-lg bg-blue-500 text-white border-2 border-blue-500
+                  hover:bg-white hover:text-blue-500 hover:border-blue-500 hover:scale-105 active:scale-95 
                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all duration-300 shadow-xl"
                 >
                   {saving ? 'Đang đổi mật khẩu...' : 'Đổi mật khẩu'}

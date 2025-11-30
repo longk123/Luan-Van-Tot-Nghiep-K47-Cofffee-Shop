@@ -296,8 +296,140 @@ ${context.customer}
         name: error.name
       });
       
-      // Fallback response
-      const fallbackResponse = 'Xin lỗi, tôi gặp sự cố kỹ thuật. Vui lòng thử lại sau hoặc liên hệ trực tiếp với quán.';
+      // Kiểm tra lỗi cụ thể và trả lời thông minh hơn
+      // Xử lý NHIỀU yêu cầu trong 1 câu hỏi
+      const userMessage = message?.toLowerCase() || '';
+      const responseParts = [];
+      
+      // Kiểm tra từng loại yêu cầu
+      const wantsBestSellers = userMessage.includes('bán chạy') || userMessage.includes('best') || 
+                               userMessage.includes('top') || userMessage.includes('ngon nhất');
+      const wantsAddress = userMessage.includes('địa chỉ') || userMessage.includes('ở đâu') || 
+                          userMessage.includes('thông tin') || userMessage.includes('quán');
+      const wantsMenu = userMessage.includes('menu') || userMessage.includes('thực đơn') || 
+                       (userMessage.includes('món') && !wantsBestSellers);
+      const wantsDelivery = userMessage.includes('giao hàng') || userMessage.includes('delivery') || 
+                           userMessage.includes('ship');
+      const wantsPromo = userMessage.includes('khuyến mãi') || userMessage.includes('giảm giá') || 
+                        userMessage.includes('mã');
+      const wantsBooking = userMessage.includes('đặt bàn') || userMessage.includes('book');
+      
+      // Top món bán chạy
+      if (wantsBestSellers) {
+        try {
+          const bestSellers = await analyticsService.getTopMenuItems(30, 5);
+          if (bestSellers && bestSellers.length > 0) {
+            const items = bestSellers.map((item, i) => `${i+1}. **${item.name}** - Đã bán ${item.quantity_sold} phần`).join('\n');
+            responseParts.push(`🏆 **Top 5 món bán chạy nhất:**\n\n${items}\n\n_Đây là các món được khách hàng yêu thích nhất trong 30 ngày qua!_`);
+          } else {
+            responseParts.push(`🏆 **Các món được yêu thích:**\n\n1. Cà phê sữa đá\n2. Bạc xỉu\n3. Trà đào cam sả\n4. Cappuccino\n5. Trà sữa trân châu`);
+          }
+        } catch {
+          responseParts.push(`🏆 **Các món được yêu thích:**\n\n1. Cà phê sữa đá\n2. Bạc xỉu\n3. Trà đào cam sả\n4. Cappuccino\n5. Trà sữa trân châu`);
+        }
+      }
+      
+      // Thông tin quán & địa chỉ
+      if (wantsAddress) {
+        responseParts.push(`📍 **Thông tin quán Coffee Shop:**
+
+🏠 **Địa chỉ:** 123 Đường 3/2, Phường Xuân Khánh, Quận Ninh Kiều, TP. Cần Thơ
+📞 **Hotline:** 0292 388 888
+📧 **Email:** info@coffeeshop-demo.vn
+🌐 **Website:** coffeeshop-demo.vn
+
+⏰ **Giờ mở cửa:**
+• Thứ 2 - Thứ 6: 7:00 - 22:00
+• Thứ 7 - Chủ nhật: 8:00 - 23:00
+
+🅿️ **Tiện ích:** Wifi miễn phí, Chỗ đậu xe rộng rãi, Máy lạnh`);
+      }
+      
+      // Menu
+      if (wantsMenu) {
+        responseParts.push(`📋 **Thực đơn Coffee Shop:**
+
+☕ **Cà phê:**
+• Cà phê đen: 15,000đ - 25,000đ
+• Cà phê sữa: 20,000đ - 30,000đ
+• Bạc xỉu: 25,000đ - 35,000đ
+• Cappuccino: 35,000đ - 45,000đ
+• Latte: 35,000đ - 45,000đ
+
+🍵 **Trà & Đồ uống khác:**
+• Trà đào cam sả: 25,000đ - 35,000đ
+• Trà sữa trân châu: 30,000đ - 40,000đ
+• Sinh tố các loại: 30,000đ - 45,000đ
+
+👉 Xem đầy đủ tại mục "Thực đơn" trên website!`);
+      }
+      
+      // Giao hàng
+      if (wantsDelivery) {
+        responseParts.push(`🚚 **Dịch vụ giao hàng:**
+
+📍 **Phạm vi:** Quận Ninh Kiều, TP. Cần Thơ
+💰 **Phí giao hàng:** 8,000đ (cố định)
+⏱️ **Thời gian giao:** 30-60 phút tùy khoảng cách
+💳 **Thanh toán:** Tiền mặt khi nhận hàng hoặc chuyển khoản
+
+👉 Đặt hàng ngay trên website hoặc gọi 0292 388 888!`);
+      }
+      
+      // Khuyến mãi
+      if (wantsPromo) {
+        try {
+          const promos = await promotionRepository.getAll({ status: 'active' });
+          if (promos && promos.length > 0) {
+            const promoList = promos.slice(0, 3).map(p => `• Mã **${p.ma}**: ${p.mo_ta || p.ten}`).join('\n');
+            responseParts.push(`🎉 **Khuyến mãi đang có:**\n\n${promoList}\n\n_Nhập mã khi thanh toán để được giảm giá!_`);
+          } else {
+            responseParts.push(`🎉 Hiện tại chưa có khuyến mãi. Hãy theo dõi để không bỏ lỡ nhé!`);
+          }
+        } catch {
+          responseParts.push(`🎉 Vui lòng liên hệ quán để biết thêm về các chương trình khuyến mãi!`);
+        }
+      }
+      
+      // Đặt bàn
+      if (wantsBooking) {
+        responseParts.push(`🪑 **Đặt bàn:**
+
+Bạn có thể đặt bàn qua:
+1. 🌐 Website: Mục "Đặt bàn"
+2. 📞 Hotline: 0292 388 888
+
+📝 **Thông tin cần có:** Họ tên, SĐT, Số người, Ngày giờ, Khu vực mong muốn
+🎉 **Đặt bàn hoàn toàn miễn phí!**`);
+      }
+      
+      // Nếu không match gì cả, trả lời chung
+      let fallbackResponse;
+      if (responseParts.length === 0) {
+        fallbackResponse = `Xin chào! 👋 Tôi là trợ lý AI của **Coffee Shop**.
+
+Tôi có thể giúp bạn:
+• 🏆 Top món bán chạy nhất
+• 📋 Xem menu và giá cả
+• 📍 Địa chỉ và thông tin quán
+• 🚚 Dịch vụ giao hàng
+• 🎉 Khuyến mãi hiện có
+• 🪑 Đặt bàn trước
+
+Hãy hỏi tôi nhé! Ví dụ: "Cho tôi xem top 5 món bán chạy và địa chỉ quán"
+
+📞 Hoặc gọi ngay: **0292 388 888**`;
+      } else {
+        // Ghép các phần lại với nhau
+        fallbackResponse = responseParts.join('\n\n---\n\n');
+        
+        // Thêm lời kết nếu có nhiều hơn 1 phần
+        if (responseParts.length > 1) {
+          fallbackResponse += `\n\n---\n\n💬 _Còn thắc mắc gì khác? Hãy hỏi tôi hoặc gọi_ 📞 **0292 388 888**`;
+        } else {
+          fallbackResponse += `\n\n👉 Hãy thử ngay nhé! Hoặc hỏi tôi thêm về menu, khuyến mãi, giao hàng...`;
+        }
+      }
       
       // Try to get conversation and save fallback
       try {

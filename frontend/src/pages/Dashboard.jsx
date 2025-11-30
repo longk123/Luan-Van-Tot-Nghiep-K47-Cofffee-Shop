@@ -24,6 +24,9 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
+  // Chế độ xem (view only) - Manager xem giao diện nhân viên mà không thao tác được
+  const isViewOnly = searchParams.get('viewOnly') === 'true';
+  
   // Đọc tab từ URL query hoặc defaultMode
   const getInitialTab = () => {
     const tabFromUrl = searchParams.get('tab');
@@ -137,12 +140,12 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     ['cashier', 'waiter', 'manager', 'admin'].includes(role.toLowerCase())
   );
 
-  // Check if user is Manager (View Only mode)
-  const isManagerViewMode = userRoles.some(role =>
+  // Check if user is Manager (View Only mode) - hoặc khi có ?viewOnly=true
+  const isManagerViewMode = isViewOnly || (userRoles.some(role =>
     ['manager', 'admin'].includes(role.toLowerCase())
   ) && !userRoles.some(role =>
     ['cashier'].includes(role.toLowerCase())
-  );
+  ));
 
   // Check if user is Waiter
   const isWaiter = userRoles.some(role =>
@@ -161,7 +164,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     if (isWaiter) {
       api.getMyWallet().then(res => {
         const data = res?.data || res || {};
-        setWalletBalance(data.current_balance || 0);
+        setWalletBalance(data.balance || 0); // ✅ Sửa: balance thay vì current_balance
       }).catch(err => {
         console.error('Error loading wallet:', err);
       });
@@ -755,18 +758,42 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
       {/* Header with area info */}
       {!posMode && !showWorkpane && (
         <>
-          <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6 backdrop-blur-sm">
+          {/* View Only Banner */}
+          {isViewOnly && (
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-blue-800">Chế độ xem</h3>
+                  <p className="text-sm text-blue-600">Bạn đang xem giao diện nhân viên. Không thể thao tác.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/manager')}
+                className="px-4 py-2.5 bg-blue-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:text-blue-500 transition-all duration-200 font-semibold flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Quay lại Manager</span>
+              </button>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-6">
             <div className="flex items-start justify-between gap-6">
               {/* Left: Area info */}
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
-                    <div className="relative w-12 h-12 bg-gradient-to-br from-[#c9975b] via-[#b8864a] to-[#8b6f47] rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+                  <div className="w-12 h-12 bg-[#c9975b] rounded-xl flex items-center justify-center shadow-md">
                       <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
-                    </div>
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 mb-1">Quản lý Khu vực</h2>
@@ -780,7 +807,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                 {/* Shift info */}
                 {shift && shift.id && (
                   <div className="mt-3 flex items-center gap-4 text-sm">
-                    <span className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md font-bold">
+                    <span className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl shadow-sm font-bold">
                       <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
                       Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                     </span>
@@ -796,7 +823,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                 {/* Warning badges - Tách riêng để không ảnh hưởng layout */}
                 <div className="flex items-center gap-3">
                   {!shift && (
-                    <div className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-lg font-bold">
+                    <div className="px-6 py-3 bg-amber-500 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-sm font-bold">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
@@ -807,7 +834,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   {transferredOrders.length > 0 && (
                     <button
                       onClick={() => setShowTransferredOrdersDialog(true)}
-                      className="px-4 py-2.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white border-2 border-amber-500 rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-amber-600 hover:border-amber-500 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                      className="px-4 py-2.5 bg-amber-500 text-white border-2 border-amber-500 rounded-xl hover:bg-white hover:text-amber-500 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
                     >
                       <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -823,7 +850,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               {isManagerViewMode && (
                 <button
                   onClick={() => navigate('/manager')}
-                  className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:text-[#c9975b] transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -846,7 +873,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               )}
               <button
                 onClick={() => setShowReservationsList(true)}
-                className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:text-[#c9975b] transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
               >
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -859,7 +886,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                     setShiftOrdersRefreshKey(prev => prev + 1);
                     setShowCurrentShiftOrders(true);
                   }}
-                  className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:text-[#c9975b] transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -871,7 +898,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               {isWaiter && (
                 <button
                   onClick={() => setShowWalletPanel(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-2 border-emerald-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-emerald-600 hover:border-emerald-600 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  className="px-4 py-2.5 bg-emerald-500 text-white border-2 border-emerald-500 rounded-xl hover:bg-white hover:text-emerald-500 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -888,7 +915,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               {!isWaiter && !isManagerViewMode && (
                 <button
                   onClick={() => setShowSettlementPanel(true)}
-                  className="relative px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white border-2 border-purple-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-600 hover:border-purple-600 hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  className="relative px-4 py-2.5 bg-purple-500 text-white border-2 border-purple-500 rounded-xl hover:bg-white hover:text-purple-500 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -905,7 +932,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                 shift && shift.status === 'OPEN' ? (
                   <button
                     onClick={() => setShowCloseShiftModal(true)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white border-2 border-red-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-red-600 hover:border-red-600 hover:shadow-lg transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                    className="px-4 py-2.5 bg-red-600 text-white border-2 border-red-600 rounded-xl hover:bg-white hover:text-red-600 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
                   >
                     <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -915,7 +942,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                 ) : (
                   <button
                     onClick={() => setShowOpenShiftModal(true)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-2 border-emerald-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-emerald-600 hover:border-emerald-600 hover:shadow-lg transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                    className="px-4 py-2.5 bg-emerald-600 text-white border-2 border-emerald-600 rounded-xl hover:bg-white hover:text-emerald-600 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
                   >
                     <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -937,8 +964,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   onClick={() => setActiveTab('tables')}
                   className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${
                     activeTab === 'tables'
-                      ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                      : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                      ? 'bg-[#c9975b] text-white'
+                      : 'text-gray-600 hover:bg-[#f5e6d3] hover:text-[#c9975b]'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -950,8 +977,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   onClick={() => setActiveTab('takeaway')}
                   className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${
                     activeTab === 'takeaway'
-                      ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                      : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                      ? 'bg-[#c9975b] text-white'
+                      : 'text-gray-600 hover:bg-[#f5e6d3] hover:text-[#c9975b]'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -981,7 +1008,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border-2 transition-all duration-200 outline-none focus:outline-none ${
                 drawerHasPendingItems
                   ? 'text-gray-400 bg-gray-100 border-gray-300 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
+                  : 'bg-[#c9975b] text-white border-[#c9975b] hover:bg-white hover:text-[#c9975b]'
               }`}
               title={drawerHasPendingItems ? 'Vui lòng xác nhận đơn trước khi quay lại' : undefined}
               onClick={() => {
@@ -1195,7 +1222,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
 
                   if (filteredOrders.length === 0) {
                     return (
-                      <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
+                      <div className="text-center py-16 bg-white rounded-3xl shadow-lg border-2 border-[#e7d4b8]">
                         <svg className="w-24 h-24 mx-auto text-[#d4a574] mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
@@ -1235,7 +1262,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                     <>
                       {/* Hiển thị tổng tiền và nút "Nhận tất cả đã chọn" khi có đơn được chọn */}
                       {isWaiter && selectedPendingOrders.length > 0 && (
-                        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl shadow-lg border-2 border-blue-600 p-4 mb-4 sticky top-4 z-10">
+                        <div className="bg-blue-500 rounded-2xl shadow-lg border-2 border-blue-600 p-4 mb-4 sticky top-4 z-10">
                           <div className="flex items-center justify-between">
                             <div className="text-white">
                               <p className="text-sm font-medium opacity-90">
@@ -1472,7 +1499,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             {/* Order Info Card */}
             {pendingOrderCreation?.type === 'table' && (
               <div className="mx-6 mb-6">
-                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl p-4 border border-emerald-200">
+                <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 font-medium">Bàn:</span>
@@ -1499,7 +1526,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
 
             {pendingOrderCreation?.type === 'takeaway' && (
               <div className="mx-6 mb-6">
-                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-2xl p-4 border border-emerald-200">
+                <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 font-medium">Loại đơn:</span>
@@ -1532,7 +1559,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                       confirmCreateTableOrder();
                     }
                   }}
-                  className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-2 border-emerald-600 rounded-xl font-semibold transition-all duration-200 hover:bg-white hover:from-white hover:to-white hover:text-emerald-600 hover:border-emerald-600 hover:shadow-lg outline-none focus:outline-none"
+                  className="flex-1 py-3 px-4 bg-emerald-600 text-white border-2 border-emerald-600 rounded-xl font-semibold transition-all duration-200 hover:bg-white hover:text-emerald-600 outline-none focus:outline-none"
                 >
                   Xác nhận
                 </button>
@@ -1717,13 +1744,12 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
             </div>
           </div>
 
-          {/* Button với glow effect */}
+          {/* Button với shadow effect */}
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity animate-pulse"></div>
             <button
               onClick={handleCreateTakeaway}
               disabled={!shift || shift.status !== 'OPEN'}
-              className={`relative w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 text-white rounded-full shadow-2xl hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/50 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95 ${
+              className={`relative w-16 h-16 bg-emerald-600 text-white rounded-full shadow-2xl border-2 border-emerald-600 hover:bg-white hover:text-emerald-600 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95 ${
                 !shift || shift.status !== 'OPEN' ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
               }`}
               title={!shift || shift.status !== 'OPEN' ? 'Vui lòng mở ca làm việc trước khi tạo đơn' : 'Tạo đơn mang đi mới'}

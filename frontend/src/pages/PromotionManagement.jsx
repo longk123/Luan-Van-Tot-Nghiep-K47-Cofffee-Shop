@@ -1,11 +1,13 @@
 // src/pages/PromotionManagement.jsx
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import PromotionFormModal from '../components/manager/PromotionFormModal.jsx';
 import PromotionDetailModal from '../components/manager/PromotionDetailModal.jsx';
 
 export default function PromotionManagement() {
+  const navigate = useNavigate();
   const [promotions, setPromotions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -231,7 +233,7 @@ export default function PromotionManagement() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#d4a574] to-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 bg-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
@@ -241,15 +243,27 @@ export default function PromotionManagement() {
                 <p className="text-sm text-gray-500 mt-0.5">{filteredPromotions.length} chương trình</p>
               </div>
             </div>
-            <button
-              onClick={handleCreatePromotion}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Thêm khuyến mãi</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCreatePromotion}
+                className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Thêm khuyến mãi</span>
+              </button>
+              {/* Nút quay lại - style giống trang Khu vực & Bàn */}
+              <button
+                onClick={() => navigate('/manager')}
+                className="px-4 py-2.5 bg-white text-[#c9975b] border-2 border-[#c9975b] rounded-full hover:bg-[#c9975b] hover:text-white hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Quay lại</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -387,10 +401,10 @@ export default function PromotionManagement() {
                   }
                   setEnableDateFilter(!enableDateFilter);
                 }}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 border-2 ${
                   enableDateFilter
-                    ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-[#f5ebe0] hover:text-[#c9975b] border-2 border-transparent hover:border-[#c9975b]'
+                    ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-[#f5ebe0] hover:text-[#c9975b] border-transparent hover:border-[#c9975b]'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -617,7 +631,7 @@ export default function PromotionManagement() {
                     onClick={() => setCurrentPage(page)}
                     className={`px-4 py-2 border-2 rounded-lg font-medium transition-all duration-200 ${
                       currentPage === page
-                        ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] shadow-md'
+                        ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
                         : 'border-gray-300 hover:bg-white hover:border-[#c9975b] hover:text-[#c9975b]'
                     }`}
                   >

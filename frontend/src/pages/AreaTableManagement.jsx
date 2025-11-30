@@ -303,7 +303,7 @@ export default function AreaTableManagement() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-[#d4a574] to-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 bg-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
@@ -316,7 +316,7 @@ export default function AreaTableManagement() {
 
           <button
             onClick={() => navigate('/manager')}
-            className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+            className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -331,10 +331,10 @@ export default function AreaTableManagement() {
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('areas')}
-            className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+            className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 border-2 ${
               activeTab === 'areas'
-                ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
+                : 'text-gray-600 border-transparent hover:bg-[#f5e6d3] hover:text-[#c9975b] hover:border-[#c9975b]'
             }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -344,10 +344,10 @@ export default function AreaTableManagement() {
           </button>
           <button
             onClick={() => setActiveTab('tables')}
-            className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+            className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 border-2 ${
               activeTab === 'tables'
-                ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
+                : 'text-gray-600 border-transparent hover:bg-[#f5e6d3] hover:text-[#c9975b] hover:border-[#c9975b]'
             }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,7 +423,7 @@ function AreasTab({ areas, tables, onCreateArea, onEditArea, onToggleActive, onD
         <h2 className="text-xl font-bold text-gray-900">Danh sách khu vực</h2>
         <button
           onClick={onCreateArea}
-          className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
+          className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -468,7 +468,7 @@ function AreaCard({ area, tables, onEdit, onToggleActive, onDelete }) {
   const canDeactivate = area.active && tablesInUse.length === 0;
 
   return (
-    <div className="bg-gradient-to-br from-[#fef7ed] to-[#faf5ef] rounded-xl border-2 border-[#d4a574] p-5 hover:shadow-lg transition-all duration-200">
+    <div className="bg-[#fef7ed] rounded-xl border-2 border-[#d4a574] p-5 hover:shadow-lg transition-all duration-200">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="text-lg font-bold text-gray-900 mb-1">{area.ten}</h3>
@@ -562,7 +562,7 @@ function TablesTab({ tables, areas, filterArea, setFilterArea, searchQuery, setS
         <h2 className="text-xl font-bold text-gray-900">Danh sách bàn</h2>
         <button
           onClick={onCreateTable}
-          className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
+          className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -713,7 +713,7 @@ function AreaModal({ area, form, setForm, tables, onSave, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-        <div className="bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white px-6 py-4 rounded-t-2xl">
+        <div className="bg-[#c9975b] text-white px-6 py-4 rounded-t-2xl">
           <h3 className="text-xl font-bold">{area ? 'Sửa khu vực' : 'Thêm khu vực mới'}</h3>
         </div>
 
@@ -789,7 +789,7 @@ function AreaModal({ area, form, setForm, tables, onSave, onClose }) {
           </button>
           <button
             onClick={onSave}
-            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold"
+            className="flex-1 px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold"
           >
             {area ? 'Cập nhật' : 'Tạo mới'}
           </button>
@@ -804,7 +804,7 @@ function TableModal({ table, form, setForm, areas, onSave, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-        <div className="bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white px-6 py-4 rounded-t-2xl">
+        <div className="bg-[#c9975b] text-white px-6 py-4 rounded-t-2xl">
           <h3 className="text-xl font-bold">{table ? 'Sửa bàn' : 'Thêm bàn mới'}</h3>
         </div>
 
@@ -871,7 +871,7 @@ function TableModal({ table, form, setForm, areas, onSave, onClose }) {
           </button>
           <button
             onClick={onSave}
-            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold"
+            className="flex-1 px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold"
           >
             {table ? 'Cập nhật' : 'Tạo mới'}
           </button>

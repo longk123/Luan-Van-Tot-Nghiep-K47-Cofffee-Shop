@@ -432,17 +432,6 @@ router.get('/orders/:orderId/summary', async (req, res, next) => {
 export default router;
 
 // === New POS routes (preserve old APIs) ===
-
-// Create TAKEAWAY order (no table)
-router.post('/orders', auth, async (req, res, next) => {
-  try {
-    const { order_type = 'TAKEAWAY' } = req.body || {};
-    const userId = req.user.user_id;
-    const order = await service.createOrderNoTableService({ order_type, userId });
-    res.json({ ok: true, data: order });
-  } catch (e) { next(e); }
-});
-
 // Move table for OPEN DINE_IN order
 router.patch('/orders/:orderId/move-table', auth, async (req, res, next) => {
   try {

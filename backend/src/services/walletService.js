@@ -112,6 +112,7 @@ const walletService = {
 
   /**
    * Nộp tiền cho thu ngân (Settlement)
+   * ⚠️ QUAN TRỌNG: Khi shipper nộp tiền, các đơn COD liên quan sẽ được đánh dấu PAID
    */
   async settleWallet(data) {
     const { shipperId, amount, cashierId, shiftId = null, note = '' } = data;
@@ -151,6 +152,59 @@ const walletService = {
     
     // Cập nhật số dư
     await walletRepo.updateBalance(wallet.id, balanceAfter, { settled: amount });
+    
+    // ✅ Đánh dấu PAID cho các đơn COD đã giao thành công của shipper này
+    try {
+      const { pool } = await import('../db.js');
+      
+      // Tìm các đơn COD của shipper này: DELIVERY + CASH + DELIVERED + chưa PAID
+      const codOrders = await pool.query(`
+        SELECT DISTINCT dh.id, s.grand_total
+        FROM don_hang dh
+        JOIN don_hang_delivery_info di ON di.order_id = dh.id
+        JOIN order_payment op ON op.order_id = dh.id AND op.method_code = 'CASH' AND op.status = 'CAPTURED'
+        LEFT JOIN v_order_settlement s ON s.order_id = dh.id
+        WHERE di.shipper_id = $1
+          AND dh.order_type = 'DELIVERY'
+          AND dh.trang_thai != 'PAID'
+          AND di.delivery_status = 'DELIVERED'
+        ORDER BY dh.id
+      `, [shipperId]);
+      
+      let paidCount = 0;
+      for (const order of codOrders.rows) {
+        // Tạo payment_transaction nếu chưa có
+        const existingTxn = await pool.query(
+          `SELECT id FROM payment_transaction WHERE order_id = $1`,
+          [order.id]
+        );
+        
+        if (existingTxn.rows.length === 0) {
+          const refCode = `COD${order.id}-${Date.now()}`;
+          await pool.query(`
+            INSERT INTO payment_transaction (
+              order_id, payment_method_code, ref_code, amount, status, created_at, updated_at
+            )
+            VALUES ($1, 'CASH', $2, $3, 'PAID', NOW(), NOW())
+          `, [order.id, refCode, order.grand_total]);
+        }
+        
+        // Đánh dấu PAID, gán vào ca của cashier nhận tiền
+        await pool.query(`
+          UPDATE don_hang 
+          SET trang_thai = 'PAID', closed_at = NOW(), ca_lam_id = COALESCE($2, ca_lam_id)
+          WHERE id = $1
+        `, [order.id, shiftId]);
+        
+        paidCount++;
+      }
+      
+      if (paidCount > 0) {
+        console.log(`✅ Đã đánh dấu PAID cho ${paidCount} đơn COD của shipper ${shipperId}`);
+      }
+    } catch (paidError) {
+      console.error(`⚠️ Lỗi đánh dấu PAID cho đơn COD:`, paidError.message);
+    }
     
     console.log(`✅ Shipper ${shipperId} đã nộp ${amount.toLocaleString()}đ. Số dư còn: ${balanceAfter.toLocaleString()}đ`);
     

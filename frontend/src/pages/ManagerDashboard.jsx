@@ -544,7 +544,7 @@ export default function ManagerDashboard({ embedded = false }) {
         <div className="flex items-center justify-between">
           {/* Left: Title and Description */}
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-[#d4a574] to-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 bg-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
@@ -556,12 +556,12 @@ export default function ManagerDashboard({ embedded = false }) {
           </div>
 
           {/* Right: Action Buttons - NEW IMPROVED LAYOUT */}
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-3 justify-end items-center">
             {/* Dropdown: Quản lý */}
             <DropdownMenu
               align="right"
               trigger={
-                <button className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md">
+                <button className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -621,29 +621,77 @@ export default function ManagerDashboard({ embedded = false }) {
               />
             </DropdownMenu>
 
-            {/* Quick Action: Bếp */}
-            <button
-              onClick={() => navigate('/kitchen')}
-              className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white border-2 border-orange-500 rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-orange-600 hover:border-orange-600 hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
-              title="Màn hình bếp"
+            {/* Dropdown: Trang nhân viên */}
+            <DropdownMenu
+              align="right"
+              trigger={
+                <button className="px-4 py-2.5 bg-orange-500 text-white border-2 border-orange-500 rounded-full hover:bg-white hover:text-orange-600 hover:border-orange-500 hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>Nhân viên</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              }
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-              <span>Bếp</span>
-            </button>
-
-            {/* Quick Action: Mang đi */}
-            <button
-              onClick={() => navigate('/takeaway')}
-              className="px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white border-2 border-green-500 rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-green-600 hover:border-green-600 hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
-              title="Danh sách mang đi"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              <span>Mang đi</span>
-            </button>
+              {/* Pha chế */}
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                }
+                label="Pha chế"
+                onClick={() => navigate('/kitchen?viewOnly=true')}
+              />
+              <DropdownMenuDivider />
+              {/* Thu ngân */}
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Thu ngân</div>
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                }
+                label="Dashboard"
+                onClick={() => navigate('/dashboard?viewOnly=true')}
+              />
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                }
+                label="Mang đi & Giao hàng"
+                onClick={() => navigate('/takeaway?viewOnly=true')}
+              />
+              <DropdownMenuDivider />
+              {/* Phục vụ */}
+              <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Phục vụ</div>
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                }
+                label="Dashboard"
+                onClick={() => navigate('/dashboard?viewOnly=true')}
+              />
+              <DropdownMenuItem
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+                label="Giao hàng"
+                onClick={() => navigate('/waiter/delivery?viewOnly=true')}
+              />
+            </DropdownMenu>
+            
+            {/* Icon chuông thông báo hết hạn - ở góc phải */}
+            <BatchExpiryNotification showBellOnly={true} />
           </div>
         </div>
       </div>
@@ -669,10 +717,10 @@ export default function ManagerDashboard({ embedded = false }) {
               <button
                 key={option.value}
                 onClick={() => setTimeRange(option.value)}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
                   timeRange === option.value
-                    ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md border-2 border-[#c9975b]'
-                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:bg-gradient-to-r hover:from-[#d4a574] hover:via-[#c9975b] hover:to-[#d4a574] hover:text-white hover:border-[#c9975b]'
+                    ? 'bg-[#c9975b] text-white shadow-md border-2 border-[#c9975b]'
+                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]'
                 }`}
               >
                 {option.label}
@@ -780,10 +828,10 @@ export default function ManagerDashboard({ embedded = false }) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${
+              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap border-2 ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                  ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
+                  : 'text-gray-600 border-transparent hover:bg-[#f5e6d3] hover:text-[#c9975b] hover:border-[#c9975b]'
               }`}
             >
               {typeof tab.icon === 'string' ? <span className="text-lg">{tab.icon}</span> : tab.icon}
@@ -797,9 +845,9 @@ export default function ManagerDashboard({ embedded = false }) {
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-32">
           {/* Doanh thu Card */}
-          <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-2xl shadow-sm border-2 border-amber-300 p-6 hover:shadow-xl hover:border-amber-400 transition-all duration-200">
+          <div className="bg-amber-50 rounded-2xl shadow-sm border-2 border-amber-300 p-6 hover:shadow-xl hover:border-amber-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center shadow-md">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -832,9 +880,9 @@ export default function ManagerDashboard({ embedded = false }) {
           </div>
 
           {/* Đơn hàng Card */}
-          <div className="bg-gradient-to-br from-blue-50 via-white to-sky-50 rounded-2xl shadow-sm border-2 border-blue-300 p-6 hover:shadow-xl hover:border-blue-400 transition-all duration-200">
+          <div className="bg-blue-50 rounded-2xl shadow-sm border-2 border-blue-300 p-6 hover:shadow-xl hover:border-blue-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
@@ -883,9 +931,9 @@ export default function ManagerDashboard({ embedded = false }) {
           </div>
 
           {/* Bàn Card - DYNAMIC theo timeRange */}
-          <div className="bg-gradient-to-br from-purple-50 via-white to-fuchsia-50 rounded-2xl shadow-sm border-2 border-purple-300 p-6 hover:shadow-xl hover:border-purple-400 transition-all duration-200">
+          <div className="bg-purple-50 rounded-2xl shadow-sm border-2 border-purple-300 p-6 hover:shadow-xl hover:border-purple-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-md">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
@@ -924,9 +972,9 @@ export default function ManagerDashboard({ embedded = false }) {
           </div>
 
           {/* Card 4 - DYNAMIC: Món chờ bếp (Hôm nay) hoặc Trung bình món/đơn (Khác) */}
-          <div className="bg-gradient-to-br from-emerald-50 via-white to-green-50 rounded-2xl shadow-sm border-2 border-emerald-300 p-6 hover:shadow-xl hover:border-emerald-400 transition-all duration-200">
+          <div className="bg-emerald-50 rounded-2xl shadow-sm border-2 border-emerald-300 p-6 hover:shadow-xl hover:border-emerald-400 transition-all duration-200">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-md">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {(() => {
                     const isToday = timeRange === 'day' && customDate === new Date().toISOString().split('T')[0];
@@ -1190,21 +1238,21 @@ export default function ManagerDashboard({ embedded = false }) {
               <>
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border-l-4 border-amber-500">
+                  <div className="bg-amber-50 rounded-xl p-4 border-l-4 border-amber-500">
                     <div className="text-sm text-amber-700 mb-1">Tổng nhân viên</div>
                     <div className="text-2xl font-bold text-amber-900">{roleStats.summary?.total_employees || 0}</div>
                   </div>
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-l-4 border-blue-500">
+                  <div className="bg-blue-50 rounded-xl p-4 border-l-4 border-blue-500">
                     <div className="text-sm text-blue-700 mb-1">Tổng đơn hàng</div>
                     <div className="text-2xl font-bold text-blue-900">{roleStats.summary?.total_orders || 0}</div>
                   </div>
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border-l-4 border-green-500">
+                  <div className="bg-green-50 rounded-xl p-4 border-l-4 border-green-500">
                     <div className="text-sm text-green-700 mb-1">Tổng doanh thu</div>
                     <div className="text-2xl font-bold text-green-900">
                       {(roleStats.summary?.total_revenue || 0).toLocaleString('vi-VN')} đ
                     </div>
                   </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-4 border-l-4 border-purple-500">
+                  <div className="bg-purple-50 rounded-xl p-4 border-l-4 border-purple-500">
                     <div className="text-sm text-purple-700 mb-1">Đơn giao hàng</div>
                     <div className="text-2xl font-bold text-purple-900">{roleStats.summary?.total_delivery_orders || 0}</div>
                   </div>
@@ -1733,20 +1781,12 @@ export default function ManagerDashboard({ embedded = false }) {
                     </div>
                     <div style={{ marginBottom: '12px' }}>
                       <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Người tạo đơn</span>
-                      <span style={{ fontWeight: '500' }}>{invoiceDetail.header?.nguoi_tao_don || invoiceDetail.header?.thu_ngan || 'N/A'}</span>
+                      <span style={{ fontWeight: '500' }}>{invoiceDetail.header?.nguoi_tao_don || 'N/A'}</span>
                     </div>
-                    {invoiceDetail.header?.nguoi_tao_don && invoiceDetail.header?.thu_ngan && invoiceDetail.header.nguoi_tao_don !== invoiceDetail.header.thu_ngan && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Thu ngân</span>
-                        <span style={{ fontWeight: '500' }}>{invoiceDetail.header.thu_ngan}</span>
-                      </div>
-                    )}
-                    {(!invoiceDetail.header?.nguoi_tao_don || invoiceDetail.header.nguoi_tao_don === invoiceDetail.header?.thu_ngan) && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Thu ngân</span>
-                        <span style={{ fontWeight: '500' }}>{invoiceDetail.header?.thu_ngan || 'N/A'}</span>
-                      </div>
-                    )}
+                    <div style={{ marginBottom: '12px' }}>
+                      <span style={{ color: '#6b7280', display: 'block', marginBottom: '4px' }}>Thu ngân</span>
+                      <span style={{ fontWeight: '500' }}>{invoiceDetail.header?.thu_ngan || invoiceDetail.header?.nguoi_tao_don || 'N/A'}</span>
+                    </div>
                   </div>
                   <div>
                     <div style={{ marginBottom: '12px' }}>

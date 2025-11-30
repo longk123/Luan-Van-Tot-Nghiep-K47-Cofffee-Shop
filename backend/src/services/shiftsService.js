@@ -219,11 +219,39 @@ export async function getShiftSummary(shiftId, userId = null) {
     }
   }
   
+  // ⚠️ Kiểm tra tiền shipper chưa nộp (cho ca CASHIER)
+  let pendingShipperWallets = [];
+  if (shift.shift_type === 'CASHIER' || (!shift.shift_type && !isWaiterUser)) {
+    // Lấy danh sách shipper có số dư ví > 0 (chưa nộp tiền)
+    const walletsResult = await pool.query(`
+      SELECT 
+        sw.id as wallet_id,
+        sw.user_id as shipper_id,
+        u.full_name as shipper_name,
+        sw.balance as pending_amount,
+        sw.total_collected,
+        sw.total_settled
+      FROM shipper_wallet sw
+      JOIN users u ON u.user_id = sw.user_id
+      WHERE sw.balance > 0
+      ORDER BY sw.balance DESC
+    `);
+    
+    pendingShipperWallets = walletsResult.rows.map(row => ({
+      shipperId: row.shipper_id,
+      shipperName: row.shipper_name,
+      pendingAmount: parseInt(row.pending_amount || 0),
+      totalCollected: parseInt(row.total_collected || 0),
+      totalSettled: parseInt(row.total_settled || 0)
+    }));
+  }
+  
   return {
     shift,
     summary,
     kitchenStats,
-    waiterStats
+    waiterStats,
+    pendingShipperWallets // Thêm thông tin shipper chưa nộp tiền
   };
 }
 

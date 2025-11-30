@@ -46,8 +46,8 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-      <div className="bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-2xl max-w-md w-full border-2 border-[#d4a574]/30 transform transition-all">
-        <div className="px-6 py-5 border-b-2 border-[#e7d4b8] bg-gradient-to-r from-[#c9975b] via-[#d4a574] to-[#c9975b] shadow-lg rounded-t-3xl">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full border-2 border-[#e7d4b8] transform transition-all">
+        <div className="px-6 py-5 border-b-2 border-[#e7d4b8] bg-[#c9975b] shadow-sm rounded-t-3xl">
           <h3 className="text-2xl font-bold text-white flex items-center gap-3">
             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -69,7 +69,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
               {variants.length > 0 && (
                 <div>
                   <h4 className="font-bold text-[#8b6f47] mb-4 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#c9975b] to-[#d4a574] flex items-center justify-center shadow-sm">
+                    <div className="w-6 h-6 rounded-lg bg-[#c9975b] flex items-center justify-center">
                       <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                       </svg>
@@ -81,10 +81,10 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                       <button
                         key={variant.id}
                         onClick={() => setVariantId(variant.id)}
-                        className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left outline-none focus:outline-none transform ${
+                        className={`p-4 rounded-2xl border-2 transition-all duration-200 text-left outline-none focus:outline-none ${
                           variantId === variant.id
-                            ? 'border-[#c9975b] bg-gradient-to-br from-[#fef7ed] to-[#e7d4b8] shadow-xl scale-[1.02]' 
-                            : 'border-[#e7d4b8] bg-white hover:border-[#c9975b] hover:bg-[#fef7ed] hover:shadow-lg hover:scale-[1.02]'
+                            ? 'border-[#c9975b] bg-[#fef7ed] shadow-lg' 
+                            : 'border-[#e7d4b8] bg-white hover:border-[#c9975b] hover:bg-[#fef7ed]'
                         }`}
                       >
                         <div className="flex justify-between items-center">
@@ -106,7 +106,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
               {/* Quantity - ENHANCED */}
               <div>
                 <h4 className="font-bold text-[#8b6f47] mb-4 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#c9975b] to-[#d4a574] flex items-center justify-center shadow-sm">
+                  <div className="w-6 h-6 rounded-lg bg-[#c9975b] flex items-center justify-center">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                     </svg>
@@ -117,7 +117,7 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                   <button
                     onClick={() => setQty(Math.max(1, qty - 1))}
                     disabled={qty <= 1}
-                    className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-[#e7d4b8] to-[#fef7ed] hover:from-[#d4a574] hover:to-[#e7d4b8] disabled:from-gray-100 disabled:to-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed rounded-2xl font-bold text-2xl text-[#c9975b] outline-none focus:outline-none transition-all duration-200 shadow-md hover:shadow-xl hover:scale-110 active:scale-95 disabled:scale-100 border-2 border-[#d4a574]/30 disabled:border-gray-200"
+                    className="w-14 h-14 flex items-center justify-center bg-[#e7d4b8] hover:bg-[#d4a574] hover:text-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed rounded-2xl font-bold text-2xl text-[#c9975b] outline-none focus:outline-none transition-all duration-200 border-2 border-[#d4a574]/30 disabled:border-gray-200"
                   >
                     −
                   </button>
@@ -125,12 +125,12 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
                     type="number"
                     value={qty}
                     onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="flex-1 text-center text-2xl font-bold py-4 border-2 border-[#d4a574] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#c9975b] focus:border-[#c9975b] text-[#8b6f47] bg-white shadow-md transition-all"
+                    className="flex-1 text-center text-2xl font-bold py-4 border-2 border-[#d4a574] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#c9975b] focus:border-[#c9975b] text-[#8b6f47] bg-white shadow-sm transition-all"
                     min="1"
                   />
                   <button
                     onClick={() => setQty(qty + 1)}
-                    className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-[#c9975b] to-[#d4a574] hover:from-[#b88749] hover:to-[#c9975b] rounded-2xl font-bold text-2xl text-white outline-none focus:outline-none transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 border-2 border-[#b88749]"
+                    className="w-14 h-14 flex items-center justify-center bg-[#c9975b] hover:bg-[#b88749] rounded-2xl font-bold text-2xl text-white outline-none focus:outline-none transition-all duration-200 border-2 border-[#b88749]"
                   >
                     +
                   </button>
@@ -140,17 +140,17 @@ function QtySizeDialog({ open, item, onClose, onConfirm }) {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t-2 border-[#e7d4b8] bg-gradient-to-r from-[#fef7ed] to-[#e7d4b8]/50 flex gap-3 rounded-b-3xl">
+        <div className="px-6 py-4 border-t-2 border-[#e7d4b8] bg-[#fef7ed] flex gap-3 rounded-b-3xl">
           <button
             onClick={onClose}
-            className="flex-1 py-3.5 px-4 bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 text-gray-700 rounded-xl font-bold transition-all duration-200 shadow-sm hover:shadow-md outline-none focus:outline-none hover:scale-105 active:scale-95"
+            className="flex-1 py-3.5 px-4 bg-gray-200 hover:bg-white text-gray-700 border-2 border-gray-300 hover:border-gray-400 rounded-xl font-bold transition-all duration-200 outline-none focus:outline-none"
           >
             Hủy
           </button>
           <button
             onClick={() => onConfirm({ qty, variantId })}
             disabled={variants.length > 0 && !variantId}
-            className="flex-[2] py-3.5 px-4 bg-gradient-to-r from-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl font-bold transition-all duration-200 shadow-lg hover:bg-white hover:from-white hover:to-white hover:text-[#c9975b] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none hover:scale-105 active:scale-95 disabled:scale-100 flex items-center justify-center gap-2"
+            className="flex-[2] py-3.5 px-4 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl font-bold transition-all duration-200 hover:bg-white hover:text-[#c9975b] disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -316,7 +316,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
   return (
     <div className="h-full flex flex-col">
       {/* Search */}
-      <div className="px-4 py-4 border-b-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
+      <div className="px-4 py-4 border-b-2 border-amber-200 bg-amber-50">
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -332,7 +332,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
       </div>
 
       {/* Categories tabs */}
-      <div className="px-4 py-3 border-b-2 border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50">
+      <div className="px-4 py-3 border-b-2 border-amber-200 bg-amber-50">
         <div className="flex gap-2 overflow-x-auto scrollbar-thin pb-1 scroll-smooth" style={{ 
           scrollbarWidth: 'thin', 
           scrollbarColor: '#d4a574 rgba(255, 255, 255, 0.1)',
@@ -340,10 +340,10 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
         }}>
           <button
             onClick={() => { setActiveCat(0); setSearching(false); setSearch(''); }}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex items-center gap-2 flex-shrink-0 ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex items-center gap-2 flex-shrink-0 border-2 ${
               activeCat === 0 
-                ? 'bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white shadow-lg scale-105 border-2 border-[#c9975b]' 
-                : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-2 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
+                ? 'bg-[#c9975b] text-white shadow-lg scale-105 border-[#c9975b]' 
+                : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
             }`}
           >
             <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,10 +355,10 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
             <button
               key={c.id}
               onClick={() => { setActiveCat(c.id); setSearching(false); setSearch(''); }}
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex-shrink-0 ${
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 outline-none focus:outline-none flex-shrink-0 border-2 ${
                 activeCat === c.id 
-                  ? 'bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white shadow-lg scale-105 border-2 border-[#c9975b]' 
-                  : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-2 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
+                  ? 'bg-[#c9975b] text-white shadow-lg scale-105 border-[#c9975b]' 
+                  : 'bg-white text-[#8B6F47] hover:bg-[#FEF7ED] hover:scale-105 border-[#d4a574]/30 hover:border-[#c9975b] shadow-sm hover:shadow-md'
               }`}
             >
               {c.ten}
@@ -368,7 +368,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
       </div>
 
       {/* Items grid */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-amber-50/50 to-white scrollbar-thin">
+      <div className="flex-1 overflow-y-auto p-4 bg-amber-50/50 scrollbar-thin">
         {loading ? (
           <div className="p-4 text-amber-600">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500 mx-auto mb-2"></div>
@@ -400,9 +400,9 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
                   {m.hinh_anh ? (
                     <img src={m.hinh_anh} alt={m.ten} className="w-full h-32 object-cover" />
                   ) : (
-                    <div className="w-full h-32 bg-gradient-to-br from-amber-50 to-orange-50 grid place-items-center text-amber-400 text-3xl">☕</div>
+                    <div className="w-full h-32 bg-amber-50 grid place-items-center text-amber-400 text-3xl">☕</div>
                   )}
-                  <div className="p-3 bg-gradient-to-b from-white to-amber-50/30">
+                  <div className="p-3 bg-white">
                     <div className="font-bold text-base truncate mb-1 text-amber-900 pr-8" title={m.ten}>{m.ten}</div>
                     
                     {/* Hiển thị giá */}
@@ -449,7 +449,7 @@ export default function MenuPanel({ orderId, onAdded, onShowToast, disabled = fa
                       className={`w-full py-3 px-4 rounded-xl font-bold text-base transition-all duration-200 outline-none focus:outline-none text-center border-2 flex items-center justify-center gap-2 ${
                         disabled 
                           ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-300' 
-                          : 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-[#c9975b] hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
+                          : 'bg-[#c9975b] text-white border-[#c9975b] hover:bg-white hover:text-[#c9975b] hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
                       } ${adding ? 'opacity-50' : ''}`}
                       style={{ overflow: 'visible', whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}
                     >

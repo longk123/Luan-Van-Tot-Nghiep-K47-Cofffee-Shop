@@ -501,7 +501,7 @@ export default {
           FROM wallet_transactions wt
           JOIN shipper_wallet sw ON sw.id = wt.wallet_id
           WHERE sw.user_id = ca.nhan_vien_id
-            AND wt.transaction_type = 'COLLECT'
+            AND wt.type = 'COLLECT'
             AND wt.created_at >= ca.started_at
             AND (wt.created_at < ca.closed_at OR ca.closed_at IS NULL)
         ) AS total_collected
@@ -702,9 +702,10 @@ export default {
       whereConditions.push(`to_char(o.closed_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') <= $${params.length}`);
     }
 
-    // Filter theo role nếu có
+    // Filter theo role - mặc định chỉ lấy waiter và shipper
     let roleFilter = '';
     if (roleName) {
+      // Lọc theo 1 role cụ thể
       params.push(roleName.toLowerCase());
       roleFilter = `
         AND EXISTS (
@@ -713,6 +714,17 @@ export default {
           JOIN roles r ON r.role_id = ur.role_id
           WHERE ur.user_id = o.nhan_vien_id
             AND LOWER(r.role_name) = $${params.length}
+        )
+      `;
+    } else {
+      // Mặc định: chỉ lấy waiter và shipper (không lấy cashier, admin, manager)
+      roleFilter = `
+        AND EXISTS (
+          SELECT 1 
+          FROM user_roles ur
+          JOIN roles r ON r.role_id = ur.role_id
+          WHERE ur.user_id = o.nhan_vien_id
+            AND LOWER(r.role_name) IN ('waiter', 'shipper')
         )
       `;
     }

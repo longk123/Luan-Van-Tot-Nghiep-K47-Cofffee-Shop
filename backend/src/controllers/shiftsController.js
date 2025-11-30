@@ -48,19 +48,21 @@ export const openShift = asyncHandler(async (req, res) => {
   )) {
     detectedShiftType = 'KITCHEN';
   }
-  // Waiter và Cashier đều mở ca CASHIER (waiter không quản lý tiền nên opening_cash = 0)
-  // Tracking dựa vào nhan_vien_id trong báo cáo
   
-  // Kiểm tra nếu là waiter thì không yêu cầu opening_cash
+  // Nếu user chỉ có role waiter (không có cashier/manager/admin) → shift_type = WAITER
   const isWaiter = req.user.roles && req.user.roles.some(role => 
     role.toLowerCase() === 'waiter'
   ) && !req.user.roles.some(role => 
     ['cashier', 'manager', 'admin'].includes(role.toLowerCase())
   );
   
+  if (isWaiter) {
+    detectedShiftType = 'WAITER';
+  }
+  
   const data = await shiftsService.open({
     nhanVienId: req.user.user_id,
-    openingCash: (detectedShiftType === 'CASHIER' && !isWaiter) ? (parseInt(opening_cash) || 0) : 0,
+    openingCash: (detectedShiftType === 'CASHIER') ? (parseInt(opening_cash) || 0) : 0,
     openedBy: req.user.user_id,
     shiftType: detectedShiftType
   });

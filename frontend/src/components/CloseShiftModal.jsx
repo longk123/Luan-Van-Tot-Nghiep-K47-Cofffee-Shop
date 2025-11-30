@@ -289,7 +289,7 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                     </div>
                     
                     {/* Thông tin ví tiền thu hộ */}
-                    {walletInfo && walletInfo.current_balance > 0 && (
+                    {walletInfo && walletInfo.balance > 0 && (
                       <div className="mt-4 p-4 bg-amber-50 rounded-xl border-2 border-amber-300">
                         <div className="flex items-center gap-2 mb-3">
                           <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +301,7 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                           <div>
                             <p className="text-sm text-amber-700">Số dư ví hiện tại</p>
                             <p className="text-2xl font-bold text-amber-900">
-                              {parseInt(walletInfo.current_balance || 0).toLocaleString('vi-VN')}đ
+                              {parseInt(walletInfo.balance || 0).toLocaleString('vi-VN')}đ
                             </p>
                           </div>
                           <div className="text-right">
@@ -443,6 +443,60 @@ export default function CloseShiftModal({ open, shift, onClose, onSuccess, onSho
                     </span>
                   </div>
                 </div>
+              </div>
+              )}
+              
+              {/* ⚠️ CẢNH BÁO: Shipper chưa nộp tiền - CHỈ cho Thu ngân */}
+              {!isNonCashShift && summary?.pendingShipperWallets?.length > 0 && (
+              <div className="bg-amber-50 rounded-2xl p-5 border-2 border-amber-400">
+                <h4 className="font-bold text-amber-900 mb-3 flex items-center gap-2">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  ⚠️ Shipper chưa nộp tiền thu hộ
+                </h4>
+                
+                <div className="bg-white rounded-xl p-4 border border-amber-300 mb-3">
+                  <p className="text-sm text-amber-800 mb-3">
+                    Các shipper sau còn tiền thu hộ (COD) chưa nộp. Số tiền này <strong>chưa được tính vào doanh thu ca</strong> và <strong>bạn không chịu trách nhiệm</strong> về số tiền này.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    {summary.pendingShipperWallets.map((wallet, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2 bg-amber-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">🛵</span>
+                          <div>
+                            <p className="font-medium text-dark-800">{wallet.shipperName}</p>
+                            <p className="text-xs text-dark-500">
+                              Đã thu: {parseInt(wallet.totalCollected || 0).toLocaleString('vi-VN')}đ | 
+                              Đã nộp: {parseInt(wallet.totalSettled || 0).toLocaleString('vi-VN')}đ
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-amber-700">
+                            {parseInt(wallet.pendingAmount || 0).toLocaleString('vi-VN')}đ
+                          </p>
+                          <p className="text-xs text-amber-600">chưa nộp</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t border-amber-200">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-amber-800">Tổng tiền shipper chưa nộp:</span>
+                      <span className="text-xl font-bold text-amber-700">
+                        {summary.pendingShipperWallets.reduce((sum, w) => sum + parseInt(w.pendingAmount || 0), 0).toLocaleString('vi-VN')}đ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-amber-700 italic">
+                  💡 Tiền này sẽ được cộng vào doanh thu khi shipper nộp. Bạn có thể đóng ca bình thường.
+                </p>
               </div>
               )}
 

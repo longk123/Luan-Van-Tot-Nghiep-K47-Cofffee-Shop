@@ -107,7 +107,7 @@ export default function WaiterDeliveryPage() {
       backUrl="/dashboard"
     >
       {/* Header */}
-      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Đơn giao hàng của tôi</h2>
@@ -116,7 +116,7 @@ export default function WaiterDeliveryPage() {
           <div className="flex gap-3">
             <button
               onClick={() => navigate('/dashboard')}
-              className="px-6 py-3 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:border-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2 shadow-md"
+              className="px-6 py-3 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2 shadow-md"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -127,35 +127,35 @@ export default function WaiterDeliveryPage() {
         </div>
       </div>
 
-      {/* Filter */}
+      {/* Filter - Với invert hover */}
       <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-2">
         <div className="flex gap-2">
           <button
             onClick={() => setStatusFilter('ALL')}
-            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
               statusFilter === 'ALL'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
             }`}
           >
             Tất cả ({orders.length})
           </button>
           <button
             onClick={() => setStatusFilter('ASSIGNED')}
-            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
               statusFilter === 'ASSIGNED'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
             }`}
           >
             Đã phân công ({orders.filter(o => o.delivery_status === 'ASSIGNED').length})
           </button>
           <button
             onClick={() => setStatusFilter('OUT_FOR_DELIVERY')}
-            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+            className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
               statusFilter === 'OUT_FOR_DELIVERY'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-600 hover:text-white hover:border-blue-600'
             }`}
           >
             Đang giao ({orders.filter(o => o.delivery_status === 'OUT_FOR_DELIVERY').length})
@@ -165,16 +165,17 @@ export default function WaiterDeliveryPage() {
 
       {/* Orders List */}
       {loading ? (
-        <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#d4a574] border-t-[#c9975b] mx-auto mb-6"></div>
-          <p className="text-[#8b6f47] font-bold text-lg">Đang tải...</p>
+        <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-200">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-[#c9975b] mx-auto mb-6"></div>
+          <p className="text-gray-600 font-semibold text-lg">Đang tải...</p>
         </div>
       ) : orders.length === 0 ? (
-        <div className="text-center py-16 bg-gradient-to-br from-white via-[#fffbf5] to-[#fef7ed] rounded-3xl shadow-xl border-2 border-[#e7d4b8]">
-          <svg className="w-24 h-24 mx-auto text-[#d4a574] mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-200">
+          <svg className="w-20 h-20 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
           </svg>
-          <p className="text-[#8b6f47] font-bold text-xl">Chưa có đơn được phân công</p>
+          <p className="text-gray-600 font-bold text-xl">Chưa có đơn được phân công</p>
+          <p className="text-gray-400 mt-2">Các đơn giao hàng sẽ xuất hiện ở đây khi được phân công</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -294,9 +295,12 @@ export default function WaiterDeliveryPage() {
                   return (
                     <button
                       onClick={() => handleUpdateStatus(order.id, 'OUT_FOR_DELIVERY')}
-                      className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-2 border-yellow-600
-                      hover:bg-white hover:from-white hover:to-white hover:text-yellow-600 hover:border-yellow-600 hover:scale-105 active:scale-95 transition-all duration-300 shadow-md"
+                      className="w-full py-3 rounded-xl font-semibold bg-yellow-500 text-white border-2 border-yellow-500
+                      hover:bg-white hover:text-yellow-600 hover:border-yellow-500 hover:shadow-lg transition-all duration-200 shadow-md flex items-center justify-center gap-2"
                     >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
                       Bắt đầu giao hàng
                     </button>
                   );
@@ -305,16 +309,22 @@ export default function WaiterDeliveryPage() {
                   <>
                     <button
                       onClick={() => handleUpdateStatus(order.id, 'DELIVERED')}
-                      className="w-full py-3 rounded-xl font-semibold bg-gradient-to-r from-green-500 to-emerald-500 text-white border-2 border-green-600
-                      hover:bg-white hover:from-white hover:to-white hover:text-green-600 hover:border-green-600 hover:scale-105 active:scale-95 transition-all duration-300 shadow-md"
+                      className="w-full py-3 rounded-xl font-semibold bg-green-500 text-white border-2 border-green-500
+                      hover:bg-white hover:text-green-600 hover:border-green-500 hover:shadow-lg transition-all duration-200 shadow-md flex items-center justify-center gap-2"
                     >
-                      ✓ Đã giao hàng
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Đã giao hàng
                     </button>
                     <button
                       onClick={() => handleUpdateStatus(order.id, 'FAILED')}
-                      className="w-full py-2 rounded-lg font-medium bg-red-50 text-red-700 border border-red-300
-                      hover:bg-red-100 transition"
+                      className="w-full py-2 rounded-lg font-semibold bg-white text-red-600 border-2 border-red-300
+                      hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-200 flex items-center justify-center gap-2"
                     >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                       Giao hàng thất bại
                     </button>
                   </>

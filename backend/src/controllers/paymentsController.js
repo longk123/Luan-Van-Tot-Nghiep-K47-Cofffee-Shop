@@ -19,6 +19,9 @@ async function assertOrderExists(client, orderId) {
 /**
  * Helper: Đóng đơn hàng khi thanh toán đủ
  * Cập nhật ca_lam_id từ payment cuối để đơn tính vào ca của người thanh toán
+ * 
+ * ⚠️ QUAN TRỌNG: Đơn DELIVERY + CASH (COD) KHÔNG đánh dấu PAID ngay
+ * vì tiền chưa thực sự thu được. Chờ shipper NỘP TIỀN cho cashier mới PAID.
  */
 async function closeOrderIfPaid(client, orderId) {
   // Lấy settlement
@@ -46,15 +49,28 @@ async function closeOrderIfPaid(client, orderId) {
     return true;
   }
   
-  // Lấy ca_lam_id từ payment cuối cùng (người thanh toán)
+  // Lấy ca_lam_id và method từ payment cuối cùng (người thanh toán)
   const lastPayment = await client.query(
     `SELECT ca_lam_id, method_code FROM order_payment 
-     WHERE order_id = $1 AND ca_lam_id IS NOT NULL 
+     WHERE order_id = $1 AND status = 'CAPTURED'
      ORDER BY id DESC LIMIT 1`,
     [orderId]
   );
   const payerShiftId = lastPayment.rows[0]?.ca_lam_id || null;
   const paymentMethod = lastPayment.rows[0]?.method_code || 'CASH';
+  
+  // ⚠️ ĐƠN DELIVERY + CASH (COD): KHÔNG đánh dấu PAID ngay
+  // Tiền chưa thu được - shipper phải giao xong VÀ nộp tiền cho cashier
+  // Khi shipper nộp tiền (SETTLE), mới đánh dấu PAID
+  if (orderInfo.rows[0]?.order_type === 'DELIVERY' && paymentMethod === 'CASH') {
+    console.log(`📦 Đơn #${orderId} là COD - chờ shipper nộp tiền mới PAID`);
+    // Cập nhật ca_lam_id để biết đơn thuộc ca nào
+    await client.query(
+      `UPDATE don_hang SET ca_lam_id = COALESCE($2, ca_lam_id) WHERE id = $1`,
+      [orderId, payerShiftId]
+    );
+    return false; // Chưa đánh dấu PAID
+  }
   
   // ✅ TẠO payment_transaction TRƯỚC KHI đánh dấu PAID
   // Kiểm tra xem đã có payment_transaction chưa
@@ -187,6 +203,9 @@ class PaymentsController {
       }
 
       // Insert payment
+      // Tự động lấy created_by từ req.user nếu không được truyền
+      const paymentCreatedBy = created_by ?? req.user?.user_id ?? null;
+      
       const ins = await client.query(
         `INSERT INTO order_payment(
           order_id, method_code, amount, amount_tendered, change_given, 
@@ -201,7 +220,7 @@ class PaymentsController {
           amount_tendered ?? null, 
           tx_ref ?? null, 
           note ?? null, 
-          created_by ?? null, 
+          paymentCreatedBy, 
           ca_lam_id ?? null
         ]
       );

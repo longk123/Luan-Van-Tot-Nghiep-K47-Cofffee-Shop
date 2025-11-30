@@ -6,32 +6,36 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
 
   const colors = {
     danger: {
-      bg: 'from-red-500 to-red-600',
-      hover: 'from-red-600 to-red-700',
+      bg: 'bg-red-500',
+      hover: 'hover:bg-white hover:text-red-500',
       icon: AlertCircle,
       iconColor: 'text-red-500',
-      iconBg: 'bg-red-50'
+      iconBg: 'bg-red-50',
+      border: 'border-red-500'
     },
     warning: {
-      bg: 'from-amber-600 to-amber-700',
-      hover: 'from-amber-700 to-amber-800',
+      bg: 'bg-amber-600',
+      hover: 'hover:bg-white hover:text-amber-600',
       icon: AlertTriangle,
       iconColor: 'text-amber-500',
-      iconBg: 'bg-amber-50'
+      iconBg: 'bg-amber-50',
+      border: 'border-amber-600'
     },
     info: {
-      bg: 'from-[#d4a574] via-[#c9975b] to-[#d4a574]',
-      hover: 'from-[#c9975b] via-[#b8874f] to-[#c9975b]',
+      bg: 'bg-[#c9975b]',
+      hover: 'hover:bg-white hover:text-[#c9975b]',
       icon: Info,
       iconColor: 'text-blue-500',
-      iconBg: 'bg-blue-50'
+      iconBg: 'bg-blue-50',
+      border: 'border-[#c9975b]'
     },
     success: {
-      bg: 'from-green-500 to-green-600',
-      hover: 'from-green-600 to-green-700',
+      bg: 'bg-green-500',
+      hover: 'hover:bg-white hover:text-green-500',
       icon: CheckCircle,
       iconColor: 'text-green-500',
-      iconBg: 'bg-green-50'
+      iconBg: 'bg-green-50',
+      border: 'border-green-500'
     }
   };
 
@@ -77,14 +81,14 @@ export default function ConfirmDialog({ open, title, message, onConfirm, onCance
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-2xl flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 py-3 px-4 bg-gray-200 hover:bg-white hover:text-gray-900 text-gray-700 border-2 border-gray-200 hover:border-gray-400 rounded-xl font-semibold transition-all duration-200 hover:shadow-md outline-none focus:outline-none"
+              className="flex-1 py-3 px-4 bg-gray-200 hover:bg-white hover:text-gray-900 text-gray-700 border-2 border-gray-200 hover:border-gray-400 rounded-xl font-semibold transition-all duration-200 outline-none focus:outline-none"
             >
               {cancelText}
             </button>
             <button
               onClick={onConfirm}
               disabled={disabled}
-              className={`flex-1 py-3 px-4 bg-gradient-to-r ${colorSet.bg} hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-gray-900 text-white border-2 border-transparent hover:border-gray-400 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg outline-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gradient-to-r disabled:hover:${colorSet.bg} disabled:hover:text-white`}
+              className={`flex-1 py-3 px-4 ${colorSet.bg} ${colorSet.hover} text-white border-2 ${colorSet.border} rounded-xl font-semibold transition-all duration-200 outline-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {confirmText}
             </button>

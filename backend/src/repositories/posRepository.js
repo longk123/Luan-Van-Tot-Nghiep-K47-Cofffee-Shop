@@ -586,6 +586,7 @@ export default {
         dh.closed_at,
         dh.ly_do_huy,
         dh.customer_account_id,
+        dh.nhan_vien_id,
         b.ten_ban,
         kv.ten AS khu_vuc_ten,
         u.full_name AS nhan_vien_ten,

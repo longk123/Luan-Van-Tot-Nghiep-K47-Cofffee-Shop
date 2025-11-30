@@ -1,6 +1,6 @@
 // src/pages/Kitchen.jsx
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import useSSE from '../hooks/useSSE.js';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
@@ -13,6 +13,11 @@ import { getUser } from '../auth.js';
 
 export default function Kitchen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Chế độ xem (view only) - Manager xem giao diện nhân viên mà không thao tác được
+  const isViewOnly = searchParams.get('viewOnly') === 'true';
+  
   const [items, setItems] = useState([]);
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState(null);
@@ -50,12 +55,12 @@ export default function Kitchen() {
   const user = getUser();
   const userRoles = user?.roles || [];
 
-  // Check if user is Manager (View Only mode)
-  const isManagerViewMode = userRoles.some(role =>
+  // Check if user is Manager (View Only mode) - hoặc khi có ?viewOnly=true
+  const isManagerViewMode = isViewOnly || (userRoles.some(role =>
     ['manager', 'admin'].includes(role.toLowerCase())
   ) && !userRoles.some(role =>
     ['kitchen', 'barista', 'chef', 'cook'].includes(role.toLowerCase())
-  );
+  ));
 
   // Role-based access control
   useEffect(() => {
@@ -436,7 +441,7 @@ export default function Kitchen() {
                       </span>
                     )}
                     {item.don_hang_trang_thai === 'PAID' && (
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold border border-green-600 shadow-md">
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg font-bold">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -559,19 +564,43 @@ export default function Kitchen() {
       pageName="Kitchen"
       backUrl="/manager"
     >
+      {/* View Only Banner */}
+      {isViewOnly && (
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-blue-800">Chế độ xem</h3>
+              <p className="text-sm text-blue-600">Bạn đang xem giao diện pha chế. Không thể thao tác.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/manager')}
+            className="px-4 py-2.5 bg-blue-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:text-blue-500 transition-all duration-200 font-semibold flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Quay lại Manager</span>
+          </button>
+        </div>
+      )}
+
       {/* Header Card - Đồng bộ 100% với Dashboard và Takeaway */}
-      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-8 mb-6 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-6">
         <div className="flex items-center justify-between gap-6">
           {/* Left: Title and Shift info */}
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-[#c9975b] rounded-xl blur-lg opacity-20"></div>
-                <div className="relative w-12 h-12 bg-gradient-to-br from-[#8b6f47] via-[#c9975b] to-[#d4a574] rounded-xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+              <div className="w-12 h-12 bg-[#c9975b] rounded-xl flex items-center justify-center shadow-md">
                   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                   </svg>
-                </div>
               </div>
 
               <div>
@@ -586,7 +615,7 @@ export default function Kitchen() {
             {/* Shift info */}
             {shift && shift.id && (
               <div className="mt-3 flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md font-bold">
+                <span className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl shadow-sm font-bold">
                   <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
                   Ca #{shift.id} - {shift.nhan_vien?.full_name || shift.nhan_vien_ten || 'Unknown'}
                 </span>
@@ -605,7 +634,7 @@ export default function Kitchen() {
               {isManagerViewMode && (
                 <button
                   onClick={() => navigate('/manager')}
-                  className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-blue-600 hover:border-blue-500 hover:shadow-xl hover:scale-105 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-md"
+                  className="px-4 py-2.5 bg-blue-500 text-white border-2 border-blue-500 rounded-xl hover:bg-white hover:text-blue-600 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -619,7 +648,7 @@ export default function Kitchen() {
                 shift && shift.status === 'OPEN' ? (
                   <button
                     onClick={() => setShowCloseShift(true)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white border-2 border-purple-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-purple-700 hover:border-purple-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
+                    className="px-4 py-2.5 bg-purple-600 text-white border-2 border-purple-600 rounded-xl hover:bg-white hover:text-purple-700 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -629,7 +658,7 @@ export default function Kitchen() {
                 ) : (
                   <button
                     onClick={() => setShowOpenShift(true)}
-                    className="px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-2 border-green-600 rounded-xl hover:bg-white hover:from-white hover:to-white hover:text-green-700 hover:border-green-600 hover:shadow-xl hover:scale-105 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5 shadow-lg"
+                    className="px-4 py-2.5 bg-green-600 text-white border-2 border-green-600 rounded-xl hover:bg-white hover:text-green-700 transition-all duration-200 font-bold outline-none focus:outline-none flex items-center gap-2.5"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -762,7 +791,7 @@ export default function Kitchen() {
           <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
-              <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 rounded-t-3xl sticky top-0 z-10">
+              <div className="px-6 pt-6 pb-4 bg-blue-50 border-b border-blue-200 rounded-t-3xl sticky top-0 z-10">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2.5">
@@ -936,7 +965,7 @@ export default function Kitchen() {
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-3xl">
                 <button
                   onClick={() => setItemDetailDialog({ open: false, item: null })}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold transition-all duration-200 hover:from-blue-500 hover:to-indigo-500 hover:shadow-lg outline-none focus:outline-none"
+                  className="w-full py-3 px-4 bg-blue-600 text-white border-2 border-blue-600 rounded-xl font-semibold transition-all duration-200 hover:bg-white hover:text-blue-600 outline-none focus:outline-none"
                 >
                   Đóng
                 </button>
@@ -951,7 +980,7 @@ export default function Kitchen() {
         <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
             {/* Header */}
-            <div className="px-6 pt-6 pb-4 bg-gradient-to-r from-red-50 to-rose-50 border-b border-red-200 rounded-t-3xl">
+            <div className="px-6 pt-6 pb-4 bg-red-50 border-b border-red-200 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-red-900 mb-1 flex items-center gap-2.5">
@@ -1005,7 +1034,7 @@ export default function Kitchen() {
               </button>
               <button
                 onClick={handleCancelConfirm}
-                className="flex-[2] py-3 px-4 bg-gradient-to-r from-red-500 to-rose-600 hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-red-600 hover:border-red-600 text-white border-2 border-red-500 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl outline-none focus:outline-none flex items-center justify-center gap-2"
+                className="flex-[2] py-3 px-4 bg-red-500 text-white border-2 border-red-500 rounded-xl font-semibold transition-all duration-200 hover:bg-white hover:text-red-600 outline-none focus:outline-none flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />

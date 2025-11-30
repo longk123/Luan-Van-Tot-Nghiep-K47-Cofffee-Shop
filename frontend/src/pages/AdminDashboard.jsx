@@ -66,32 +66,32 @@ export default function AdminDashboard() {
   return (
     <AuthedLayout>
       <div className="pb-32">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#c9975b] via-[#d4a574] to-[#c9975b] rounded-2xl shadow-lg border-2 border-[#b8874a] p-6 mb-6">
+        {/* Header - Đơn giản, không gradient chói */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                <Shield className="w-10 h-10 text-[#c9975b]" />
+              <div className="w-14 h-14 bg-[#c9975b] rounded-xl flex items-center justify-center shadow-md">
+                <Shield className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-                <p className="text-white/90 mt-1">Quản trị hệ thống</p>
+                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p className="text-gray-600 mt-1">Quản trị hệ thống</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+        {/* Tabs - Đơn giản với invert hover */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
           <div className="flex border-b border-gray-200 overflow-x-auto">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap ${
+                className={`flex-1 px-6 py-4 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap border-b-2 ${
                   activeTab === tab.id
-                    ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                    ? 'bg-[#c9975b] text-white border-[#c9975b]'
+                    : 'text-gray-600 border-transparent hover:bg-[#c9975b] hover:text-white hover:border-[#c9975b]'
                 }`}
               >
                 {tab.icon}
@@ -132,32 +132,36 @@ function AdminOverview() {
       title: 'Quản lý nhân viên',
       description: 'Xem và quản lý tất cả nhân viên',
       icon: <Users className="w-8 h-8" />,
-      color: 'from-blue-500 to-blue-600',
-      hoverColor: 'hover:from-blue-600 hover:to-blue-700',
+      color: 'bg-blue-500',
+      hoverColor: 'hover:bg-white hover:text-blue-500',
+      borderColor: 'border-blue-500',
       onClick: () => navigate('/employees')
     },
     {
       title: 'Manager Dashboard',
       description: 'Xem báo cáo và thống kê',
       icon: <BarChart3 className="w-8 h-8" />,
-      color: 'from-purple-500 to-purple-600',
-      hoverColor: 'hover:from-purple-600 hover:to-purple-700',
+      color: 'bg-purple-500',
+      hoverColor: 'hover:bg-white hover:text-purple-500',
+      borderColor: 'border-purple-500',
       onClick: () => navigate('/manager')
     },
     {
       title: 'Quản lý menu',
       description: 'Quản lý thực đơn và sản phẩm',
       icon: <UtensilsCrossed className="w-8 h-8" />,
-      color: 'from-green-500 to-green-600',
-      hoverColor: 'hover:from-green-600 hover:to-green-700',
+      color: 'bg-green-500',
+      hoverColor: 'hover:bg-white hover:text-green-500',
+      borderColor: 'border-green-500',
       onClick: () => navigate('/menu-management')
     },
     {
       title: 'Quản lý kho',
       description: 'Quản lý nguyên liệu và tồn kho',
       icon: <Package className="w-8 h-8" />,
-      color: 'from-orange-500 to-orange-600',
-      hoverColor: 'hover:from-orange-600 hover:to-orange-700',
+      color: 'bg-orange-500',
+      hoverColor: 'hover:bg-white hover:text-orange-500',
+      borderColor: 'border-orange-500',
       onClick: () => navigate('/inventory')
     },
   ];
@@ -179,7 +183,7 @@ function AdminOverview() {
             <button
               key={index}
               onClick={action.onClick}
-              className={`group bg-gradient-to-br ${action.color} ${action.hoverColor} text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-left relative overflow-hidden`}
+              className={`group ${action.color} ${action.hoverColor} text-white border-2 ${action.borderColor} rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-left relative overflow-hidden`}
             >
               {/* Hover effect overlay */}
               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -199,7 +203,7 @@ function AdminOverview() {
       {/* Admin Features */}
       <div>
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Chức năng Admin</h3>
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200">
+        <div className="bg-amber-50 rounded-xl p-6 border-2 border-amber-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="group bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:border-amber-300 border border-transparent">
               <div className="flex items-center gap-3 mb-2">

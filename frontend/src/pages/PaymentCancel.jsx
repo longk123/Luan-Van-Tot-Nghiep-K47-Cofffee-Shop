@@ -22,8 +22,8 @@ export default function PaymentCancel() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-amber-500 to-yellow-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-12 text-center shadow-2xl max-w-md w-full">
+    <div className="min-h-screen bg-amber-500 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-12 text-center shadow-2xl max-w-md w-full border-4 border-amber-200">
         <div className="text-8xl mb-6">⚠️</div>
         <h1 className="text-3xl font-bold text-amber-700 mb-4">
           Đã hủy thanh toán

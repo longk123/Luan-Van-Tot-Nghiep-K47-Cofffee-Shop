@@ -363,7 +363,7 @@ export default function InventoryManagement() {
         <div className="flex items-center justify-between">
           {/* Left: Title and Description */}
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-[#d4a574] to-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 bg-[#c9975b] rounded-2xl flex items-center justify-center shadow-lg">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
@@ -417,7 +417,7 @@ export default function InventoryManagement() {
               </button>
               <button
                 onClick={() => navigate('/manager')}
-                className="px-4 py-2.5 bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
+                className="px-4 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-full hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 font-semibold flex items-center gap-2.5 shadow-md"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -462,10 +462,10 @@ export default function InventoryManagement() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+              className={`flex-1 px-6 py-4 font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 border-2 ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-[#d4a574] via-[#c9975b] to-[#d4a574] text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e6d3] hover:via-[#f0ddc4] hover:to-[#f5e6d3] hover:text-[#c9975b]'
+                  ? 'bg-[#c9975b] text-white border-[#c9975b] shadow-md'
+                  : 'text-gray-600 border-transparent hover:bg-[#f5e6d3] hover:text-[#c9975b] hover:border-[#c9975b]'
               }`}
             >
               {tab.icon}
@@ -511,15 +511,7 @@ export default function InventoryManagement() {
                       </div>
                       <button
                         onClick={loadIngredients}
-                        className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundImage = 'none';
-                          e.currentTarget.style.backgroundColor = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundImage = '';
-                          e.currentTarget.style.backgroundColor = '';
-                        }}
+                        className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -576,15 +568,7 @@ export default function InventoryManagement() {
                     <h2 className="text-2xl font-bold text-gray-800">Cảnh báo tồn kho</h2>
                     <button
                       onClick={loadWarnings}
-                      className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundImage = 'none';
-                        e.currentTarget.style.backgroundColor = 'white';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundImage = '';
-                        e.currentTarget.style.backgroundColor = '';
-                      }}
+                      className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -670,15 +654,7 @@ export default function InventoryManagement() {
                       />
                       <button
                         onClick={loadExportHistory}
-                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-green-600 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundImage = 'none';
-                          e.currentTarget.style.backgroundColor = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundImage = '';
-                          e.currentTarget.style.backgroundColor = '';
-                        }}
+                        className="px-4 py-2 bg-green-500 text-white border-2 border-green-500 rounded-lg hover:bg-white hover:text-green-500 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
@@ -772,15 +748,7 @@ export default function InventoryManagement() {
                       />
                       <button
                         onClick={loadImportHistory}
-                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-600 rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-green-600 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundImage = 'none';
-                          e.currentTarget.style.backgroundColor = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundImage = '';
-                          e.currentTarget.style.backgroundColor = '';
-                        }}
+                        className="px-4 py-2 bg-green-500 text-white border-2 border-green-500 rounded-lg hover:bg-white hover:text-green-500 hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
@@ -789,15 +757,7 @@ export default function InventoryManagement() {
                       </button>
                       <button
                         onClick={() => setShowImportForm(true)}
-                        className="px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundImage = 'none';
-                          e.currentTarget.style.backgroundColor = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundImage = '';
-                          e.currentTarget.style.backgroundColor = '';
-                        }}
+                        className="px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:shadow-lg transition-all duration-200 flex items-center gap-2 font-semibold"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1398,7 +1358,7 @@ export default function InventoryManagement() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#d4a574] to-[#c9975b] rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-[#c9975b] rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
                 </svg>
@@ -1533,15 +1493,7 @@ export default function InventoryManagement() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-[#d4a574] to-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:from-white hover:via-white hover:to-white hover:text-[#c9975b] hover:shadow-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundImage = 'none';
-                    e.currentTarget.style.backgroundColor = 'white';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundImage = '';
-                    e.currentTarget.style.backgroundColor = '';
-                  }}
+                  className="flex-1 px-4 py-2 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-lg hover:bg-white hover:text-[#c9975b] hover:shadow-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

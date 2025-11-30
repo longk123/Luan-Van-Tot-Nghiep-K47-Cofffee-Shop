@@ -74,7 +74,7 @@ export default {
     return order;
   },
 
-  async createOrderNoTable({ nhanVienId, caLamId }) {
+  async createOrderNoTable({ nhanVienId, caLamId, orderType = 'TAKEAWAY' }) {
     // Kiểm tra có ca đang mở không
     let caId = caLamId;
     if (!caId) {
@@ -88,7 +88,7 @@ export default {
       caId = ca.id;
     }
     
-    const order = await repo.default.createOrderNoTable({ nhanVienId, caLamId: caId });
+    const order = await repo.default.createOrderNoTable({ nhanVienId, caLamId: caId, orderType });
     emitChange('order.updated', { orderId: order.id });
     return order;
   },
@@ -515,7 +515,8 @@ export default {
       throw err;
     }
     
-    // Nếu DELIVERED, cập nhật delivered_at
+    // Nếu DELIVERED, cập nhật delivered_at và ghi nhận tiền vào ví shipper
+    // ⚠️ KHÔNG đánh dấu PAID ở đây - chờ shipper nộp tiền cho cashier
     if (status === 'DELIVERED') {
       await pool.query(`
         UPDATE don_hang_delivery_info
@@ -530,6 +531,8 @@ export default {
       `, [orderId]);
       
       // ✅ Ghi nhận tiền vào ví shipper (nếu đơn COD - thanh toán tiền mặt)
+      // Tiền ở đây là shipper đã thu từ khách, nhưng chưa nộp cho quán
+      // Đơn sẽ PAID khi shipper nộp tiền (SETTLE) cho cashier
       try {
         const walletService = (await import('./walletService.js')).default;
         
