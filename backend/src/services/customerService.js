@@ -178,6 +178,31 @@ export default {
   },
 
   /**
+   * Change customer password
+   */
+  async changePassword(customerId, currentPassword, newPassword) {
+    // Get current account
+    const account = await customerRepository.findById(customerId);
+    if (!account) {
+      throw new NotFound('Tài khoản không tồn tại');
+    }
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, account.password_hash);
+    if (!isValid) {
+      throw new BadRequest('Mật khẩu hiện tại không đúng');
+    }
+
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await customerRepository.updateAccount(customerId, { passwordHash: newPasswordHash });
+
+    return true;
+  },
+
+  /**
    * Verify JWT token
    */
   verifyToken(token) {
@@ -225,6 +250,62 @@ export default {
       promoDiscount: cart.promo_discount || 0,
       expiresAt: cart.expires_at
     };
+  },
+
+  /**
+   * Merge cart from session to customer account when logging in
+   * If customer already has a cart, merge items from session cart
+   * If customer has no cart, assign session cart to customer
+   */
+  async mergeCartOnLogin(sessionId, customerId) {
+    console.log(`🔄 Merging cart: sessionId=${sessionId}, customerId=${customerId}`);
+    
+    // Get session cart
+    const sessionCart = await customerRepository.getCartBySessionId(sessionId);
+    if (!sessionCart || !sessionCart.items || sessionCart.items.length === 0) {
+      console.log('📭 No session cart or empty, skipping merge');
+      return;
+    }
+
+    // Get customer cart
+    let customerCart = await customerRepository.getCartByCustomerId(customerId);
+
+    if (!customerCart) {
+      // Customer has no cart, just update session cart to belong to customer
+      console.log('🆕 Customer has no cart, assigning session cart to customer');
+      await customerRepository.updateCart(sessionCart.id, {
+        customerId: customerId,
+        sessionId: null  // Remove session ID to satisfy constraint
+      });
+    } else {
+      // Customer already has cart, merge items
+      console.log('🔀 Customer has cart, merging items');
+      const existingItems = customerCart.items || [];
+      const newItems = sessionCart.items || [];
+
+      for (const newItem of newItems) {
+        const existingIndex = existingItems.findIndex(item =>
+          item.item_id === newItem.item_id &&
+          item.variant_id === newItem.variant_id &&
+          JSON.stringify(item.options || {}) === JSON.stringify(newItem.options || {})
+        );
+
+        if (existingIndex >= 0) {
+          // Add quantity to existing item
+          existingItems[existingIndex].quantity += newItem.quantity;
+        } else {
+          // Add as new item
+          existingItems.push(newItem);
+        }
+      }
+
+      // Update customer cart with merged items
+      await customerRepository.updateCart(customerCart.id, { items: existingItems });
+
+      // Delete session cart
+      await customerRepository.deleteCart(sessionCart.id);
+      console.log('✅ Cart merged successfully');
+    }
   },
 
   /**
@@ -571,6 +652,36 @@ export default {
       if (!deliveryInfo || !deliveryInfo.deliveryAddress) {
         throw new BadRequest('Vui lòng nhập địa chỉ giao hàng');
       }
+      
+      // Validate địa chỉ phải thuộc quận Ninh Kiều, Cần Thơ
+      const checkIsNinhKieu = (address) => {
+        if (!address) return false;
+        const addressLower = address.toLowerCase();
+        const ninhKieuKeywords = [
+          'ninh kiều',
+          'xuân khánh',
+          'an khánh', 
+          'an hòa',
+          'an cư',
+          'an nghiệp',
+          'an phú',
+          'an thới',
+          'cái khế',
+          'hưng lợi',
+          'tân an',
+          'thới bình',
+          'an bình',
+          'an lạc'
+        ];
+        // Phải có từ khóa Ninh Kiều hoặc các phường thuộc Ninh Kiều VÀ phải có Cần Thơ
+        const hasNinhKieu = ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+        const hasCanTho = addressLower.includes('cần thơ') || addressLower.includes('can tho');
+        return hasNinhKieu && hasCanTho;
+      };
+      
+      if (!checkIsNinhKieu(deliveryInfo.deliveryAddress)) {
+        throw new BadRequest('Chúng tôi chỉ giao hàng trong phạm vi quận Ninh Kiều, TP. Cần Thơ. Vui lòng chọn địa chỉ khác hoặc đổi sang hình thức Mang đi.');
+      }
     }
 
     // Create order
@@ -582,19 +693,43 @@ export default {
 
     // Add items from cart to order
     for (const item of cartItems) {
-      // Convert cart item format to order item format
-      const cups = item.cups || [];
-      
-      await customerRepository.addItemToOrder({
+      const lineItem = await customerRepository.addItemToOrder({
         orderId: order.id,
         monId: item.item_id,
         bienTheId: item.variant_id || null,
         soLuong: item.quantity,
         donGia: item.price,
         giamGia: item.discount || 0,
-        ghiChu: item.notes || null,
-        cups: cups.length > 0 ? cups : null
+        ghiChu: item.notes || null
       });
+
+      // Save options (Độ ngọt, Mức đá) to don_hang_chi_tiet_tuy_chon
+      if (item.options && Object.keys(item.options).length > 0) {
+        for (const [tuyChonId, mucId] of Object.entries(item.options)) {
+          if (mucId) {
+            await customerRepository.addOrderItemOption({
+              lineId: lineItem.id,
+              tuyChonId: parseInt(tuyChonId),
+              mucId: parseInt(mucId),
+              soLuong: 1
+            });
+          }
+        }
+      }
+
+      // Save toppings to don_hang_chi_tiet_tuy_chon
+      if (item.toppings && Object.keys(item.toppings).length > 0) {
+        for (const [tuyChonId, soLuong] of Object.entries(item.toppings)) {
+          if (soLuong > 0) {
+            await customerRepository.addOrderItemOption({
+              lineId: lineItem.id,
+              tuyChonId: parseInt(tuyChonId),
+              mucId: null,
+              soLuong: parseInt(soLuong)
+            });
+          }
+        }
+      }
     }
 
     // Save delivery info if DELIVERY

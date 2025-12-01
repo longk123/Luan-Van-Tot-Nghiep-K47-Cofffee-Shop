@@ -86,7 +86,7 @@ export async function createPayOrder({
     // Tạo VietQR code (QR thật)
     const bankId = '970422'; // MB Bank
     const accountNo = '0398869386';
-    const accountName = 'COFFEE SHOP POS';
+    const accountName = 'DEVCOFFEE POS';
     const template = 'compact2';
     
     // VietQR.io API - free service tạo QR chuẩn VietQR

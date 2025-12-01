@@ -400,6 +400,115 @@ export default {
   getBatchSummary,
   updateBatchStatus,
   getFEFOOrder,
-  getBatchInventoryReport
+  getBatchInventoryReport,
+  disposeBatch,
+  disposeExpiredBatches
 };
+
+/**
+ * POST /api/v1/batch-inventory/:batchId/dispose
+ * Hủy một lô hàng (xuất kho hủy)
+ */
+export async function disposeBatch(req, res, next) {
+  try {
+    const batchId = parseInt(req.params.batchId);
+    const { reason, note } = req.body;
+    const userId = req.user?.userId;
+    
+    if (!reason) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Vui lòng nhập lý do hủy'
+      });
+    }
+    
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Không xác định được người thực hiện'
+      });
+    }
+    
+    const result = await batchInventoryRepository.disposeBatch(
+      batchId,
+      userId,
+      reason,
+      note
+    );
+    
+    res.json({
+      ok: true,
+      message: `Đã hủy lô hàng ${result.batchCode} thành công`,
+      data: result
+    });
+  } catch (error) {
+    if (error.message.includes('Không tìm thấy') || error.message.includes('không còn hàng')) {
+      return res.status(400).json({
+        ok: false,
+        error: error.message
+      });
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/batch-inventory/dispose-expired
+ * Hủy tất cả các lô hàng đã hết hạn
+ */
+export async function disposeExpiredBatches(req, res, next) {
+  try {
+    const { batchIds, reason = 'Hết hạn sử dụng' } = req.body;
+    const userId = req.user?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        error: 'Không xác định được người thực hiện'
+      });
+    }
+    
+    let targetBatchIds = batchIds;
+    
+    // Nếu không truyền batchIds, lấy tất cả batch đã hết hạn
+    if (!targetBatchIds || targetBatchIds.length === 0) {
+      const expiredBatches = await batchInventoryRepository.getExpiringBatches(0);
+      targetBatchIds = expiredBatches
+        .filter(b => b.ngay_con_lai !== null && b.ngay_con_lai < 0)
+        .map(b => b.batch_id);
+    }
+    
+    if (targetBatchIds.length === 0) {
+      return res.json({
+        ok: true,
+        message: 'Không có lô hàng nào cần hủy',
+        data: { disposed: 0, errors: 0 }
+      });
+    }
+    
+    const { results, errors } = await batchInventoryRepository.disposeMultipleBatches(
+      targetBatchIds,
+      userId,
+      reason
+    );
+    
+    const totalDisposed = results.reduce((sum, r) => sum + r.quantityDisposed, 0);
+    const totalValue = results.reduce((sum, r) => sum + r.valueDisposed, 0);
+    
+    res.json({
+      ok: true,
+      message: `Đã hủy ${results.length} lô hàng`,
+      data: {
+        disposed: results.length,
+        errors: errors.length,
+        totalQuantityDisposed: totalDisposed,
+        totalValueDisposed: totalValue,
+        results,
+        errorDetails: errors.length > 0 ? errors : undefined
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 

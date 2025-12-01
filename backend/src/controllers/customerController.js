@@ -31,11 +31,22 @@ export default {
    */
   login: asyncHandler(async (req, res) => {
     const { phoneOrEmail, password } = req.body;
+    const sessionId = req.headers['x-session-id'] || null;
 
     const result = await customerService.login({
       phoneOrEmail,
       password
     });
+
+    // Merge cart from session to customer account after login
+    if (sessionId && result.account?.id) {
+      try {
+        await customerService.mergeCartOnLogin(sessionId, result.account.id);
+      } catch (err) {
+        console.error('Error merging cart on login:', err);
+        // Don't fail login if cart merge fails
+      }
+    }
 
     res.json({
       success: true,
@@ -82,6 +93,36 @@ export default {
     res.json({
       success: true,
       message: 'Đăng xuất thành công'
+    });
+  }),
+
+  /**
+   * POST /api/v1/customer/auth/change-password
+   * Change customer password
+   */
+  changePassword: asyncHandler(async (req, res) => {
+    const customerId = req.customer.customerId;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Mật khẩu mới phải có ít nhất 6 ký tự'
+      });
+    }
+
+    await customerService.changePassword(customerId, currentPassword, newPassword);
+
+    res.json({
+      success: true,
+      message: 'Đổi mật khẩu thành công'
     });
   }),
 

@@ -35,6 +35,7 @@ import OrderSuccessPage from './pages/customer/OrderSuccessPage.jsx'
 import CustomerReservationPage from './pages/customer/CustomerReservationPage.jsx'
 import CustomerLogin from './pages/customer/CustomerLogin.jsx'
 import CustomerRegister from './pages/customer/CustomerRegister.jsx'
+import CustomerProfilePage from './pages/customer/CustomerProfilePage.jsx'
 
 const router = createBrowserRouter([
   { path: '/', element: <Login /> },
@@ -162,6 +163,7 @@ const router = createBrowserRouter([
       { path: 'orders', element: <OrderHistoryPage /> },
       { path: 'orders/success', element: <OrderSuccessPage /> },
       { path: 'reservation', element: <CustomerReservationPage /> },
+      { path: 'profile', element: <CustomerProfilePage /> },
     ]
   },
   // Customer Auth (outside layout)

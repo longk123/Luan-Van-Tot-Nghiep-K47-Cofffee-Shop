@@ -35,10 +35,10 @@ export const customerAuth = (req, res, next) => {
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return next(new UnauthorizedError('Token không hợp lệ'));
+      return next(new Unauthorized('Token không hợp lệ'));
     }
     if (error instanceof jwt.TokenExpiredError) {
-      return next(new UnauthorizedError('Token đã hết hạn'));
+      return next(new Unauthorized('Token đã hết hạn'));
     }
     next(error);
   }

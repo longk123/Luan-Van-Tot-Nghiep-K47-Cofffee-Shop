@@ -53,6 +53,7 @@ export const customerApi = {
   login: (data) => request('POST', '/auth/login', data),
   getProfile: () => request('GET', '/auth/me', null, true),
   updateProfile: (data) => request('PATCH', '/auth/me', data, true),
+  changePassword: (data) => request('POST', '/auth/change-password', data, true),
   logout: () => request('POST', '/auth/logout', null, true),
 
   // ==================== MENU ====================
@@ -69,16 +70,16 @@ export const customerApi = {
   searchItems: (keyword) => request('GET', `/menu/search?keyword=${encodeURIComponent(keyword)}`),
 
   // ==================== CART ====================
-  getCart: () => request('GET', '/cart', null, false),
-  addToCart: (item) => request('POST', '/cart/items', item, false),
-  updateCartItem: (index, quantity) => request('PATCH', `/cart/items/${index}`, { quantity }, false),
-  removeFromCart: (index) => request('DELETE', `/cart/items/${index}`, null, false),
-  clearCart: () => request('DELETE', '/cart', null, false),
-  applyPromoCode: (promoCode) => request('POST', '/cart/apply-promo', { promoCode }, false),
-  clearPromoCode: () => request('DELETE', '/cart/promo', null, false),
+  getCart: () => request('GET', '/cart', null, true), // Send auth if logged in
+  addToCart: (item) => request('POST', '/cart/items', item, true),
+  updateCartItem: (index, quantity) => request('PATCH', `/cart/items/${index}`, { quantity }, true),
+  removeFromCart: (index) => request('DELETE', `/cart/items/${index}`, null, true),
+  clearCart: () => request('DELETE', '/cart', null, true),
+  applyPromoCode: (promoCode) => request('POST', '/cart/apply-promo', { promoCode }, true),
+  clearPromoCode: () => request('DELETE', '/cart/promo', null, true),
 
   // ==================== ORDERS ====================
-  createOrder: (data) => request('POST', '/orders', data, false), // Optional auth - works for guests
+  createOrder: (data) => request('POST', '/orders', data, true), // Send auth token if logged in
   getOrders: (params = {}) => {
     const query = new URLSearchParams(params).toString();
     return request('GET', `/orders${query ? `?${query}` : ''}`, null, true);

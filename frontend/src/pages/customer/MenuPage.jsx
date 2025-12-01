@@ -6,10 +6,14 @@ import { Coffee, Search, ShoppingCart } from 'lucide-react';
 
 export default function MenuPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    // Initialize from URL
+    const categoryId = searchParams.get('category');
+    return categoryId ? parseInt(categoryId) : null;
+  });
   const [searchKeyword, setSearchKeyword] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -18,16 +22,27 @@ export default function MenuPage() {
   }, []);
 
   useEffect(() => {
-    // Get category from URL params
+    // Sync state with URL when URL changes
     const categoryId = searchParams.get('category');
-    if (categoryId) {
-      setSelectedCategory(parseInt(categoryId));
+    const newCategory = categoryId ? parseInt(categoryId) : null;
+    if (newCategory !== selectedCategory) {
+      setSelectedCategory(newCategory);
     }
   }, [searchParams]);
 
   useEffect(() => {
     loadItems();
   }, [selectedCategory, searchKeyword]);
+
+  // Update URL when category changes from button click
+  const handleCategoryChange = (categoryId) => {
+    setSearchKeyword('');
+    if (categoryId === null) {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category: categoryId.toString() });
+    }
+  };
 
   const loadCategories = async () => {
     try {
@@ -113,10 +128,7 @@ export default function MenuPage() {
       {/* Category Filter */}
       <div className="flex gap-4 overflow-x-auto pb-4 mb-8">
         <button
-          onClick={() => {
-            setSelectedCategory(null);
-            setSearchKeyword('');
-          }}
+          onClick={() => handleCategoryChange(null)}
           className={`px-6 py-2 rounded-lg font-medium whitespace-nowrap transition ${
             selectedCategory === null
               ? 'bg-[#c9975b] text-white'
@@ -128,10 +140,7 @@ export default function MenuPage() {
         {categories.map((category) => (
           <button
             key={category.id}
-            onClick={() => {
-              setSelectedCategory(category.id);
-              setSearchKeyword('');
-            }}
+            onClick={() => handleCategoryChange(category.id)}
             className={`px-6 py-2 rounded-lg font-medium whitespace-nowrap transition ${
               selectedCategory === category.id
                 ? 'bg-[#c9975b] text-white'

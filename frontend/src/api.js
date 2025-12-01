@@ -391,6 +391,10 @@ export const api = {
     if (params.daysThreshold) queryParams.append('days_threshold', params.daysThreshold);
     return request('GET', `/batch-inventory/report?${queryParams.toString()}`);
   },
+  // Hủy một lô hàng
+  disposeBatch: (batchId, data) => request('POST', `/batch-inventory/${batchId}/dispose`, data),
+  // Hủy nhiều lô hàng hết hạn
+  disposeExpiredBatches: (data = {}) => request('POST', '/batch-inventory/dispose-expired', data),
 
   // ===== MENU MANAGEMENT (CRUD) =====
   // Categories

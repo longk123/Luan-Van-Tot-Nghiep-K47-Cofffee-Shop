@@ -64,5 +64,20 @@ router.get('/:batchId', managerAuth, batchInventoryController.getBatchById);
  */
 router.put('/:batchId/status', managerAuth, batchInventoryController.updateBatchStatus);
 
+/**
+ * POST /api/v1/batch-inventory/:batchId/dispose
+ * Hủy một lô hàng (xuất kho hủy)
+ * Body: { reason: 'Lý do hủy', note: 'Ghi chú' }
+ */
+router.post('/:batchId/dispose', managerAuth, batchInventoryController.disposeBatch);
+
+/**
+ * POST /api/v1/batch-inventory/dispose-expired
+ * Hủy nhiều lô hàng đã hết hạn
+ * Body: { batchIds: [1, 2, 3], reason: 'Lý do' }
+ * Nếu không truyền batchIds, sẽ hủy tất cả batch đã hết hạn
+ */
+router.post('/dispose-expired', managerAuth, batchInventoryController.disposeExpiredBatches);
+
 export default router;
 

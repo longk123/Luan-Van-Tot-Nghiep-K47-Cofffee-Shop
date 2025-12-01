@@ -13,6 +13,9 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [disposing, setDisposing] = useState(false);
+  const [showDisposeConfirm, setShowDisposeConfirm] = useState(false);
+  const [disposeResult, setDisposeResult] = useState(null);
   
   // Kiểm tra xem đã dismiss trong ngày chưa
   const checkIfDismissedToday = useCallback(() => {
@@ -92,7 +95,65 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
   
   const handleDismiss = () => {
     setShowPopup(false);
+    setShowDisposeConfirm(false);
+    setDisposeResult(null);
     saveDismissed();
+  };
+  
+  // Hủy các lô hàng đã hết hạn
+  const handleDisposeExpired = async () => {
+    const expiredBatches = expiringBatches.filter(b => b.daysRemaining < 0);
+    if (expiredBatches.length === 0) {
+      alert('Không có lô hàng nào đã hết hạn để hủy');
+      return;
+    }
+    
+    setDisposing(true);
+    try {
+      const batchIds = expiredBatches.map(b => b.batchId);
+      const res = await api.disposeExpiredBatches({ 
+        batchIds, 
+        reason: 'Hết hạn sử dụng - Hủy tự động' 
+      });
+      
+      setDisposeResult({
+        success: true,
+        message: `Đã hủy ${res.data?.disposed || 0} lô hàng thành công`,
+        details: res.data
+      });
+      
+      // Reload danh sách
+      await loadExpiringBatches();
+      setShowDisposeConfirm(false);
+    } catch (error) {
+      setDisposeResult({
+        success: false,
+        message: error.message || 'Có lỗi xảy ra khi hủy lô hàng'
+      });
+    } finally {
+      setDisposing(false);
+    }
+  };
+  
+  // Hủy một lô hàng cụ thể
+  const handleDisposeSingle = async (batch) => {
+    if (!window.confirm(`Bạn có chắc muốn hủy lô "${batch.batchCode}" (${batch.ingredientName})?`)) {
+      return;
+    }
+    
+    setDisposing(true);
+    try {
+      await api.disposeBatch(batch.batchId, { 
+        reason: batch.daysRemaining < 0 ? 'Hết hạn sử dụng' : 'Sắp hết hạn - Hủy trước khi hết hạn'
+      });
+      
+      alert(`✅ Đã hủy lô hàng ${batch.batchCode} thành công`);
+      await loadExpiringBatches();
+    } catch (error) {
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setDisposing(false);
+    }
   };
   
   const formatDate = (dateString) => {
@@ -134,7 +195,7 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
     if (expiringBatches.length === 0 || !showPopup) return null;
     
     return (
-      <div className="fixed top-6 right-6 z-[9999] max-w-md animate-slide-in-right">
+      <div className="fixed top-6 right-6 z-[99999] max-w-md animate-slide-in-right pointer-events-auto">
         <div className="bg-white rounded-2xl shadow-2xl border-2 border-orange-200 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 flex items-center justify-between">
@@ -151,8 +212,12 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
             </div>
             <button
               type="button"
-              onClick={handleDismiss}
-              className="text-white/80 hover:text-white transition-colors p-1"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              className="text-white/80 hover:text-white hover:bg-white/20 transition-all p-2 rounded-lg cursor-pointer pointer-events-auto"
               title="Đóng (sẽ không hiện lại trong ngày)"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,12 +228,57 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
           
           {/* Content */}
           <div className="p-4 max-h-96 overflow-y-auto">
+            {/* Hiển thị kết quả hủy nếu có */}
+            {disposeResult && (
+              <div className={`mb-3 p-3 rounded-lg ${disposeResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                <div className="flex items-center gap-2">
+                  {disposeResult.success ? (
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                  <span className={`text-sm font-medium ${disposeResult.success ? 'text-green-700' : 'text-red-700'}`}>
+                    {disposeResult.message}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Confirm dialog cho hủy nhiều */}
+            {showDisposeConfirm && (
+              <div className="mb-3 p-4 bg-red-50 border-2 border-red-200 rounded-lg">
+                <p className="text-sm font-medium text-red-800 mb-3">
+                  ⚠️ Xác nhận hủy {expiringBatches.filter(b => b.daysRemaining < 0).length} lô hàng đã hết hạn?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDisposeExpired}
+                    disabled={disposing}
+                    className="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {disposing ? 'Đang xử lý...' : 'Xác nhận hủy'}
+                  </button>
+                  <button
+                    onClick={() => setShowDisposeConfirm(false)}
+                    className="px-3 py-2 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300"
+                  >
+                    Hủy bỏ
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               {displayBatches.map((batch) => {
                 const color = getUrgencyColor(batch.daysRemaining);
                 const bgColor = color === 'red' ? 'bg-red-50' : 'bg-orange-50';
                 const borderColor = color === 'red' ? 'border-red-200' : 'border-orange-200';
                 const textColor = color === 'red' ? 'text-red-700' : 'text-orange-700';
+                const isExpired = batch.daysRemaining < 0;
                 
                 return (
                   <div
@@ -203,6 +313,22 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
                             HSD: {formatDate(batch.expiryDate)}
                           </span>
                         </div>
+                        {/* Nút hủy lô hàng */}
+                        {isExpired && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDisposeSingle(batch);
+                            }}
+                            disabled={disposing}
+                            className="mt-2 w-full px-2 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Hủy lô này
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -223,30 +349,57 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
           </div>
           
           {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => {
-                handleDismiss();
-                navigate('/inventory?tab=batches');
-              }}
-              className="flex-1 px-4 py-2.5 bg-orange-500 text-white border-2 border-orange-500 rounded-xl hover:bg-white hover:text-orange-500 transition-all duration-200 flex items-center justify-center gap-2 font-semibold"
-            >
-              Xem chi tiết
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={loadExpiringBatches}
-              className="px-3 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:border-[#c9975b] hover:text-[#c9975b] hover:shadow-md transition-all duration-200"
-              title="Làm mới"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+          <div className="bg-gray-50 px-4 py-4 border-t border-gray-200 space-y-3">
+            {/* Nút hủy tất cả đã hết hạn */}
+            {expiringBatches.filter(b => b.daysRemaining < 0).length > 0 && !showDisposeConfirm && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowDisposeConfirm(true);
+                }}
+                disabled={disposing}
+                className="w-full px-4 py-2.5 bg-red-600 text-white border-2 border-red-600 rounded-xl hover:bg-red-700 transition-all duration-200 flex items-center justify-center gap-2 font-semibold cursor-pointer disabled:opacity-50"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Hủy {expiringBatches.filter(b => b.daysRemaining < 0).length} lô đã hết hạn
+              </button>
+            )}
+            
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDismiss();
+                  navigate('/inventory?tab=batches');
+                }}
+                className="flex-1 px-4 py-2.5 bg-orange-500 text-white border-2 border-orange-500 rounded-xl hover:bg-white hover:text-orange-500 transition-all duration-200 flex items-center justify-center gap-2 font-semibold cursor-pointer pointer-events-auto"
+              >
+                Xem chi tiết
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  loadExpiringBatches();
+                }}
+                className="px-3 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:border-[#c9975b] hover:text-[#c9975b] hover:shadow-md transition-all duration-200 cursor-pointer pointer-events-auto"
+                title="Làm mới"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
           </div>
           
           {/* Hint */}

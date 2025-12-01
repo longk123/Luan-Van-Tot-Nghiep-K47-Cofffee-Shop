@@ -662,24 +662,31 @@ export default {
       address: '123 Đường 3/2, Phường Xuân Khánh, Ninh Kiều, Cần Thơ'
     };
     
-    // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
+    // Kiểm tra địa chỉ có thuộc quận Ninh Kiều, Cần Thơ không
     const checkIsNinhKieu = (address) => {
       if (!address) return false;
       const addressLower = address.toLowerCase();
+      // Danh sách các phường thuộc quận Ninh Kiều, Cần Thơ
       const ninhKieuKeywords = [
         'ninh kiều',
         'xuân khánh',
         'an khánh',
         'an hòa',
+        'an cư',
+        'an nghiệp',
+        'an phú',
         'an thới',
-        'bình thủy',
         'cái khế',
         'hưng lợi',
         'tân an',
         'thới bình',
-        'thới an đông'
+        'an bình',
+        'an lạc'
       ];
-      return ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+      // Phải có từ khóa Ninh Kiều hoặc các phường thuộc Ninh Kiều VÀ phải có Cần Thơ
+      const hasNinhKieu = ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+      const hasCanTho = addressLower.includes('cần thơ') || addressLower.includes('can tho');
+      return hasNinhKieu && hasCanTho;
     };
     
     // Kiểm tra đơn hàng có tồn tại và là DELIVERY không

@@ -92,7 +92,7 @@ export default function CustomerRegister() {
             <div className="w-12 h-12 bg-gradient-to-br from-[#c9975b] to-[#d4a574] rounded-lg flex items-center justify-center">
               <Coffee className="w-7 h-7 text-white" />
             </div>
-            <span className="text-2xl font-bold text-[#c9975b]">Coffee Shop</span>
+            <span className="text-2xl font-bold"><span className="text-black">Dev</span><span className="text-[#CC7F2B]">Coffee</span></span>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Đăng ký</h1>
           <p className="text-gray-600">Tạo tài khoản để đặt hàng dễ dàng hơn</p>

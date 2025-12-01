@@ -52,7 +52,7 @@ export default function ChatbotWidget() {
       // Start with welcome message if no conversation
       setMessages([{
         role: 'bot',
-        content: 'Xin chào! Tôi là trợ lý AI của Coffee Shop. Tôi có thể giúp gì cho bạn?',
+        content: 'Xin chào! Tôi là trợ lý AI của DevCoffee. Tôi có thể giúp gì cho bạn?',
         timestamp: new Date().toISOString()
       }]);
     }

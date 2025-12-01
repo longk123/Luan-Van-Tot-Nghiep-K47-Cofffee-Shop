@@ -62,7 +62,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-24">
           <div className="max-w-3xl">
             <h1 className="text-5xl lg:text-6xl font-bold mb-6">
-              Chào mừng đến với<br />Coffee Shop
+              Chào mừng đến với<br /><span className="text-white">Dev</span><span className="text-amber-200">Coffee</span>
             </h1>
             <p className="text-xl mb-8 text-white/90">
               Trải nghiệm hương vị cà phê & trà tuyệt vời trong không gian ấm cúng

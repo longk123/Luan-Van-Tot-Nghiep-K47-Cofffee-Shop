@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { isCustomerLoggedIn, getCustomerInfo, clearCustomerToken } from '../../auth/customerAuth';
 import { customerApi } from '../../api/customerApi';
-import { ShoppingCart, User, LogOut, Menu as MenuIcon, X } from 'lucide-react';
+import { ShoppingCart, User, LogOut, Menu as MenuIcon, X, Coffee } from 'lucide-react';
+
+const LOGO_URL = "https://ihmvdgqgfyjyeytkmpqc.supabase.co/storage/v1/object/public/system-images/logo/logo.png?v=" + Date.now();
 
 export default function CustomerHeader() {
   const navigate = useNavigate();
@@ -11,11 +13,22 @@ export default function CustomerHeader() {
   const [customerInfo, setCustomerInfo] = useState(null);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     setIsLoggedIn(isCustomerLoggedIn());
     setCustomerInfo(getCustomerInfo());
     loadCartCount();
+    
+    // Listen for cart-updated event
+    const handleCartUpdated = () => {
+      loadCartCount();
+    };
+    window.addEventListener('cart-updated', handleCartUpdated);
+    
+    return () => {
+      window.removeEventListener('cart-updated', handleCartUpdated);
+    };
   }, []);
 
   const loadCartCount = async () => {
@@ -44,11 +57,20 @@ export default function CustomerHeader() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/customer" className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#c9975b] to-[#d4a574] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">C</span>
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md border-2 border-[#c9975b]/20 overflow-hidden">
+              {logoError ? (
+                <Coffee className="w-7 h-7 text-[#c9975b]" />
+              ) : (
+                <img 
+                  src={LOGO_URL}
+                  alt="Logo DevCoffee" 
+                  className="w-full h-full object-cover"
+                  onError={() => setLogoError(true)}
+                />
+              )}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-[#c9975b]">Coffee Shop</h1>
+              <h1 className="text-2xl font-bold"><span className="text-black">Dev</span><span className="text-[#CC7F2B]">Coffee</span></h1>
               <p className="text-xs text-gray-600">Cà phê & Trà ngon</p>
             </div>
           </Link>

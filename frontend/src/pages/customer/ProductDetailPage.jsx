@@ -213,6 +213,9 @@ export default function ProductDetailPage() {
         notes: notes
       });
 
+      // Dispatch event to update cart badge in header
+      window.dispatchEvent(new CustomEvent('cart-updated'));
+
       // Show success message
       toast.success('Đã thêm vào giỏ hàng!');
       

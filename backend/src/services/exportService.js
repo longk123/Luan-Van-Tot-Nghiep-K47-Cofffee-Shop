@@ -12,7 +12,7 @@ class ExportService {
   
   async exportRevenueToExcel(data, filters) {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Coffee Shop POS';
+    workbook.creator = 'DevCoffee POS';
     workbook.created = new Date();
 
     // Sheet 1: Summary
@@ -74,7 +74,7 @@ class ExportService {
 
   async exportProfitToExcel(data, filters) {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Coffee Shop POS';
+    workbook.creator = 'DevCoffee POS';
     workbook.created = new Date();
 
     const summarySheet = workbook.addWorksheet('Tổng Quan Lợi Nhuận');
@@ -151,7 +151,7 @@ class ExportService {
 
   async exportProductsToExcel(data, filters) {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Coffee Shop POS';
+    workbook.creator = 'DevCoffee POS';
     
     const sheet = workbook.addWorksheet('Báo Cáo Sản Phẩm');
     
@@ -234,7 +234,7 @@ class ExportService {
 
   async exportInventoryToExcel(data, filters) {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Coffee Shop POS';
+    workbook.creator = 'DevCoffee POS';
     workbook.created = new Date();
 
     if (data.ingredients && data.ingredients.length > 0) {
@@ -365,7 +365,7 @@ class ExportService {
     }
 
     // Header
-    doc.fontSize(20).text('BÁO CÁO COFFEE SHOP', { align: 'center' });
+    doc.fontSize(20).text('BÁO CÁO DEVCOFFEE', { align: 'center' });
     doc.moveDown(0.5);
     doc.fontSize(14).text(this.getReportTitle(reportType), { align: 'center' });
     doc.moveDown(0.5);

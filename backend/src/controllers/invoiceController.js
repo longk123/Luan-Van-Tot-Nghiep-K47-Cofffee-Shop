@@ -122,7 +122,7 @@ class InvoiceController {
 
     // Header
     doc.fontSize(16).text('HÓA ĐƠN BÁN HÀNG', { align: 'center' });
-    doc.fontSize(11).text('COFFEE SHOP', { align: 'center' });
+    doc.fontSize(11).text('DEVCOFFEE', { align: 'center' });
     doc.moveDown(0.8);
     
     // Thông tin đơn hàng - 2 cột

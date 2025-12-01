@@ -13,6 +13,7 @@ router.post('/customer/auth/login', customerController.login);
 // Protected routes (require authentication)
 router.get('/customer/auth/me', customerAuth, customerController.getProfile);
 router.patch('/customer/auth/me', customerAuth, customerController.updateProfile);
+router.post('/customer/auth/change-password', customerAuth, customerController.changePassword);
 router.post('/customer/auth/logout', customerAuth, customerController.logout);
 
 // ==================== PUBLIC MENU ====================

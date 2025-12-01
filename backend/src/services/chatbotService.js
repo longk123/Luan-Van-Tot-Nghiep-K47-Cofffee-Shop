@@ -124,7 +124,7 @@ export default {
    * Build system prompt
    */
   async buildSystemPrompt(context) {
-    return `Bạn là trợ lý AI thân thiện của Coffee Shop. Nhiệm vụ của bạn:
+    return `Bạn là trợ lý AI thân thiện của DevCoffee. Nhiệm vụ của bạn:
 
 1. **Trả lời câu hỏi về menu:**
    - Giới thiệu các món có trong menu
@@ -331,7 +331,7 @@ ${context.customer}
       
       // Thông tin quán & địa chỉ
       if (wantsAddress) {
-        responseParts.push(`📍 **Thông tin quán Coffee Shop:**
+        responseParts.push(`📍 **Thông tin quán DevCoffee:**
 
 🏠 **Địa chỉ:** 123 Đường 3/2, Phường Xuân Khánh, Quận Ninh Kiều, TP. Cần Thơ
 📞 **Hotline:** 0292 388 888
@@ -347,7 +347,7 @@ ${context.customer}
       
       // Menu
       if (wantsMenu) {
-        responseParts.push(`📋 **Thực đơn Coffee Shop:**
+        responseParts.push(`📋 **Thực đơn DevCoffee:**
 
 ☕ **Cà phê:**
 • Cà phê đen: 15,000đ - 25,000đ
@@ -406,7 +406,7 @@ Bạn có thể đặt bàn qua:
       // Nếu không match gì cả, trả lời chung
       let fallbackResponse;
       if (responseParts.length === 0) {
-        fallbackResponse = `Xin chào! 👋 Tôi là trợ lý AI của **Coffee Shop**.
+        fallbackResponse = `Xin chào! 👋 Tôi là trợ lý AI của **DevCoffee**.
 
 Tôi có thể giúp bạn:
 • 🏆 Top món bán chạy nhất

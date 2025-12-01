@@ -79,7 +79,7 @@ class ImportReceiptController {
 
     // Header
     doc.font('Roboto').fontSize(18).text('PHIẾU NHẬP KHO', { align: 'center' });
-    doc.fontSize(12).text('COFFEE SHOP MANAGEMENT', { align: 'center' });
+    doc.fontSize(12).text('DEVCOFFEE MANAGEMENT', { align: 'center' });
     doc.moveDown(0.8);
     
     // Thông tin phiếu nhập - 2 cột

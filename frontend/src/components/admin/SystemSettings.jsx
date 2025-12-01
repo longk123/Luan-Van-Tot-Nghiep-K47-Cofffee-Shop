@@ -93,7 +93,7 @@ export default function SystemSettings() {
               value={settings.store_name}
               onChange={(e) => handleChange('store_name', e.target.value)}
               className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              placeholder="Coffee Shop"
+              placeholder="DevCoffee"
             />
           </div>
           <div>

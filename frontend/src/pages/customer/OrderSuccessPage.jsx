@@ -150,12 +150,12 @@ export default function OrderSuccessPage() {
               {order.items.map((item, index) => (
                 <div key={index} className="flex justify-between items-start py-3 border-b border-gray-100 last:border-0">
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900">{item.item_name}</div>
-                    {item.variant_name && (
-                      <div className="text-sm text-gray-500">{item.variant_name}</div>
+                    <div className="font-medium text-gray-900">{item.ten_mon}</div>
+                    {item.ten_bien_the && (
+                      <div className="text-sm text-gray-500">{item.ten_bien_the}</div>
                     )}
                     <div className="text-sm text-gray-500">
-                      {item.quantity} x {new Intl.NumberFormat('vi-VN').format(item.unit_price)} đ
+                      {item.so_luong} x {new Intl.NumberFormat('vi-VN').format(item.don_gia)} đ
                     </div>
                   </div>
                   <div className="font-medium text-gray-900">

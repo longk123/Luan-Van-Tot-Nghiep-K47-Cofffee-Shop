@@ -297,6 +297,114 @@ export const batchInventoryRepository = {
     
     const { rows } = await query(sql);
     return rows[0];
+  },
+
+  /**
+   * Hủy/Xuất kho lô hàng hết hạn (dispose)
+   * Ghi nhận vào lịch sử xuất kho và đánh dấu batch là DISPOSED
+   */
+  async disposeBatch(batchId, nguoiHuyId, lyDoHuy, ghiChu = null) {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // 1. Lấy thông tin batch
+      const { rows: [batch] } = await client.query(
+        `SELECT bi.*, nl.ten as nguyen_lieu_ten 
+         FROM batch_inventory bi 
+         LEFT JOIN nguyen_lieu nl ON bi.nguyen_lieu_id = nl.id
+         WHERE bi.id = $1`,
+        [batchId]
+      );
+      
+      if (!batch) {
+        throw new Error(`Không tìm thấy batch ID ${batchId}`);
+      }
+      
+      if (batch.so_luong_ton <= 0) {
+        throw new Error(`Batch ${batch.batch_code} không còn hàng để hủy`);
+      }
+      
+      const soLuongHuy = parseFloat(batch.so_luong_ton);
+      const giaTriHuy = parseInt(batch.gia_tri_ton);
+      
+      // 2. Ghi nhận vào phiếu xuất kho (loại HUY)
+      const { rows: [phieuXuat] } = await client.query(
+        `INSERT INTO phieu_xuat_kho (
+          loai, nguoi_xuat_id, ghi_chu, trang_thai, ngay_xuat
+        ) VALUES (
+          'HUY', $1, $2, 'COMPLETED', NOW()
+        ) RETURNING *`,
+        [nguoiHuyId, `[HỦY LÔ HÀNG] ${lyDoHuy}${ghiChu ? ` - ${ghiChu}` : ''}`]
+      );
+      
+      // 3. Ghi chi tiết xuất kho
+      await client.query(
+        `INSERT INTO chi_tiet_xuat_kho (
+          phieu_xuat_id, nguyen_lieu_id, batch_id, so_luong, don_gia, thanh_tien
+        ) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [phieuXuat.id, batch.nguyen_lieu_id, batchId, soLuongHuy, batch.don_gia, giaTriHuy]
+      );
+      
+      // 4. Cập nhật batch thành DISPOSED
+      await client.query(
+        `UPDATE batch_inventory 
+         SET so_luong_ton = 0,
+             gia_tri_ton = 0,
+             trang_thai = 'DISPOSED',
+             ly_do_block = $1,
+             updated_at = NOW()
+         WHERE id = $2`,
+        [`[HỦY] ${lyDoHuy} - Ngày hủy: ${new Date().toLocaleDateString('vi-VN')}`, batchId]
+      );
+      
+      // 5. Cập nhật số lượng tồn kho nguyên liệu
+      await client.query(
+        `UPDATE nguyen_lieu 
+         SET so_luong = so_luong - $1,
+             updated_at = NOW()
+         WHERE id = $2`,
+        [soLuongHuy, batch.nguyen_lieu_id]
+      );
+      
+      await client.query('COMMIT');
+      
+      return {
+        batchId,
+        batchCode: batch.batch_code,
+        ingredientName: batch.nguyen_lieu_ten,
+        quantityDisposed: soLuongHuy,
+        valueDisposed: giaTriHuy,
+        reason: lyDoHuy,
+        disposedAt: new Date(),
+        exportReceiptId: phieuXuat.id
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
+  /**
+   * Hủy nhiều batch cùng lúc
+   */
+  async disposeMultipleBatches(batchIds, nguoiHuyId, lyDoHuy) {
+    const results = [];
+    const errors = [];
+    
+    for (const batchId of batchIds) {
+      try {
+        const result = await this.disposeBatch(batchId, nguoiHuyId, lyDoHuy);
+        results.push(result);
+      } catch (error) {
+        errors.push({ batchId, error: error.message });
+      }
+    }
+    
+    return { results, errors };
   }
 };
 

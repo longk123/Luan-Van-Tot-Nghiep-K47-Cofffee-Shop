@@ -1,8 +1,13 @@
 // Customer Portal Footer
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Coffee } from 'lucide-react';
+import { useState } from 'react';
+
+const LOGO_URL = "https://ihmvdgqgfyjyeytkmpqc.supabase.co/storage/v1/object/public/system-images/logo/logo.png";
 
 export default function CustomerFooter() {
+  const [logoError, setLogoError] = useState(false);
+  
   return (
     <footer className="bg-gray-900 text-white mt-16">
       {/* Main Footer */}
@@ -11,10 +16,19 @@ export default function CustomerFooter() {
           {/* Company Info */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#c9975b] to-[#d4a574] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">C</span>
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                {logoError ? (
+                  <Coffee className="w-6 h-6 text-[#c9975b]" />
+                ) : (
+                  <img 
+                    src={LOGO_URL}
+                    alt="Logo DevCoffee" 
+                    className="w-full h-full object-cover"
+                    onError={() => setLogoError(true)}
+                  />
+                )}
               </div>
-              <h3 className="text-xl font-bold">Coffee Shop</h3>
+              <h3 className="text-xl font-bold"><span className="text-white">Dev</span><span className="text-[#CC7F2B]">Coffee</span></h3>
             </div>
             <p className="text-gray-400 text-sm">
               Cà phê & Trà ngon - Không gian ấm cúng, phục vụ tận tâm.
@@ -101,7 +115,7 @@ export default function CustomerFooter() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-400 text-sm">
-              &copy; 2025 Coffee Shop. Mọi quyền được bảo lưu.
+              &copy; 2025 DevCoffee. Mọi quyền được bảo lưu.
             </p>
             <div className="flex space-x-6">
               <Link to="/customer/privacy" className="text-gray-400 hover:text-[#c9975b] transition text-sm">

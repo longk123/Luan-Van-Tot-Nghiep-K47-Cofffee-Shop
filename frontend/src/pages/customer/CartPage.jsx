@@ -89,6 +89,9 @@ export default function CartPage() {
       } else {
         setCartItemsWithDetails([]);
       }
+      
+      // Dispatch event to update cart badge in header
+      window.dispatchEvent(new CustomEvent('cart-updated'));
     } catch (error) {
       console.error('Error updating cart:', error);
       toast.error('Không thể cập nhật giỏ hàng');
@@ -111,6 +114,9 @@ export default function CartPage() {
       } else {
         setCartItemsWithDetails([]);
       }
+      
+      // Dispatch event to update cart badge in header
+      window.dispatchEvent(new CustomEvent('cart-updated'));
     } catch (error) {
       console.error('Error removing item:', error);
       toast.error('Không thể xóa món khỏi giỏ hàng');

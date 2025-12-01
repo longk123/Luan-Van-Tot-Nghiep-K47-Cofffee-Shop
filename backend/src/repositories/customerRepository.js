@@ -172,6 +172,43 @@ export default {
   },
 
   /**
+   * Update cart (can update customerId, sessionId, or items)
+   */
+  async updateCart(cartId, updates) {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (updates.customerId !== undefined) {
+      fields.push(`customer_account_id = $${paramIndex++}`);
+      values.push(updates.customerId);
+    }
+    if (updates.sessionId !== undefined) {
+      fields.push(`session_id = $${paramIndex++}`);
+      values.push(updates.sessionId);
+    }
+    if (updates.items !== undefined) {
+      fields.push(`items = $${paramIndex++}::jsonb`);
+      values.push(JSON.stringify(updates.items));
+    }
+
+    if (fields.length === 0) return null;
+
+    fields.push('updated_at = NOW()');
+    values.push(cartId);
+
+    const sql = `
+      UPDATE customer_cart
+      SET ${fields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id, customer_account_id, session_id, items, promo_code, 
+                promo_discount, updated_at
+    `;
+    const { rows } = await pool.query(sql, values);
+    return rows[0];
+  },
+
+  /**
    * Apply promo code to cart
    */
   async applyPromoCode(cartId, promoCode, discount) {
@@ -267,6 +304,36 @@ export default {
       ORDER BY d.id
     `;
     const { rows } = await pool.query(sql, [orderId]);
+    
+    // Get toppings and options for each item
+    for (const item of rows) {
+      const optionsSql = `
+        SELECT 
+          dto.id,
+          dto.tuy_chon_id,
+          tc.ten AS ten_tuy_chon,
+          tc.loai AS loai_tuy_chon,
+          tcm.ten AS ten_muc,
+          dto.so_luong,
+          COALESCE(tcm.gia_tri, 0) AS gia_them
+        FROM don_hang_chi_tiet_tuy_chon dto
+        LEFT JOIN tuy_chon_mon tc ON tc.id = dto.tuy_chon_id
+        LEFT JOIN tuy_chon_muc tcm ON tcm.id = dto.muc_id
+        WHERE dto.line_id = $1
+        ORDER BY tc.loai, tc.ten
+      `;
+      const { rows: options } = await pool.query(optionsSql, [item.id]);
+      
+      // Separate options and toppings
+      // PERCENT = Độ ngọt, Mức đá (options)
+      // TOPPING = Topping thêm
+      item.options = options.filter(o => o.loai_tuy_chon === 'PERCENT').map(o => ({
+        ...o,
+        ten_tuy_chon: o.ten_muc ? `${o.ten_tuy_chon}: ${o.ten_muc}` : o.ten_tuy_chon
+      }));
+      item.toppings = options.filter(o => o.loai_tuy_chon === 'TOPPING');
+    }
+    
     return rows;
   },
 
@@ -713,6 +780,19 @@ export default {
       orderId, monId, bienTheId, soLuong, price, giamGia, ghiChu, 
       mon?.ten, mon?.gia_mac_dinh
     ]);
+    return rows[0];
+  },
+
+  /**
+   * Add option/topping to order line item
+   */
+  async addOrderItemOption({ lineId, tuyChonId, mucId, soLuong = 1 }) {
+    const sql = `
+      INSERT INTO don_hang_chi_tiet_tuy_chon (line_id, tuy_chon_id, muc_id, he_so, so_luong, created_at)
+      VALUES ($1, $2, $3, 1, $4, NOW())
+      RETURNING *
+    `;
+    const { rows } = await pool.query(sql, [lineId, tuyChonId, mucId, soLuong]);
     return rows[0];
   },
 
