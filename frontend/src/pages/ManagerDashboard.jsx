@@ -735,26 +735,29 @@ export default function ManagerDashboard({ embedded = false }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             )},
-            { id: 'shifts', name: 'Ca làm', icon: (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )},
+            // HIDDEN: Tab Ca làm - đã ẩn vì bỏ tính năng quản lý ca
+            // { id: 'shifts', name: 'Ca làm', icon: (
+            //   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            //     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            //   </svg>
+            // )},
             { id: 'invoices', name: 'Hóa đơn', icon: (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             )},
-            { id: 'waiter-delivery', name: 'Phục vụ & Giao hàng', icon: (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            )},
-            { id: 'shipper-wallet', name: 'Ví Shipper', icon: (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            )}
+            // HIDDEN: Tab Phục vụ & Giao hàng - đã ẩn vì bỏ tính năng giao hàng
+            // { id: 'waiter-delivery', name: 'Phục vụ & Giao hàng', icon: (
+            //   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            //     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            //   </svg>
+            // )},
+            // HIDDEN: Tab Ví Shipper - đã ẩn vì bỏ tính năng giao hàng
+            // { id: 'shipper-wallet', name: 'Ví Shipper', icon: (
+            //   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            //     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            //   </svg>
+            // )}
           ].map((tab) => (
             <button
               key={tab.id}

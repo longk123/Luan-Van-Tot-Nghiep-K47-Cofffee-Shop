@@ -536,7 +536,8 @@ export default function TakeawayOrders() {
             </div>
           </div>
 
-          {/* Tabs để chuyển giữa TAKEAWAY và DELIVERY - Với invert hover */}
+          {/* HIDDEN: Tabs để chuyển giữa TAKEAWAY và DELIVERY - đã ẩn vì bỏ tính năng giao hàng */}
+          {/* Chỉ giữ lại tab Mang đi */}
           <div className="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-2">
             <div className="flex gap-2">
               <button
@@ -549,6 +550,8 @@ export default function TakeawayOrders() {
               >
                 Mang đi ({orders.length})
               </button>
+              {/* HIDDEN: Tab Giao hàng */}
+              {false && (
               <button
                 onClick={() => setActiveTab('DELIVERY')}
                 className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
@@ -559,6 +562,9 @@ export default function TakeawayOrders() {
               >
                 Giao hàng ({deliveryOrders.length})
               </button>
+              )}
+              {/* HIDDEN: Tab Tất cả (bao gồm delivery) */}
+              {false && (
               <button
                 onClick={() => setActiveTab('ALL')}
                 className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 border-2 ${
@@ -569,6 +575,7 @@ export default function TakeawayOrders() {
               >
                 Tất cả ({orders.length + deliveryOrders.length})
               </button>
+              )}
             </div>
           </div>
 
@@ -577,8 +584,7 @@ export default function TakeawayOrders() {
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-[#c9975b] mx-auto mb-6"></div>
               <p className="text-gray-600 font-semibold text-lg">Đang tải...</p>
             </div>
-          ) : (activeTab === 'TAKEAWAY' && orders.length === 0) || 
-              (activeTab === 'DELIVERY' && deliveryOrders.length === 0) ||
+          ) : (activeTab === 'TAKEAWAY' && orders.length === 0) ||
               (activeTab === 'ALL' && orders.length === 0 && deliveryOrders.length === 0) ? (
             <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-gray-200">
               <svg className="w-20 h-20 mx-auto text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

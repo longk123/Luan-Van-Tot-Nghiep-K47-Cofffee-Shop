@@ -646,6 +646,8 @@ export default function CheckoutPage() {
                   <div className="font-semibold text-gray-900">Mang đi</div>
                   <div className="text-sm text-gray-600 mt-1">Đến quán lấy hàng</div>
                 </button>
+                {/* HIDDEN: Nút chọn Giao hàng - đã ẩn vì bỏ tính năng giao hàng */}
+                {false && (
                 <button
                   type="button"
                   onClick={() => setOrderType('DELIVERY')}
@@ -658,6 +660,7 @@ export default function CheckoutPage() {
                   <div className="font-semibold text-gray-900">Giao hàng</div>
                   <div className="text-sm text-gray-600 mt-1">Giao hàng tận nhà</div>
                 </button>
+                )}
               </div>
             </div>
 

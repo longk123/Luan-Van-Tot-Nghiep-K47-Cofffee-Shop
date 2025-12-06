@@ -476,16 +476,16 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
     console.log('=== TableCard clicked ===');
     console.log('Table:', table);
     
-    // Kiểm tra có ca đang mở không
-    if (!shift || shift.status !== 'OPEN') {
-      setToast({
-        show: true,
-        type: 'warning',
-        title: 'Chưa mở ca',
-        message: 'Vui lòng mở ca làm việc trước khi thao tác với đơn hàng.'
-      });
-      return;
-    }
+    // HIDDEN: Bỏ kiểm tra ca - cho phép thao tác khi chưa mở ca
+    // if (!shift || shift.status !== 'OPEN') {
+    //   setToast({
+    //     show: true,
+    //     type: 'warning',
+    //     title: 'Chưa mở ca',
+    //     message: 'Vui lòng mở ca làm việc trước khi thao tác với đơn hàng.'
+    //   });
+    //   return;
+    // }
     
     // Backend trả về order_id hoặc current_order_id
     const orderId = table.order_id || table.current_order_id || table.don_hang_id;
@@ -588,16 +588,16 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   };
 
   async function handleCreateTakeaway() {
-    // Kiểm tra có ca đang mở không (waiter có thể dùng ca của chính mình)
-    if (!shift || shift.status !== 'OPEN') {
-      setToast({
-        show: true,
-        type: 'warning',
-        title: 'Chưa mở ca',
-        message: 'Vui lòng mở ca làm việc trước khi tạo đơn hàng.'
-      });
-      return;
-    }
+    // HIDDEN: Bỏ kiểm tra ca - cho phép tạo đơn khi chưa mở ca
+    // if (!shift || shift.status !== 'OPEN') {
+    //   setToast({
+    //     show: true,
+    //     type: 'warning',
+    //     title: 'Chưa mở ca',
+    //     message: 'Vui lòng mở ca làm việc trước khi tạo đơn hàng.'
+    //   });
+    //   return;
+    // }
     
     // Hiển thị dialog xác nhận
     setPendingOrderCreation({ type: 'takeaway' });
@@ -823,7 +823,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               <div className="flex flex-col items-end gap-3">
                 {/* Warning badges - Tách riêng để không ảnh hưởng layout */}
                 <div className="flex items-center gap-3">
-                  {!shift && (
+                  {/* HIDDEN: Badge 'Chưa mở ca' - đã ẩn vì bỏ tính năng quản lý ca */}
+                  {false && !shift && (
                     <div className="px-6 py-3 bg-amber-500 text-white rounded-2xl border-2 border-amber-500 flex items-center gap-2 shadow-sm font-bold">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -895,8 +896,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   <span className="whitespace-nowrap">Lịch sử đơn</span>
                 </button>
               )}
-              {/* Nút Ví giao hàng cho Waiter */}
-              {isWaiter && (
+              {/* HIDDEN: Nút Ví giao hàng cho Waiter - đã ẩn vì bỏ tính năng giao hàng */}
+              {false && isWaiter && (
                 <button
                   onClick={() => setShowWalletPanel(true)}
                   className="px-4 py-2.5 bg-emerald-500 text-white border-2 border-emerald-500 rounded-xl hover:bg-white hover:text-emerald-500 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
@@ -912,8 +913,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   )}
                 </button>
               )}
-              {/* Nút Quản lý tiền thu hộ cho Cashier/Manager */}
-              {!isWaiter && !isManagerViewMode && (
+              {/* HIDDEN: Nút Quản lý tiền thu hộ - đã ẩn vì bỏ tính năng giao hàng */}
+              {false && !isWaiter && !isManagerViewMode && (
                 <button
                   onClick={() => setShowSettlementPanel(true)}
                   className="relative px-4 py-2.5 bg-purple-500 text-white border-2 border-purple-500 rounded-xl hover:bg-white hover:text-purple-500 transition-all duration-200 font-semibold outline-none focus:outline-none flex items-center gap-2.5 shadow-sm"
@@ -929,7 +930,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   )}
                 </button>
               )}
-              {!isManagerViewMode && (
+              {/* HIDDEN: Nút Mở ca và Đóng ca - đã ẩn vì bỏ tính năng quản lý ca */}
+              {false && !isManagerViewMode && (
                 shift && shift.status === 'OPEN' ? (
                   <button
                     onClick={() => setShowCloseShiftModal(true)}
@@ -1037,10 +1039,9 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               onShowToast={setToast}
               disabled={
                 drawer.order?.trang_thai === 'PAID' || 
-                drawer.order?.status === 'PAID' || 
-                !shift || 
-                shift.status !== 'OPEN'
-                // Waiter có thể thêm món cho tất cả đơn (giống Cashier)
+                drawer.order?.status === 'PAID'
+                // HIDDEN: Bỏ kiểm tra shift - cho phép thao tác khi chưa mở ca
+                // || !shift || shift.status !== 'OPEN'
               }
             />
           </div>
@@ -1071,7 +1072,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                         onCloseTable={isManagerViewMode ? null : handleCloseTable}
                         onLockTable={isManagerViewMode ? null : handleLockTable}
                         onUnlockTable={isManagerViewMode ? null : handleUnlockTable}
-                        viewOnly={isManagerViewMode || !shift || shift.status !== 'OPEN'}
+                        viewOnly={isManagerViewMode}
                       />
                     ))}
                   </div>
@@ -1089,7 +1090,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                   onCloseTable={isManagerViewMode ? null : handleCloseTable}
                   onLockTable={isManagerViewMode ? null : handleLockTable}
                   onUnlockTable={isManagerViewMode ? null : handleUnlockTable}
-                  viewOnly={isManagerViewMode || !shift || shift.status !== 'OPEN'}
+                  viewOnly={isManagerViewMode}
                 />
               ))}
               {!currentAreaTables.length && <div className="text-gray-500">Không có bàn.</div>}
@@ -1101,23 +1102,21 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
               <div className="p-6 text-gray-500">Đang tải đơn mang đi...</div>
             ) : (
               <div className="space-y-4">
-                {/* Filter Tabs - Mang đi / Giao hàng */}
+                {/* HIDDEN: Tab Giao hàng đã được ẩn */}
+                {/* Chỉ hiện Mang đi */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
                   <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => setTakeawayFilterTab('TAKEAWAY')}
-                      className={`flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all ${
-                        takeawayFilterTab === 'TAKEAWAY'
-                          ? 'bg-[#c9975b] text-white shadow-md'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      className="flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all bg-[#c9975b] text-white shadow-md"
                     >
-                      Mang đi ({takeawayOrders.length})
+                      Đơn mang đi ({takeawayOrders.length})
                     </button>
+                    {/* HIDDEN: Nút Giao hàng
                     <button
                       onClick={() => {
                         setTakeawayFilterTab('DELIVERY');
-                        setDeliveryFilterTab('ALL'); // Reset filter khi chuyển sang tab Giao hàng
+                        setDeliveryFilterTab('ALL');
                       }}
                       className={`flex-1 min-w-[100px] px-4 py-3 rounded-lg font-semibold transition-all ${
                         takeawayFilterTab === 'DELIVERY'
@@ -1127,11 +1126,12 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                     >
                       Giao hàng ({deliveryOrders.length})
                     </button>
+                    */}
                   </div>
                 </div>
 
-                {/* Filter cho tab Giao hàng (chỉ hiển thị khi tab DELIVERY được chọn) */}
-                {takeawayFilterTab === 'DELIVERY' && (
+                {/* HIDDEN: Filter cho tab Giao hàng */}
+                {false && takeawayFilterTab === 'DELIVERY' && (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-4">
                     <div className="flex gap-2 flex-wrap">
                       <button
@@ -1536,7 +1536,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
         onTriggerCancelDialog={() => setTriggerCancelDialog(false)}
         onTableChanged={handleTableChanged}
         onItemsChange={(hasItems) => setDrawerHasItems(hasItems)}
-        viewOnly={isManagerViewMode || !shift || shift.status !== 'OPEN'}
+        viewOnly={isManagerViewMode}
         userRoles={userRoles}
         isWaiter={isWaiter}
       />
@@ -1676,16 +1676,16 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
           await loadTables(); // Reload tables khi confirm/cancel/no-show
         }}
         onCheckIn={async (reservation) => {
-          // Kiểm tra có ca đang mở không
-          if (!shift || shift.status !== 'OPEN') {
-            setToast({
-              show: true,
-              type: 'warning',
-              title: 'Chưa mở ca',
-              message: 'Vui lòng mở ca làm việc trước khi check-in đặt bàn.'
-            });
-            return;
-          }
+          // HIDDEN: Bỏ kiểm tra ca - cho phép check-in khi chưa mở ca
+          // if (!shift || shift.status !== 'OPEN') {
+          //   setToast({
+          //     show: true,
+          //     type: 'warning',
+          //     title: 'Chưa mở ca',
+          //     message: 'Vui lòng mở ca làm việc trước khi check-in đặt bàn.'
+          //   });
+          //   return;
+          // }
           
           // Check-in: tạo order và mở drawer
           try {
@@ -1826,11 +1826,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
           <div className="relative">
             <button
               onClick={handleCreateTakeaway}
-              disabled={!shift || shift.status !== 'OPEN'}
-              className={`relative w-16 h-16 bg-emerald-600 text-white rounded-full shadow-2xl border-2 border-emerald-600 hover:bg-white hover:text-emerald-600 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95 ${
-                !shift || shift.status !== 'OPEN' ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''
-              }`}
-              title={!shift || shift.status !== 'OPEN' ? 'Vui lòng mở ca làm việc trước khi tạo đơn' : 'Tạo đơn mang đi mới'}
+              className="relative w-16 h-16 bg-emerald-600 text-white rounded-full shadow-2xl border-2 border-emerald-600 hover:bg-white hover:text-emerald-600 transition-all duration-300 outline-none focus:outline-none flex items-center justify-center hover:scale-110 active:scale-95"
+              title="Tạo đơn mang đi mới"
             >
               <svg className="w-7 h-7 transition-transform group-hover:rotate-90 duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />

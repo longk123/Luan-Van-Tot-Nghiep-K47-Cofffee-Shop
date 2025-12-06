@@ -733,8 +733,8 @@ export default function PaymentSection({ orderId, shiftId, isPaid, refreshTrigge
                         {new Date(payment.created_at).toLocaleTimeString('vi-VN')}
                       </div>
                       
-                      {/* Refund button */}
-                      {canRefund && (
+                      {/* HIDDEN: Nút Hoàn tiền - đã ẩn để đơn giản hóa hệ thống */}
+                      {false && canRefund && (
                         <button
                           onClick={() => {
                             setRefundPayment(payment);

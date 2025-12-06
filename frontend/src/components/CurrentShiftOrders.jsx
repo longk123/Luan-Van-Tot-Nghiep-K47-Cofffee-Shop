@@ -556,7 +556,8 @@ export default function CurrentShiftOrders({ viewOnly = false, isWaiter = false 
                 <option value="PAID">Đã thanh toán</option>
                 <option value="OPEN">Chưa thanh toán</option>
                 <option value="CANCELLED">Đã hủy</option>
-                <option value="REFUNDED">Đã hoàn tiền</option>
+                {/* HIDDEN: Option Đã hoàn tiền - đã ẩn vì bỏ tính năng hoàn tiền */}
+                {/* <option value="REFUNDED">Đã hoàn tiền</option> */}
               </select>
               <button 
                 onClick={fetchOrders}

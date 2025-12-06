@@ -612,7 +612,8 @@ export default function Kitchen() {
               Mang đi ({takeawayCount})
             </button>
           )}
-          {deliveryCount > 0 && (
+          {/* HIDDEN: Nút filter Giao hàng - đã ẩn vì bỏ tính năng giao hàng */}
+          {false && deliveryCount > 0 && (
             <button
               onClick={() => setFilter({ ...filter, orderType: 'DELIVERY' })}
               className={`px-2 py-1 rounded text-xs font-medium transition-all ${

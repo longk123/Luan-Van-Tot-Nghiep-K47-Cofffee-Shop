@@ -9,7 +9,7 @@ import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import POS from './pages/POS.jsx'
 import Kitchen from './pages/Kitchen.jsx'
-import WaiterDeliveryPage from './pages/WaiterDeliveryPage.jsx'
+// import WaiterDeliveryPage from './pages/WaiterDeliveryPage.jsx' // HIDDEN: Delivery feature
 import UserProfile from './pages/UserProfile.jsx'
 import PaymentSuccess from './pages/PaymentSuccess.jsx'
 import PaymentCancel from './pages/PaymentCancel.jsx'
@@ -129,14 +129,15 @@ const router = createBrowserRouter([
       </RoleGuard>
     )
   },
-  { 
-    path: '/waiter/delivery', 
-    element: (
-      <RoleGuard allowedRoles={['waiter', 'manager', 'admin']}>
-        <Dashboard defaultMode="takeaway" />
-      </RoleGuard>
-    )
-  },
+  // HIDDEN: Delivery route
+  // { 
+  //   path: '/waiter/delivery', 
+  //   element: (
+  //     <RoleGuard allowedRoles={['waiter', 'manager', 'admin']}>
+  //       <Dashboard defaultMode="takeaway" />
+  //     </RoleGuard>
+  //   )
+  // },
   { 
     path: '/profile', 
     element: <UserProfile />

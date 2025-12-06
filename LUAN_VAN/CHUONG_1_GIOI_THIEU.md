@@ -539,16 +539,13 @@ Cảnh báo nếu sắp hết hạn/tồn kho thấp → Manager xử lý
 │                    └──▶ Xem lịch sử đã làm                             │
 │                                                                         │
 │  ┌─────────┐                                                            │
-│  │ Waiter  │───────┬──▶ Tạo đơn hàng tại bàn                           │
-│  └─────────┘       ├──▶ Giao món cho khách                             │
-│                    └──▶ Yêu cầu thanh toán                             │
-│                                                                         │
-│  ┌─────────┐                                                            │
-│  │ Waiter  │───────┬──▶ Tạo đơn hàng (không thanh toán)                  │
-│  └─────────┘       ├──▶ Xem đơn cần giao                               │
-│  └─────────┘       ├──▶ Nhận đơn giao hàng                             │
-│                    ├──▶ Xác nhận giao thành công                       │
-│                    └──▶ Quản lý ví tiền                                │
+│  │ Waiter  │───────┬──▶ Tạo đơn hàng (giống Cashier, không thanh toán) │
+│  └─────────┘       ├──▶ Thêm/Sửa/Xóa món trong đơn                     │
+│                    ├──▶ Gửi đơn xuống bếp                              │
+│                    ├──▶ Giao món cho khách                             │
+│                    ├──▶ Xem đơn cần giao (Delivery)                    │
+│                    ├──▶ Cập nhật trạng thái giao hàng                  │
+│                    └──▶ Quản lý ví tiền (COD)                          │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -567,8 +564,9 @@ Cảnh báo nếu sắp hết hạn/tồn kho thấp → Manager xử lý
 │       │            └──▶ Đăng ký tài khoản                              │
 │       ▼                                                                 │
 │  ┌──────────┐                                                           │
-│  │ Customer │──────┬──▶ Đăng nhập/Đăng xuất                            │
-│  └──────────┘      ├──▶ Xem thực đơn                                   │
+│  │ Customer │──────┬──▶ Đăng nhập                                       │
+│  └──────────┘      ├──▶ Đăng xuất                                      │
+│                    ├──▶ Xem thực đơn                                   │
 │                    ├──▶ Thêm món vào giỏ hàng                          │
 │                    ├──▶ Quản lý giỏ hàng                               │
 │                    ├──▶ Áp dụng mã khuyến mãi                          │
@@ -1160,6 +1158,99 @@ Cảnh báo nếu sắp hết hạn/tồn kho thấp → Manager xử lý
 
 ---
 
+#### 2.2.17. Đăng ký tài khoản khách hàng (Customer Registration)
+
+*Bảng 1.17. Đặc tả Use Case Đăng ký tài khoản khách hàng*
+
+| Mục | Thông tin |
+|-----|-----------|
+| **Tên trường hợp sử dụng** | Đăng ký tài khoản khách hàng |
+| **ID** | UC-17 |
+| **Tác nhân chính** | Guest (Khách vãng lai) |
+| **Mức độ cần thiết** | Cao |
+| **Phân loại** | Chức năng khách hàng |
+| **Điều kiện** | Truy cập Customer Portal, chưa có tài khoản |
+| **Các thành phần tham gia và mối quan tâm** | - Khách hàng: tạo tài khoản để sử dụng đầy đủ chức năng đặt hàng online<br>- Hệ thống: xác thực thông tin, tạo tài khoản mới, bảo mật dữ liệu |
+| **Mô tả tóm tắt** | Cho phép khách vãng lai đăng ký tài khoản mới trên Customer Portal bằng email và mật khẩu để có thể đặt hàng online, xem lịch sử đơn hàng, và sử dụng các tính năng dành cho thành viên |
+
+**Luồng xử lý bình thường:**
+1. Khách truy cập Customer Portal (http://localhost:5173/customer)
+2. Khách click vào nút "Đăng ký" hoặc "Tạo tài khoản"
+3. Hệ thống hiển thị form đăng ký với các trường:
+   - Họ và tên (bắt buộc)
+   - Email (bắt buộc, phải đúng định dạng)
+   - Số điện thoại (bắt buộc, 10 số)
+   - Mật khẩu (bắt buộc, tối thiểu 6 ký tự)
+   - Xác nhận mật khẩu (bắt buộc, phải khớp với mật khẩu)
+4. Khách điền đầy đủ thông tin
+5. Khách nhấn nút "Đăng ký"
+6. Hệ thống kiểm tra:
+   - Email chưa tồn tại trong hệ thống
+   - Số điện thoại chưa được sử dụng
+   - Mật khẩu đáp ứng yêu cầu
+   - Mật khẩu và xác nhận mật khẩu khớp nhau
+7. Nếu hợp lệ: Hệ thống hash mật khẩu bằng bcrypt, tạo tài khoản mới trong bảng `customer_accounts`
+8. Hệ thống tự động đăng nhập khách hàng (tạo JWT token)
+9. Hệ thống chuyển hướng đến trang chủ Customer Portal với thông báo "Đăng ký thành công!"
+
+**Luồng luân phiên/đặc biệt:**
+- Email đã tồn tại → Hiển thị thông báo "Email này đã được sử dụng, vui lòng chọn email khác"
+- Số điện thoại đã tồn tại → Hiển thị thông báo "Số điện thoại này đã được sử dụng"
+- Mật khẩu quá ngắn (< 6 ký tự) → Hiển thị thông báo "Mật khẩu phải có ít nhất 6 ký tự"
+- Mật khẩu và xác nhận mật khẩu không khớp → Hiển thị thông báo "Mật khẩu xác nhận không khớp"
+- Email không đúng định dạng → Hiển thị thông báo "Email không hợp lệ"
+- Số điện thoại không đúng định dạng → Hiển thị thông báo "Số điện thoại không hợp lệ"
+- Thiếu thông tin bắt buộc → Hiển thị thông báo "Vui lòng điền đầy đủ thông tin"
+- Lỗi hệ thống → Hiển thị thông báo "Đăng ký không thành công, vui lòng thử lại"
+
+---
+
+#### 2.2.18. Đăng nhập khách hàng (Customer Login)
+
+*Bảng 1.18. Đặc tả Use Case Đăng nhập khách hàng*
+
+| Mục | Thông tin |
+|-----|-----------|
+| **Tên trường hợp sử dụng** | Đăng nhập khách hàng |
+| **ID** | UC-18 |
+| **Tác nhân chính** | Customer (Khách hàng đã đăng ký) |
+| **Mức độ cần thiết** | Cao |
+| **Phân loại** | Chức năng khách hàng |
+| **Điều kiện** | Đã có tài khoản khách hàng trong hệ thống |
+| **Các thành phần tham gia và mối quan tâm** | - Khách hàng: truy cập tài khoản để đặt hàng, xem lịch sử<br>- Hệ thống: xác thực danh tính, bảo vệ thông tin tài khoản |
+| **Mô tả tóm tắt** | Cho phép khách hàng đã đăng ký đăng nhập vào Customer Portal bằng email và mật khẩu để sử dụng đầy đủ chức năng đặt hàng online, xem lịch sử đơn hàng, quản lý thông tin cá nhân |
+
+**Luồng xử lý bình thường:**
+1. Khách truy cập Customer Portal
+2. Khách click vào nút "Đăng nhập"
+3. Hệ thống hiển thị form đăng nhập với các trường:
+   - Email
+   - Mật khẩu
+4. Khách nhập email và mật khẩu
+5. Khách nhấn nút "Đăng nhập"
+6. Hệ thống xác thực thông tin:
+   - Kiểm tra email có tồn tại trong bảng `customer_accounts`
+   - So sánh mật khẩu hash với mật khẩu trong database
+7. Nếu hợp lệ: Hệ thống tạo JWT token, lưu vào localStorage
+8. Hệ thống chuyển hướng đến trang chủ Customer Portal với thông tin khách hàng đã đăng nhập
+
+**Luồng luân phiên/đặc biệt:**
+- Email hoặc mật khẩu sai → Hiển thị thông báo "Email hoặc mật khẩu không đúng"
+- Email không tồn tại → Hiển thị thông báo "Tài khoản không tồn tại, vui lòng đăng ký"
+- Tài khoản bị khóa → Hiển thị thông báo "Tài khoản đã bị khóa, vui lòng liên hệ quản trị viên"
+- Quên mật khẩu → Có link "Quên mật khẩu?" (chức năng sẽ phát triển sau)
+- Lỗi hệ thống → Hiển thị thông báo "Đăng nhập không thành công, vui lòng thử lại"
+
+**Luồng bổ sung:**
+- Sau khi đăng nhập, khách hàng có thể:
+  - Xem lịch sử đơn hàng
+  - Theo dõi đơn hàng đang xử lý
+  - Quản lý thông tin cá nhân
+  - Đặt hàng online với đầy đủ tính năng
+  - Đặt bàn trước
+
+---
+
 ### 2.3. Bảng tổng hợp Use Case
 
 | Mã UC | Tên Use Case | Actor chính | Độ ưu tiên |
@@ -1180,6 +1271,8 @@ Cảnh báo nếu sắp hết hạn/tồn kho thấp → Manager xử lý
 | UC-14 | Đặt bàn trực tuyến | Customer | Trung bình |
 | UC-15 | Quản lý nhân viên | Admin | Trung bình |
 | UC-16 | Quản lý khuyến mãi | Manager | Trung bình |
+| UC-17 | Đăng ký tài khoản khách hàng | Guest | Cao |
+| UC-18 | Đăng nhập khách hàng | Customer | Cao |
 
 ---
 
