@@ -521,18 +521,18 @@ export async function deleteOrderItem(req, res, next) {
 
 /**
  * GET /api/v1/pos/orders/current-shift
- * Lấy đơn hàng của ca hiện tại (cho cashier và manager)
- * - Cashier: xem ca của mình
- * - Manager/Admin: xem ca CASHIER đang mở
+ * Lấy đơn hàng trong hôm nay của user hiện tại
+ * - Cashier: đơn mình tạo HOẶC mình thanh toán trong hôm nay
+ * - Waiter: đơn mình tạo trong hôm nay
+ * - Manager/Admin: tất cả đơn trong hôm nay
  */
 export async function getCurrentShiftOrders(req, res, next) {
   try {
     const userId = req.user.user_id;
     const userRoles = req.user.roles || [];
+    const { pool } = await import('../db.js');
 
-    let currentShift;
-
-    // Check if user is Manager/Admin (not Cashier)
+    // Check roles
     const isManager = userRoles.some(role =>
       ['manager', 'admin'].includes(role.toLowerCase())
     );
@@ -543,192 +543,99 @@ export async function getCurrentShiftOrders(req, res, next) {
       role.toLowerCase() === 'waiter'
     ) && !isCashier && !isManager;
 
+    // Base query để lấy đơn hàng
+    const baseSelectFields = `
+      dh.id,
+      dh.ban_id,
+      dh.order_type,
+      dh.trang_thai,
+      dh.opened_at,
+      dh.closed_at,
+      dh.ly_do_huy,
+      dh.customer_account_id,
+      dh.nhan_vien_id,
+      b.ten_ban,
+      kv.ten AS khu_vuc_ten,
+      u.full_name AS nhan_vien_ten,
+      ca.full_name AS khach_hang_ten,
+      ca.phone AS khach_hang_phone,
+      ca.email AS khach_hang_email,
+      CASE 
+        WHEN dh.customer_account_id IS NOT NULL THEN true
+        ELSE false
+      END AS is_pre_order,
+      di.delivery_address,
+      di.delivery_phone AS delivery_phone,
+      di.delivery_notes AS delivery_notes,
+      di.delivery_fee,
+      di.distance_km,
+      di.delivery_status,
+      di.shipper_id,
+      CASE 
+        WHEN dh.trang_thai = 'CANCELLED' THEN 0
+        ELSE COALESCE(settlement.grand_total, 0)
+      END AS tong_tien,
+      (SELECT COUNT(*) FROM don_hang_chi_tiet WHERE don_hang_id = dh.id) AS so_mon,
+      CASE 
+        WHEN dh.trang_thai = 'PAID' THEN 'Đã thanh toán'
+        WHEN dh.trang_thai = 'CANCELLED' THEN 'Đã hủy'
+        ELSE 'Chưa thanh toán'
+      END AS trang_thai_thanh_toan,
+      CASE 
+        WHEN dh.closed_at IS NOT NULL THEN 
+          EXTRACT(EPOCH FROM (dh.closed_at - dh.opened_at))::INT
+        ELSE NULL
+      END AS thoi_gian_xu_ly_giay
+    `;
+
+    const baseJoins = `
+      FROM don_hang dh
+      LEFT JOIN ban b ON b.id = dh.ban_id
+      LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
+      LEFT JOIN users u ON u.user_id = dh.nhan_vien_id
+      LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
+      LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
+      LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
+    `;
+
+    let orders = [];
+
     if (isManager && !isCashier) {
-      // Manager: lấy ca CASHIER đang mở
-      currentShift = await shiftsService.getOpenCashierShiftService();
-    } else if (isWaiter) {
-      // Waiter: lấy ca WAITER của mình
-      currentShift = await shiftsService.getCurrentShiftService(userId);
-    } else {
-      // Cashier: lấy ca của mình
-      currentShift = await shiftsService.getCurrentShiftService(userId);
-    }
-
-    if (!currentShift) {
-      return res.json({
-        success: true,
-        data: { shift: null, orders: [], stats: {} },
-        message: "Không có ca làm việc đang mở"
-      });
-    }
-
-    // Lấy đơn hàng của ca hiện tại
-    let orders = await posRepository.getCurrentShiftOrders(currentShift.id);
-
-    // Nếu là Cashier hoặc Manager: lấy thêm đơn được tạo trong khoảng thời gian ca đó
-    // (bất kể ca_lam_id là gì, để hiển thị đơn do waiter tạo trong thời gian ca cashier mở)
-    if ((isCashier || (isManager && !isCashier)) && currentShift.started_at) {
-      const { pool } = await import('../db.js');
-      // Lấy thêm đơn được tạo trong khoảng thời gian ca cashier (bất kể ca_lam_id)
-      // Nếu ca chưa đóng (closed_at = null), lấy tất cả đơn từ started_at đến hiện tại
-      let sqlQuery, queryParams;
-      
-      if (currentShift.closed_at) {
-        // Ca đã đóng: lấy đơn trong khoảng started_at đến closed_at
-        queryParams = [currentShift.started_at, currentShift.closed_at, currentShift.id];
-        sqlQuery = `
-          SELECT 
-            dh.id,
-            dh.ban_id,
-            dh.order_type,
-            dh.trang_thai,
-            dh.opened_at,
-            dh.closed_at,
-            dh.ly_do_huy,
-            dh.customer_account_id,
-            dh.nhan_vien_id,
-            b.ten_ban,
-            kv.ten AS khu_vuc_ten,
-            u.full_name AS nhan_vien_ten,
-            ca.full_name AS khach_hang_ten,
-            ca.phone AS khach_hang_phone,
-            ca.email AS khach_hang_email,
-            CASE 
-              WHEN dh.customer_account_id IS NOT NULL THEN true
-              ELSE false
-            END AS is_pre_order,
-            di.delivery_address,
-            di.delivery_phone AS delivery_phone,
-            di.delivery_notes AS delivery_notes,
-            di.delivery_fee,
-            di.distance_km,
-            di.delivery_status,
-            di.shipper_id,
-            CASE 
-              WHEN dh.trang_thai = 'CANCELLED' THEN 0
-              ELSE COALESCE(settlement.grand_total, 0)
-            END AS tong_tien,
-            (SELECT COUNT(*) FROM don_hang_chi_tiet WHERE don_hang_id = dh.id) AS so_mon,
-            CASE 
-              WHEN dh.trang_thai = 'PAID' THEN 'Đã thanh toán'
-              WHEN dh.trang_thai = 'CANCELLED' THEN 'Đã hủy'
-              ELSE 'Chưa thanh toán'
-            END AS trang_thai_thanh_toan,
-            CASE 
-              WHEN dh.closed_at IS NOT NULL THEN 
-                EXTRACT(EPOCH FROM (dh.closed_at - dh.opened_at))::INT
-              ELSE NULL
-            END AS thoi_gian_xu_ly_giay
-          FROM don_hang dh
-          LEFT JOIN ban b ON b.id = dh.ban_id
-          LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
-          LEFT JOIN users u ON u.user_id = dh.nhan_vien_id
-          LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
-          LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
-          LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
-          WHERE 
-            -- Đơn được tạo trong khoảng thời gian ca cashier
-            dh.opened_at >= $1
-            AND dh.opened_at <= $2
-            -- Loại trừ đơn đã có trong danh sách (tránh trùng lặp)
-            AND (dh.ca_lam_id IS NULL OR dh.ca_lam_id != $3)
-        `;
-      } else {
-        // Ca chưa đóng: lấy đơn từ started_at đến hiện tại
-        queryParams = [currentShift.started_at, currentShift.id];
-        sqlQuery = `
-          SELECT 
-            dh.id,
-            dh.ban_id,
-            dh.order_type,
-            dh.trang_thai,
-            dh.opened_at,
-            dh.closed_at,
-            dh.ly_do_huy,
-            dh.customer_account_id,
-            dh.nhan_vien_id,
-            b.ten_ban,
-            kv.ten AS khu_vuc_ten,
-            u.full_name AS nhan_vien_ten,
-            ca.full_name AS khach_hang_ten,
-            ca.phone AS khach_hang_phone,
-            ca.email AS khach_hang_email,
-            CASE 
-              WHEN dh.customer_account_id IS NOT NULL THEN true
-              ELSE false
-            END AS is_pre_order,
-            di.delivery_address,
-            di.delivery_phone AS delivery_phone,
-            di.delivery_notes AS delivery_notes,
-            di.delivery_fee,
-            di.distance_km,
-            di.delivery_status,
-            di.shipper_id,
-            CASE 
-              WHEN dh.trang_thai = 'CANCELLED' THEN 0
-              ELSE COALESCE(settlement.grand_total, 0)
-            END AS tong_tien,
-            (SELECT COUNT(*) FROM don_hang_chi_tiet WHERE don_hang_id = dh.id) AS so_mon,
-            CASE 
-              WHEN dh.trang_thai = 'PAID' THEN 'Đã thanh toán'
-              WHEN dh.trang_thai = 'CANCELLED' THEN 'Đã hủy'
-              ELSE 'Chưa thanh toán'
-            END AS trang_thai_thanh_toan,
-            CASE 
-              WHEN dh.closed_at IS NOT NULL THEN 
-                EXTRACT(EPOCH FROM (dh.closed_at - dh.opened_at))::INT
-              ELSE NULL
-            END AS thoi_gian_xu_ly_giay
-          FROM don_hang dh
-          LEFT JOIN ban b ON b.id = dh.ban_id
-          LEFT JOIN khu_vuc kv ON kv.id = b.khu_vuc_id
-          LEFT JOIN users u ON u.user_id = dh.nhan_vien_id
-          LEFT JOIN v_order_settlement settlement ON settlement.order_id = dh.id
-          LEFT JOIN customer_accounts ca ON ca.id = dh.customer_account_id
-          LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
-          WHERE 
-            -- Đơn được tạo trong khoảng thời gian ca cashier
-            dh.opened_at >= $1
-            -- Loại trừ đơn đã có trong danh sách (tránh trùng lặp)
-            AND (dh.ca_lam_id IS NULL OR dh.ca_lam_id != $2)
-        `;
-      }
-      
-      const { rows: timeBasedOrders } = await pool.query(sqlQuery, queryParams);
-      
-      // Merge đơn mới vào danh sách (loại bỏ trùng lặp theo id)
-      const existingOrderIds = new Set(orders.map(o => o.id));
-      const newOrders = timeBasedOrders.filter(o => !existingOrderIds.has(o.id));
-      orders = [...orders, ...newOrders];
-      
-      // Sắp xếp lại theo thời gian
-      orders.sort((a, b) => {
-        const aTime = a.closed_at || a.opened_at;
-        const bTime = b.closed_at || b.opened_at;
-        return new Date(bTime) - new Date(aTime);
-      });
-    }
-
-    // Nếu là Waiter: lấy đơn do waiter tạo (DINE_IN, TAKEAWAY) và đơn DELIVERY đã được phân công cho waiter
-    if (isWaiter) {
-      const { pool } = await import('../db.js');
-      // Lấy đơn do waiter tạo (DINE_IN, TAKEAWAY) và đơn DELIVERY đã được phân công cho waiter
-      const { rows: waiterOrders } = await pool.query(`
-        SELECT DISTINCT dh.id
-        FROM don_hang dh
-        LEFT JOIN don_hang_delivery_info di ON di.order_id = dh.id
-        WHERE dh.ca_lam_id = $1
+      // Manager/Admin: Lấy TẤT CẢ đơn trong hôm nay
+      const { rows } = await pool.query(`
+        SELECT ${baseSelectFields}
+        ${baseJoins}
+        WHERE DATE(dh.opened_at AT TIME ZONE 'Asia/Ho_Chi_Minh') = CURRENT_DATE
+        ORDER BY dh.opened_at DESC
+      `);
+      orders = rows;
+    } else if (isCashier) {
+      // Cashier: Đơn mình tạo HOẶC mình thanh toán trong hôm nay
+      const { rows } = await pool.query(`
+        SELECT DISTINCT ${baseSelectFields}
+        ${baseJoins}
+        LEFT JOIN order_payment op ON op.order_id = dh.id
+        WHERE DATE(dh.opened_at AT TIME ZONE 'Asia/Ho_Chi_Minh') = CURRENT_DATE
           AND (
-            -- Đơn do waiter này tạo (DINE_IN hoặc TAKEAWAY)
-            (dh.nhan_vien_id = $2 AND dh.order_type IN ('DINE_IN', 'TAKEAWAY'))
+            -- Đơn do cashier tạo
+            dh.nhan_vien_id = $1
             OR
-            -- Đơn DELIVERY đã được phân công cho waiter này (đã claim)
-            (dh.order_type = 'DELIVERY' AND di.shipper_id = $2)
+            -- Đơn do cashier thanh toán
+            (op.created_by = $1 AND op.status = 'CAPTURED')
           )
-      `, [currentShift.id, userId]);
-      
-      const waiterOrderIds = waiterOrders.map(o => o.id);
-      orders = orders.filter(o => waiterOrderIds.includes(o.id));
+        ORDER BY dh.opened_at DESC
+      `, [userId]);
+      orders = rows;
+    } else if (isWaiter) {
+      // Waiter: Chỉ đơn mình tạo trong hôm nay
+      const { rows } = await pool.query(`
+        SELECT ${baseSelectFields}
+        ${baseJoins}
+        WHERE DATE(dh.opened_at AT TIME ZONE 'Asia/Ho_Chi_Minh') = CURRENT_DATE
+          AND dh.nhan_vien_id = $1
+        ORDER BY dh.opened_at DESC
+      `, [userId]);
+      orders = rows;
     }
 
     // Thống kê tổng quan
@@ -742,36 +649,13 @@ export async function getCurrentShiftOrders(req, res, next) {
         .reduce((sum, o) => sum + parseFloat(o.tong_tien || 0), 0)
     };
 
-    // Thêm thống kê delivery status cho waiter (chỉ đơn DELIVERY đã được phân công cho waiter)
-    if (isWaiter) {
-      const { pool } = await import('../db.js');
-      const { rows: deliveryStats } = await pool.query(`
-        SELECT 
-          di.delivery_status,
-          COUNT(*) as count
-        FROM don_hang dh
-        JOIN don_hang_delivery_info di ON di.order_id = dh.id
-        WHERE dh.ca_lam_id = $1
-          AND dh.order_type = 'DELIVERY'
-          AND di.shipper_id = $2
-        GROUP BY di.delivery_status
-      `, [currentShift.id, userId]);
-      
-      stats.delivery_stats = {
-        assigned: deliveryStats.find(s => s.delivery_status === 'ASSIGNED')?.count || 0,
-        out_for_delivery: deliveryStats.find(s => s.delivery_status === 'OUT_FOR_DELIVERY')?.count || 0,
-        delivered: deliveryStats.find(s => s.delivery_status === 'DELIVERED')?.count || 0,
-        failed: deliveryStats.find(s => s.delivery_status === 'FAILED')?.count || 0
-      };
-    }
-
     res.json({
       success: true,
       data: {
-        shift: currentShift,
+        shift: null, // Không còn dùng shift
         orders,
         stats,
-        isWaiter // Flag để frontend biết là waiter view
+        isWaiter
       }
     });
   } catch (err) {

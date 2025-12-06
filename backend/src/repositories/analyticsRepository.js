@@ -13,11 +13,14 @@ export default {
     const sql = `
       WITH today_revenue AS (
         -- Doanh thu hôm nay: chỉ tính đơn PAID, dùng closed_at
+        -- Doanh thu = (số lượng * đơn giá - giảm giá line) - giảm giá khuyến mãi - giảm giá thủ công
         SELECT
           COUNT(*) AS paid_orders,
           COALESCE(SUM(
             (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
              FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+            - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+            - COALESCE(o.giam_gia_thu_cong, 0)
           ), 0) AS today_revenue
         FROM don_hang o
         WHERE o.trang_thai = 'PAID'
@@ -79,6 +82,8 @@ export default {
             CASE WHEN o.trang_thai = 'PAID' THEN
               (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
                FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+              - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+              - COALESCE(o.giam_gia_thu_cong, 0)
             ELSE 0 END
           ), 0) AS yesterday_revenue,
           COUNT(*) FILTER (WHERE o.trang_thai = 'PAID') AS yesterday_orders
@@ -179,26 +184,35 @@ export default {
           SUM(
             CASE WHEN o.order_type = 'DELIVERY' THEN 1 ELSE 0 END
           ) AS delivery_orders,
+          -- Doanh thu = (số lượng * đơn giá - giảm giá line) - giảm giá khuyến mãi - giảm giá thủ công
           COALESCE(SUM(
             (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
              FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+            - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+            - COALESCE(o.giam_gia_thu_cong, 0)
           ), 0) AS total_revenue,
           COALESCE(SUM(
             CASE WHEN o.order_type = 'DINE_IN' THEN
               (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
                FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+              - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+              - COALESCE(o.giam_gia_thu_cong, 0)
             ELSE 0 END
           ), 0) AS dine_in_revenue,
           COALESCE(SUM(
             CASE WHEN o.order_type = 'TAKEAWAY' THEN
               (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
                FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+              - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+              - COALESCE(o.giam_gia_thu_cong, 0)
             ELSE 0 END
           ), 0) AS takeaway_revenue,
           COALESCE(SUM(
             CASE WHEN o.order_type = 'DELIVERY' THEN
               (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
                FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+              - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+              - COALESCE(o.giam_gia_thu_cong, 0)
             ELSE 0 END
           ), 0) AS delivery_revenue
         FROM don_hang o
@@ -738,26 +752,35 @@ export default {
         COUNT(*) FILTER (WHERE o.order_type = 'DINE_IN') AS dine_in_orders,
         COUNT(*) FILTER (WHERE o.order_type = 'TAKEAWAY') AS takeaway_orders,
         COUNT(*) FILTER (WHERE o.order_type = 'DELIVERY') AS delivery_orders,
+        -- Doanh thu = (số lượng * đơn giá - giảm giá line) - giảm giá khuyến mãi - giảm giá thủ công
         COALESCE(SUM(
           (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
            FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+          - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+          - COALESCE(o.giam_gia_thu_cong, 0)
         ), 0) AS total_revenue,
         COALESCE(SUM(
           CASE WHEN o.order_type = 'DINE_IN' THEN
             (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
              FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+            - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+            - COALESCE(o.giam_gia_thu_cong, 0)
           ELSE 0 END
         ), 0) AS dine_in_revenue,
         COALESCE(SUM(
           CASE WHEN o.order_type = 'TAKEAWAY' THEN
             (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
              FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+            - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+            - COALESCE(o.giam_gia_thu_cong, 0)
           ELSE 0 END
         ), 0) AS takeaway_revenue,
         COALESCE(SUM(
           CASE WHEN o.order_type = 'DELIVERY' THEN
             (SELECT SUM(d.so_luong * d.don_gia - COALESCE(d.giam_gia, 0))
              FROM don_hang_chi_tiet d WHERE d.don_hang_id = o.id)
+            - COALESCE((SELECT SUM(km.so_tien_giam) FROM don_hang_khuyen_mai km WHERE km.don_hang_id = o.id), 0)
+            - COALESCE(o.giam_gia_thu_cong, 0)
           ELSE 0 END
         ), 0) AS delivery_revenue
       FROM don_hang o
