@@ -104,5 +104,8 @@ export const customerApi = {
   getActiveConversation: () => request('GET', '/chatbot/conversation/active', null, false), // Optional auth
   getConversations: () => request('GET', '/chatbot/conversations', null, true), // Require auth
   getMessages: (conversationId) => request('GET', `/chatbot/conversations/${conversationId}/messages`, null, true), // Require auth
+  
+  // ==================== PROMOTIONS ====================
+  getPromotions: () => request('GET', '/promotions'),
 };
 

@@ -10,7 +10,9 @@ export default function TakeawayOrderCard({
   isManagerViewMode = false,
   isWaiter = false,
   selectedDeliveryOrders = [],
+  selectedTakeawayOrders = [],
   onToggleSelectOrder,
+  onToggleSelectTakeaway,
   onClaimOrder
 }) {
   const allDone = order.items?.every(item => item.trang_thai_che_bien === 'DONE');
@@ -25,25 +27,44 @@ export default function TakeawayOrderCard({
     order.order_type === 'DELIVERY' && 
     allDone &&
     (order.delivery_status === 'PENDING' || !order.delivery_status || !order.shipper_id);
-  const isSelected = selectedDeliveryOrders.includes(order.id);
+  const isDeliverySelected = selectedDeliveryOrders.includes(order.id);
+  
+  // Kiểm tra đơn mang đi có thể giao cho khách (đã thanh toán và món đã xong)
+  const canDeliverTakeaway = order.order_type === 'TAKEAWAY' && isPaid && allDone;
+  const isTakeawaySelected = selectedTakeawayOrders.includes(order.id);
+  
   const orderTotal = (order.grand_total || 0) + (order.delivery_fee || 0);
 
   return (
     <div
       className={`bg-white rounded-2xl shadow-md border-2 p-6 hover:shadow-xl transition-all duration-200 ${
-        isSelected 
-          ? 'border-blue-500 bg-blue-50' 
+        isDeliverySelected || isTakeawaySelected
+          ? isDeliverySelected ? 'border-blue-500 bg-blue-50' : 'border-emerald-500 bg-emerald-50'
           : 'border-gray-200 hover:border-[#c9975b]'
       } cursor-pointer`}
       onClick={() => onOpenOrder?.(order)}
     >
+      {/* Checkbox cho đơn TAKEAWAY sẵn sàng giao */}
+      {canDeliverTakeaway && (
+        <div className="flex items-center justify-end mb-2" onClick={(e) => e.stopPropagation()}>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isTakeawaySelected}
+              onChange={() => onToggleSelectTakeaway?.(order.id)}
+              className="w-5 h-5 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+            />
+            <span className="text-sm font-medium text-emerald-700">Chọn giao</span>
+          </label>
+        </div>
+      )}
       {/* Checkbox cho waiter để chọn nhiều đơn (chỉ hiển thị cho đơn DELIVERY PENDING) */}
       {canClaim && (
         <div className="flex items-center justify-end mb-2" onClick={(e) => e.stopPropagation()}>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
-              checked={isSelected}
+              checked={isDeliverySelected}
               onChange={() => onToggleSelectOrder?.(order.id)}
               className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
             />

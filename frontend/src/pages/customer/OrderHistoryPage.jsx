@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customerApi } from '../../api/customerApi';
 import { isCustomerLoggedIn } from '../../auth/customerAuth';
+import useSSE from '../../hooks/useSSE';
 import { Package, Clock, CheckCircle, XCircle, Eye, X, Truck, MapPin } from 'lucide-react';
 
 export default function OrderHistoryPage() {
@@ -21,6 +22,21 @@ export default function OrderHistoryPage() {
     }
     loadOrders();
   }, []);
+
+  // SSE để cập nhật real-time trạng thái đơn hàng
+  useSSE('/api/v1/pos/events', (evt) => {
+    if (evt.type === 'order.updated' || 
+        evt.type === 'delivery.status.updated' ||
+        evt.type === 'order.completed' ||
+        evt.type === 'kitchen.line.updated') {
+      // Reload danh sách đơn hàng
+      loadOrders();
+      // Nếu đang xem chi tiết đơn bị cập nhật, reload chi tiết
+      if (selectedOrder) {
+        loadOrderDetail(selectedOrder);
+      }
+    }
+  }, [selectedOrder]);
 
   const loadOrders = async () => {
     try {
@@ -59,14 +75,39 @@ export default function OrderHistoryPage() {
     setOrderDetail(null);
   };
 
-  const getStatusBadge = (status) => {
+  // Lấy trạng thái hiển thị cho đơn hàng (ưu tiên delivery_status cho đơn giao hàng)
+  const getStatusBadge = (order) => {
+    const { trang_thai, order_type, delivery_status } = order;
+    
+    // Nếu là đơn giao hàng và có delivery_status
+    if (order_type === 'DELIVERY' && delivery_status) {
+      const deliveryStatusMap = {
+        PENDING: { text: 'Chờ nhận đơn', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+        ASSIGNED: { text: 'Đang chuẩn bị giao', color: 'bg-blue-100 text-blue-800', icon: Truck },
+        OUT_FOR_DELIVERY: { text: 'Đang giao hàng', color: 'bg-purple-100 text-purple-800', icon: Truck },
+        DELIVERED: { text: 'Đã giao thành công', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+        FAILED: { text: 'Giao thất bại', color: 'bg-red-100 text-red-800', icon: XCircle }
+      };
+      
+      const statusInfo = deliveryStatusMap[delivery_status] || deliveryStatusMap.PENDING;
+      const Icon = statusInfo.icon;
+      
+      return (
+        <span className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}>
+          <Icon className="w-4 h-4" />
+          <span>{statusInfo.text}</span>
+        </span>
+      );
+    }
+    
+    // Fallback cho đơn không phải giao hàng hoặc chưa có delivery_status
     const statusMap = {
       OPEN: { text: 'Đang xử lý', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
       PAID: { text: 'Đã hoàn thành', color: 'bg-green-100 text-green-800', icon: CheckCircle },
       CANCELLED: { text: 'Đã hủy', color: 'bg-red-100 text-red-800', icon: XCircle }
     };
 
-    const statusInfo = statusMap[status] || statusMap.OPEN;
+    const statusInfo = statusMap[trang_thai] || statusMap.OPEN;
     const Icon = statusInfo.icon;
 
     return (
@@ -133,7 +174,7 @@ export default function OrderHistoryPage() {
                   <div className="text-sm text-gray-500 mb-1">Mã đơn hàng</div>
                   <div className="text-xl font-bold text-gray-900">#{order.id}</div>
                 </div>
-                {getStatusBadge(order.trang_thai)}
+                {getStatusBadge(order)}
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -216,7 +257,7 @@ export default function OrderHistoryPage() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="text-sm text-gray-500 mb-1">Trạng thái</div>
-                      {getStatusBadge(orderDetail.trang_thai)}
+                      {getStatusBadge(orderDetail)}
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <div className="text-sm text-gray-500 mb-1">Loại đơn</div>

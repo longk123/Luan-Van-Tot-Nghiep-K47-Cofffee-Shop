@@ -22,6 +22,13 @@ export default function Kitchen() {
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [groupByOrder, setGroupByOrder] = useState(false); // Gom nhóm theo đơn hàng
+  const [selectedItems, setSelectedItems] = useState(new Set()); // Checkbox selection
+  
+  // Filter states - separate for each column
+  const [queuedFilter, setQueuedFilter] = useState({ orderType: 'ALL', search: '' });
+  const [makingFilter, setMakingFilter] = useState({ orderType: 'ALL', search: '' });
+  
   const scrollRefs = useRef({});
 
   // Shift management states
@@ -298,8 +305,110 @@ export default function Kitchen() {
     }
   };
 
-  const queued = items.filter(x => x.trang_thai_che_bien === 'QUEUED');
-  const making = items.filter(x => x.trang_thai_che_bien === 'MAKING');
+  // Batch action handlers
+  const toggleSelectItem = (itemId) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllInColumn = (columnItems) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      columnItems.forEach(item => newSet.add(item.id));
+      return newSet;
+    });
+  };
+
+  const deselectAllInColumn = (columnItems) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      columnItems.forEach(item => newSet.delete(item.id));
+      return newSet;
+    });
+  };
+
+  const handleBatchAction = async (action, columnItems) => {
+    const selectedInColumn = columnItems.filter(item => selectedItems.has(item.id));
+    if (selectedInColumn.length === 0) {
+      setToast({ show: true, type: 'warning', title: 'Chưa chọn món', message: 'Vui lòng chọn ít nhất 1 món' });
+      return;
+    }
+
+    // Process all selected items WITHOUT reloading each time
+    let successCount = 0;
+    let failCount = 0;
+    const successIds = [];
+    
+    for (const item of selectedInColumn) {
+      try {
+        // Call API directly without triggering loadQueue
+        await api.updateKitchenLine(item.id, action);
+        successCount++;
+        successIds.push(item.id);
+      } catch (err) {
+        console.error(`Error ${action} item ${item.id}:`, err);
+        failCount++;
+      }
+    }
+
+    // Remove successful items from selection
+    if (successIds.length > 0) {
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        successIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    }
+
+    // Load queue ONCE after all actions complete
+    await loadQueue(false);
+
+    // Show result toast
+    if (successCount > 0) {
+      const actionText = action === 'start' ? 'Bắt đầu' : action === 'done' ? 'Hoàn tất' : 'Xử lý';
+      setToast({ 
+        show: true, 
+        type: failCount > 0 ? 'warning' : 'success', 
+        title: `${actionText} ${successCount} món`, 
+        message: failCount > 0 ? `${failCount} món thất bại` : 'Thành công!' 
+      });
+    }
+  };
+
+  // Apply filters to items for a specific column
+  const applyColumnFilter = (itemsList, filter) => {
+    return itemsList.filter(item => {
+      // Filter by order type
+      if (filter.orderType !== 'ALL') {
+        if (filter.orderType === 'DINE_IN' && item.order_type !== null && item.order_type !== 'DINE_IN') return false;
+        if (filter.orderType === 'TAKEAWAY' && item.order_type !== 'TAKEAWAY') return false;
+        if (filter.orderType === 'DELIVERY' && item.order_type !== 'DELIVERY') return false;
+      }
+      
+      // Filter by order ID search
+      if (filter.search.trim()) {
+        const searchNum = filter.search.replace('#', '').trim();
+        if (!item.don_hang_id.toString().includes(searchNum)) return false;
+      }
+      
+      return true;
+    });
+  };
+
+  // Raw data by status
+  const allQueued = items.filter(x => x.trang_thai_che_bien === 'QUEUED');
+  const allMaking = items.filter(x => x.trang_thai_che_bien === 'MAKING');
+  
+  // Filtered data
+  const queued = applyColumnFilter(allQueued, queuedFilter);
+  const making = applyColumnFilter(allMaking, makingFilter);
 
   const handleOpenShift = async (data) => {
     try {
@@ -347,29 +456,188 @@ export default function Kitchen() {
     }
   };
 
-  const KitchenColumn = ({ title, data, bgColor, icon, actions }) => (
+  // Helper function to format wait time nicely
+  const formatWaitTime = (seconds) => {
+    if (!seconds || seconds < 0) return '0s';
+    
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (days > 0) {
+      return `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
+  const KitchenColumn = ({ title, data, allData, bgColor, icon, actions, groupByOrder, filter, setFilter }) => {
+    // Count selected items in this column
+    const selectedCount = data.filter(item => selectedItems.has(item.id)).length;
+    const allSelected = data.length > 0 && selectedCount === data.length;
+    
+    // Count items by order type (from unfiltered data)
+    const dineInCount = allData.filter(x => !x.order_type || x.order_type === 'DINE_IN').length;
+    const takeawayCount = allData.filter(x => x.order_type === 'TAKEAWAY').length;
+    const deliveryCount = allData.filter(x => x.order_type === 'DELIVERY').length;
+    const hasFilter = filter.orderType !== 'ALL' || filter.search.trim();
+    
+    // Gom nhóm items theo đơn hàng nếu enabled
+    const groupedData = groupByOrder
+      ? data.reduce((acc, item) => {
+          const orderId = item.don_hang_id;
+          if (!acc[orderId]) {
+            acc[orderId] = {
+              orderId,
+              items: [],
+              orderType: item.order_type,
+              tenBan: item.ten_ban,
+              khuVucTen: item.khu_vuc_ten,
+              donHangTrangThai: item.don_hang_trang_thai,
+              maxWaitSeconds: item.wait_seconds,
+              createdAt: item.created_at
+            };
+          }
+          acc[orderId].items.push(item);
+          if (item.wait_seconds > acc[orderId].maxWaitSeconds) {
+            acc[orderId].maxWaitSeconds = item.wait_seconds;
+          }
+          if (new Date(item.created_at) < new Date(acc[orderId].createdAt)) {
+            acc[orderId].createdAt = item.created_at;
+          }
+          return acc;
+        }, {})
+      : null;
+
+    const orderGroups = groupByOrder ? Object.values(groupedData).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)) : [];
+
+    return (
     <div className="flex-1 bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-      {/* Header - Đơn giản và chuyên nghiệp */}
-      <div className="px-6 py-4 bg-gray-50 border-b-2 border-gray-200">
-        <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="px-4 py-3 bg-gray-50 border-b-2 border-gray-200">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
+            {/* Select All Checkbox */}
+            {!isManagerViewMode && data.length > 0 && (
+              <label className="flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={() => allSelected ? deselectAllInColumn(data) : selectAllInColumn(data)}
+                  className="w-5 h-5 rounded border-2 border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+              </label>
+            )}
             <div className={`w-10 h-10 ${bgColor} rounded-xl flex items-center justify-center shadow-md`}>
               {icon}
             </div>
             <div>
               <h3 className="font-bold text-gray-900 text-base">{title}</h3>
-              <p className="text-gray-600 text-sm font-medium">{data.length} món</p>
+              <p className="text-gray-600 text-sm font-medium">
+                {hasFilter ? `${data.length}/${allData.length}` : data.length} món
+                {groupByOrder && orderGroups.length > 0 && ` (${orderGroups.length} đơn)`}
+                {selectedCount > 0 && <span className="text-indigo-600 ml-1">• {selectedCount} chọn</span>}
+              </p>
             </div>
           </div>
-          <div className={`${bgColor} text-white px-4 py-2 rounded-xl font-bold text-lg min-w-[50px] text-center shadow-md`}>
-            {data.length}
+          <div className="flex items-center gap-2">
+            {/* Batch Action Buttons */}
+            {!isManagerViewMode && selectedCount > 0 && (
+              <div className="flex gap-1.5">
+                {actions?.map(btn => (
+                  <button
+                    key={`batch-${btn.action}`}
+                    onClick={() => handleBatchAction(btn.action, data)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${btn.className}`}
+                    title={`${btn.action === 'start' ? 'Bắt đầu' : btn.action === 'done' ? 'Hoàn tất' : 'Hủy'} ${selectedCount} món`}
+                  >
+                    {selectedCount}× {btn.action === 'start' ? '▶' : btn.action === 'done' ? '✓' : '✕'}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className={`${bgColor} text-white px-4 py-2 rounded-xl font-bold text-lg min-w-[50px] text-center shadow-md`}>
+              {allData.length}
+            </div>
           </div>
+        </div>
+        
+        {/* Filter Bar - Inside each column */}
+        <div className="flex items-center gap-2 pt-2 flex-wrap">
+          {/* Search */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="#..."
+              value={filter.search}
+              onChange={(e) => setFilter({ ...filter, search: e.target.value })}
+              className="w-20 pl-7 pr-2 py-1 text-xs border border-gray-200 rounded-lg focus:border-indigo-400 focus:outline-none"
+            />
+            <svg className="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          
+          {/* Order Type Buttons */}
+          <button
+            onClick={() => setFilter({ ...filter, orderType: 'ALL' })}
+            className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+              filter.orderType === 'ALL' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Tất cả
+          </button>
+          {dineInCount > 0 && (
+            <button
+              onClick={() => setFilter({ ...filter, orderType: 'DINE_IN' })}
+              className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                filter.orderType === 'DINE_IN' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Tại bàn ({dineInCount})
+            </button>
+          )}
+          {takeawayCount > 0 && (
+            <button
+              onClick={() => setFilter({ ...filter, orderType: 'TAKEAWAY' })}
+              className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                filter.orderType === 'TAKEAWAY' ? 'bg-cyan-600 text-white' : 'bg-cyan-50 text-cyan-700 hover:bg-cyan-100'
+              }`}
+            >
+              Mang đi ({takeawayCount})
+            </button>
+          )}
+          {deliveryCount > 0 && (
+            <button
+              onClick={() => setFilter({ ...filter, orderType: 'DELIVERY' })}
+              className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                filter.orderType === 'DELIVERY' ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+              }`}
+            >
+              Giao hàng ({deliveryCount})
+            </button>
+          )}
+          
+          {/* Clear filter */}
+          {hasFilter && (
+            <button
+              onClick={() => setFilter({ orderType: 'ALL', search: '' })}
+              className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-500 hover:bg-gray-200"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
       {/* Content area */}
       <div
-        className="p-4 space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto"
+        className="p-4 space-y-3 max-h-[calc(100vh-320px)] overflow-y-auto"
         style={{ scrollBehavior: 'auto' }}
         ref={el => {
           if (el) {
@@ -394,7 +662,110 @@ export default function Kitchen() {
             <p className="text-gray-500 font-medium">Không có món nào</p>
             <p className="text-gray-400 text-sm mt-1">Danh sách trống</p>
           </div>
+        ) : groupByOrder ? (
+          /* Grouped by Order View */
+          orderGroups.map(group => (
+            <div key={group.orderId} className={`rounded-xl border-2 overflow-hidden ${
+              group.maxWaitSeconds > 600 ? 'border-red-400 bg-red-50' :
+              group.maxWaitSeconds > 300 ? 'border-yellow-400 bg-yellow-50' :
+              'border-indigo-200 bg-indigo-50'
+            }`}>
+              {/* Order Group Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-indigo-600 text-white">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-lg">#{group.orderId}</span>
+                  <span className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold ${
+                    group.orderType === 'DELIVERY' ? 'bg-orange-500' :
+                    group.orderType === 'TAKEAWAY' ? 'bg-cyan-500' :
+                    'bg-gray-500'
+                  }`}>
+                    {group.orderType === 'DELIVERY' ? '🚚 Giao' :
+                     group.orderType === 'TAKEAWAY' ? '🥡 Đi' : '🍽️ Bàn'}
+                  </span>
+                  {group.tenBan && (
+                    <span className="px-2 py-0.5 bg-white/20 rounded text-xs">{group.tenBan}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{group.items.length} món</span>
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                    group.maxWaitSeconds > 600 ? 'bg-red-500 animate-pulse' :
+                    group.maxWaitSeconds > 300 ? 'bg-yellow-500' :
+                    'bg-green-500'
+                  }`}>
+                    {formatWaitTime(group.maxWaitSeconds)}
+                  </span>
+                </div>
+              </div>
+              {/* Items in Group */}
+              <div className="p-3 space-y-2">
+                {group.items.map(item => {
+                  const options = typeof item.options === 'string' ? JSON.parse(item.options || '[]') : (item.options || []);
+                  const sugarOption = options.find(opt => opt.ma === 'SUGAR');
+                  const iceOption = options.find(opt => opt.ma === 'ICE');
+                  const toppings = options.filter(opt => opt.loai === 'AMOUNT' && opt.ma !== 'SUGAR' && opt.ma !== 'ICE');
+                  
+                  return (
+                    <div key={item.id} className={`bg-white rounded-lg p-3 border flex items-center justify-between gap-3 ${
+                      selectedItems.has(item.id) ? 'ring-2 ring-indigo-500 border-indigo-400' : 'border-gray-200'
+                    }`}>
+                      {/* Checkbox */}
+                      {!isManagerViewMode && (
+                        <label className="flex items-center cursor-pointer flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(item.id)}
+                            onChange={() => toggleSelectItem(item.id)}
+                            className="w-4 h-4 rounded border-2 border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          />
+                        </label>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-900 truncate">{item.mon_ten}</span>
+                          {item.bien_the_ten && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">{item.bien_the_ten}</span>
+                          )}
+                          <span className="px-2.5 py-1 bg-emerald-500 text-white rounded-lg text-sm font-bold">×{item.so_luong}</span>
+                        </div>
+                        {/* Options compact */}
+                        {(sugarOption || iceOption || toppings.length > 0) && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {sugarOption && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs">Đường: {sugarOption.muc_ten || `${Math.round((sugarOption.he_so || 0) * 100)}%`}</span>}
+                            {iceOption && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Đá: {iceOption.muc_ten || `${Math.round((iceOption.he_so || 0) * 100)}%`}</span>}
+                            {toppings.map((t, i) => <span key={i} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">{t.ten}: {t.so_luong}</span>)}
+                          </div>
+                        )}
+                        {item.ghi_chu && (
+                          <p className="text-xs text-amber-700 mt-1 italic">📝 {item.ghi_chu}</p>
+                        )}
+                      </div>
+                      {/* Compact action buttons */}
+                      <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        {actions?.map(btn => {
+                          const isPaid = item.don_hang_trang_thai === 'PAID';
+                          const isCancelDisabled = btn.action === 'cancel' && isPaid;
+                          return (
+                            <button
+                              key={btn.action}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${btn.className} ${isCancelDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              onClick={() => !isCancelDisabled && handleAction(item, btn.action)}
+                              disabled={isCancelDisabled}
+                              title={isCancelDisabled ? 'Không thể hủy món đã thanh toán' : ''}
+                            >
+                              {btn.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         ) : (
+          /* Individual Item View */
           data.map(item => {
             // Parse options nếu là string
             const options = typeof item.options === 'string' ? JSON.parse(item.options || '[]') : (item.options || []);
@@ -407,9 +778,61 @@ export default function Kitchen() {
             return (
             <div
               key={item.id}
-              className="bg-white rounded-xl p-5 border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer"
+              className={`bg-white rounded-xl p-5 border-2 hover:shadow-lg transition-all duration-200 cursor-pointer ${
+                // Highlight if selected
+                selectedItems.has(item.id) ? 'ring-2 ring-indigo-500 border-indigo-400' :
+                // Color-code border based on wait time
+                item.wait_seconds > 600 ? 'border-red-400 bg-red-50' :
+                item.wait_seconds > 300 ? 'border-yellow-400 bg-yellow-50' :
+                'border-gray-200 hover:border-blue-300'
+              }`}
               onClick={() => setItemDetailDialog({ open: true, item })}
             >
+              {/* Order ID Badge - Nổi bật */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {/* Checkbox */}
+                  {!isManagerViewMode && (
+                    <label className="flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(item.id)}
+                        onChange={() => toggleSelectItem(item.id)}
+                        className="w-5 h-5 rounded border-2 border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </label>
+                  )}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-sm">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    </svg>
+                    #{item.don_hang_id}
+                  </span>
+                  {/* Loại đơn hàng */}
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                    item.order_type === 'DELIVERY' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                    item.order_type === 'TAKEAWAY' ? 'bg-cyan-100 text-cyan-700 border border-cyan-200' :
+                    'bg-gray-100 text-gray-700 border border-gray-200'
+                  }`}>
+                    {item.order_type === 'DELIVERY' ? '🚚 Giao hàng' :
+                     item.order_type === 'TAKEAWAY' ? '🥡 Mang đi' : '🍽️ Tại bàn'}
+                  </span>
+                </div>
+                {/* Thời gian chờ với màu */}
+                {item.wait_seconds !== undefined && (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold ${
+                    item.wait_seconds > 600 ? 'bg-red-500 text-white animate-pulse' :
+                    item.wait_seconds > 300 ? 'bg-yellow-500 text-white' :
+                    'bg-green-500 text-white'
+                  }`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {formatWaitTime(item.wait_seconds)}
+                  </span>
+                )}
+              </div>
+
               {/* Header: Tên món & Số lượng */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -425,12 +848,15 @@ export default function Kitchen() {
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-sm flex-wrap">
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg font-medium border border-gray-200">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      {item.ten_ban || 'Mang đi'}
-                    </span>
+                    {/* Chỉ hiện tên bàn nếu là đơn tại bàn */}
+                    {item.ten_ban && (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg font-medium border border-gray-200">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        {item.ten_ban}
+                      </span>
+                    )}
                     {item.khu_vuc_ten && (
                       <span className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg font-medium border border-purple-200">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -555,7 +981,7 @@ export default function Kitchen() {
         )}
       </div>
     </div>
-  );
+  );};
 
   return (
     <AuthedLayout
@@ -691,6 +1117,21 @@ export default function Kitchen() {
                   </svg>
                 </div>
               </div>
+
+              {/* Toggle Group by Order */}
+              <button
+                onClick={() => setGroupByOrder(!groupByOrder)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-sm ${
+                  groupByOrder 
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+                    : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-indigo-400'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Gom theo đơn
+              </button>
             </div>
           </div>
         </div>
@@ -714,7 +1155,10 @@ export default function Kitchen() {
               </svg>
             }
             data={queued}
+            allData={allQueued}
             bgColor="bg-[#c9975b]"
+            filter={queuedFilter}
+            setFilter={setQueuedFilter}
             actions={isManagerViewMode ? [] : [
               {
                 label: (
@@ -742,6 +1186,7 @@ export default function Kitchen() {
                 className: 'bg-red-500 text-white border-2 border-red-500 hover:bg-white hover:text-red-600 hover:border-red-500'
               }
             ]}
+            groupByOrder={groupByOrder}
           />
 
           <KitchenColumn
@@ -752,7 +1197,10 @@ export default function Kitchen() {
               </svg>
             }
             data={making}
+            allData={allMaking}
             bgColor="bg-blue-500"
+            filter={makingFilter}
+            setFilter={setMakingFilter}
             actions={isManagerViewMode ? [] : [
               {
                 label: (
@@ -767,6 +1215,7 @@ export default function Kitchen() {
                 className: 'bg-green-500 text-white border-2 border-green-500 hover:bg-white hover:text-green-600 hover:border-green-500'
               }
             ]}
+            groupByOrder={groupByOrder}
           />
         </div>
       )}

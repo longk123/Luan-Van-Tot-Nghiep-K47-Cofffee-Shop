@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import AuthedLayout from '../layouts/AuthedLayout.jsx';
 import { getUser } from '../auth.js';
 import SystemSettings from '../components/admin/SystemSettings.jsx';
-import SystemLogs from '../components/admin/SystemLogs.jsx';
 import SystemHealth from '../components/admin/SystemHealth.jsx';
 // Import Manager Dashboard để reuse toàn bộ logic
 import ManagerDashboard from './ManagerDashboard.jsx';
@@ -13,7 +12,6 @@ import {
   Shield, 
   BarChart3, 
   Settings, 
-  FileText, 
   HeartPulse, 
   Users, 
   UtensilsCrossed, 
@@ -50,11 +48,6 @@ export default function AdminDashboard() {
       id: 'settings', 
       label: 'Cấu hình hệ thống', 
       icon: <Settings className="w-5 h-5" />
-    },
-    { 
-      id: 'logs', 
-      label: 'System Logs', 
-      icon: <FileText className="w-5 h-5" />
     },
     { 
       id: 'health', 
@@ -115,7 +108,6 @@ export default function AdminDashboard() {
             </div>
           )}
           {activeTab === 'settings' && <SystemSettings />}
-          {activeTab === 'logs' && <SystemLogs />}
           {activeTab === 'health' && <SystemHealth />}
         </div>
       </div>

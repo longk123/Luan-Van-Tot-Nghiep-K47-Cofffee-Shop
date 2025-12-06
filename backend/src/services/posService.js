@@ -153,6 +153,7 @@ export default {
     // Nếu là waiter, lấy TẤT CẢ đơn TAKEAWAY (để hỗ trợ khách hàng và làm việc nhóm)
     // Frontend sẽ có filter "Đơn của tôi" để waiter dễ tìm đơn do mình tạo
     // Quyền chỉnh sửa vẫn giới hạn: chỉ có thể sửa đơn do mình tạo
+    // FIFO: đơn cũ nhất hiển thị trước (opened_at ASC)
     if (isWaiterUser && userId) {
       const { rows } = await pool.query(`
         SELECT 
@@ -161,14 +162,16 @@ export default {
           dh.ly_do_huy
         FROM v_takeaway_pending vtp
         JOIN don_hang dh ON dh.id = vtp.id
-        ORDER BY dh.opened_at DESC
+        ORDER BY dh.opened_at ASC
       `);
       return rows;
     }
     
     // Nếu không phải waiter (cashier/manager/admin), lấy tất cả đơn (OPEN + PAID)
+    // FIFO: đơn cũ nhất hiển thị trước (opened_at ASC)
     const { rows } = await pool.query(`
       SELECT * FROM v_takeaway_pending
+      ORDER BY opened_at ASC
     `);
     
     return rows;
@@ -203,6 +206,7 @@ export default {
     // 1. Tất cả đơn PENDING (chưa có shipper_id) - để claim
     // 2. Đơn đã được phân công cho họ (shipper_id = userId) - để giao hàng
     // Loại trừ đơn FAILED (giao thất bại)
+    // FIFO: đơn cũ nhất hiển thị trước (opened_at ASC)
     if (isWaiterUser && userId) {
       const { rows } = await pool.query(`
         SELECT * FROM v_delivery_pending
@@ -213,15 +217,17 @@ export default {
             WHEN shipper_id IS NULL THEN 0  -- Đơn PENDING ưu tiên hiển thị trước
             ELSE 1
           END,
-          opened_at DESC
+          opened_at ASC
       `, [userId]);
       return rows;
     }
     
     // Nếu không phải waiter (cashier/manager/admin), lấy tất cả đơn (trừ FAILED)
+    // FIFO: đơn cũ nhất hiển thị trước (opened_at ASC)
     const { rows } = await pool.query(`
       SELECT * FROM v_delivery_pending
       WHERE delivery_status IS NULL OR delivery_status != 'FAILED'
+      ORDER BY opened_at ASC
     `);
     
     return rows;
@@ -666,27 +672,25 @@ export default {
     const checkIsNinhKieu = (address) => {
       if (!address) return false;
       const addressLower = address.toLowerCase();
-      // Danh sách các phường thuộc quận Ninh Kiều, Cần Thơ
-      const ninhKieuKeywords = [
-        'ninh kiều',
-        'xuân khánh',
-        'an khánh',
-        'an hòa',
-        'an cư',
-        'an nghiệp',
-        'an phú',
-        'an thới',
-        'cái khế',
-        'hưng lợi',
-        'tân an',
-        'thới bình',
-        'an bình',
-        'an lạc'
+      // Danh sách 4 phường mới sau sáp nhập (Q. Ninh Kiều, TP. Cần Thơ)
+      // 1. Phường Ninh Kiều (từ Tân An, Thới Bình, Xuân Khánh cũ)
+      // 2. Phường Cái Khế (từ An Hòa, Cái Khế cũ, một phần Bùi Hữu Nghĩa)
+      // 3. Phường Tân An (từ An Khánh, Hưng Lợi cũ)
+      // 4. Phường An Bình (từ An Bình cũ, xã Mỹ Khánh, một phần Long Tuyền)
+      const allowedWards = [
+        // Phường Ninh Kiều mới + các phường cũ sáp nhập vào
+        'ninh kiều', 'ninh kieu', 'tân an', 'tan an', 'thới bình', 'thoi binh', 'xuân khánh', 'xuan khanh',
+        // Phường Cái Khế mới + các phường cũ sáp nhập vào
+        'cái khế', 'cai khe', 'an hòa', 'an hoa', 'bùi hữu nghĩa', 'bui huu nghia',
+        // Phường Tân An mới + các phường cũ sáp nhập vào
+        'an khánh', 'an khanh', 'hưng lợi', 'hung loi',
+        // Phường An Bình mới + các khu vực sáp nhập vào
+        'an bình', 'an binh', 'mỹ khánh', 'my khanh', 'long tuyền', 'long tuyen'
       ];
-      // Phải có từ khóa Ninh Kiều hoặc các phường thuộc Ninh Kiều VÀ phải có Cần Thơ
-      const hasNinhKieu = ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+      // Phải có từ khóa phường thuộc Q. Ninh Kiều VÀ phải có Cần Thơ
+      const hasValidWard = allowedWards.some(keyword => addressLower.includes(keyword));
       const hasCanTho = addressLower.includes('cần thơ') || addressLower.includes('can tho');
-      return hasNinhKieu && hasCanTho;
+      return hasValidWard && hasCanTho;
     };
     
     // Kiểm tra đơn hàng có tồn tại và là DELIVERY không
@@ -707,9 +711,9 @@ export default {
       throw err;
     }
     
-    // Validate địa chỉ phải thuộc quận Ninh Kiều
+    // Validate địa chỉ phải thuộc 4 phường Q. Ninh Kiều
     if (data.deliveryAddress && !checkIsNinhKieu(data.deliveryAddress)) {
-      const err = new Error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ');
+      const err = new Error('Chúng tôi chỉ giao hàng đến 4 phường Q. Ninh Kiều: Ninh Kiều, Cái Khế, Tân An, An Bình (TP. Cần Thơ)');
       err.status = 400;
       throw err;
     }

@@ -5,14 +5,7 @@ const query = (text, params) => pool.query(text, params);
 export default {
   // Danh sách bàn + tóm tắt order OPEN (nếu có)
   async getTablesWithSummary({ areaId = null }) {
-    // Tự động hủy đơn mang đi quá 30 phút
-    await pool.query(`
-      UPDATE don_hang
-      SET trang_thai = 'CANCELLED'
-      WHERE order_type = 'TAKEAWAY'
-        AND trang_thai = 'OPEN'
-        AND opened_at < NOW() - INTERVAL '30 minutes';
-    `);
+    // Không tự động hủy đơn - để cashier chủ động quản lý và hủy đơn khi cần
 
     const params = [];
     let where = '1=1';

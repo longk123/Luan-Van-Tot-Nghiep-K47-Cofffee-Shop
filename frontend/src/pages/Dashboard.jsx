@@ -72,6 +72,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
   const [takeawayLoading, setTakeawayLoading] = useState(false);
   const [takeawayFilterTab, setTakeawayFilterTab] = useState('TAKEAWAY'); // 'TAKEAWAY', 'DELIVERY'
   const [selectedDeliveryOrders, setSelectedDeliveryOrders] = useState([]); // Các đơn DELIVERY đã chọn để claim
+  const [selectedTakeawayOrders, setSelectedTakeawayOrders] = useState([]); // Các đơn TAKEAWAY đã chọn để giao cho khách
   const [deliveryFilterTab, setDeliveryFilterTab] = useState('ALL'); // 'ALL', 'HUNTING', 'MY_CLAIMED' - Filter cho tab Giao hàng
   
   // Confirmation dialog states
@@ -1038,8 +1039,8 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                 drawer.order?.trang_thai === 'PAID' || 
                 drawer.order?.status === 'PAID' || 
                 !shift || 
-                shift.status !== 'OPEN' ||
-                (isWaiter && drawer.order?.nhan_vien_id !== getUser()?.user_id) // Waiter chỉ có thể thêm món vào đơn do mình tạo
+                shift.status !== 'OPEN'
+                // Waiter có thể thêm món cho tất cả đơn (giống Cashier)
               }
             />
           </div>
@@ -1258,8 +1259,75 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                     return sum + orderTotal + deliveryFee;
                   }, 0);
 
+                  // Tính các đơn mang đi đã chọn (chỉ đơn đã thanh toán và món đã xong)
+                  const readyTakeawayOrders = takeawayFilterTab === 'TAKEAWAY' 
+                    ? filteredOrders.filter(o => 
+                        o.trang_thai === 'PAID' && 
+                        o.items?.every(item => item.trang_thai_che_bien === 'DONE')
+                      )
+                    : [];
+                  const selectedTakeawayReadyOrders = readyTakeawayOrders.filter(
+                    o => selectedTakeawayOrders.includes(o.id)
+                  );
+
                   return (
                     <>
+                      {/* Batch action bar cho đơn TAKEAWAY */}
+                      {takeawayFilterTab === 'TAKEAWAY' && selectedTakeawayReadyOrders.length > 0 && (
+                        <div className="bg-emerald-500 rounded-2xl shadow-lg border-2 border-emerald-600 p-4 mb-4 sticky top-4 z-10">
+                          <div className="flex items-center justify-between">
+                            <div className="text-white">
+                              <p className="text-sm font-medium opacity-90">
+                                Đã chọn {selectedTakeawayReadyOrders.length} đơn mang đi
+                              </p>
+                              <p className="text-lg font-semibold mt-1">
+                                Sẵn sàng giao cho khách
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setSelectedTakeawayOrders([])}
+                                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all border border-white/30"
+                              >
+                                Bỏ chọn
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (selectedTakeawayReadyOrders.length === 0) return;
+                                  try {
+                                    // Giao tất cả đơn đã chọn
+                                    for (const order of selectedTakeawayReadyOrders) {
+                                      await api.post(`/pos/orders/${order.id}/deliver`);
+                                    }
+                                    setToast({
+                                      show: true,
+                                      type: 'success',
+                                      title: 'Giao hàng thành công!',
+                                      message: `Đã giao ${selectedTakeawayReadyOrders.length} đơn cho khách`
+                                    });
+                                    setSelectedTakeawayOrders([]);
+                                    loadTakeawayOrders();
+                                  } catch (err) {
+                                    setToast({
+                                      show: true,
+                                      type: 'error',
+                                      title: 'Lỗi',
+                                      message: err.message || 'Không thể giao đơn'
+                                    });
+                                  }
+                                }}
+                                className="px-6 py-2 bg-white text-emerald-600 rounded-lg font-bold hover:bg-emerald-50 transition-all shadow-md flex items-center gap-2"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Giao {selectedTakeawayReadyOrders.length} đơn
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Hiển thị tổng tiền và nút "Nhận tất cả đã chọn" khi có đơn được chọn */}
                       {isWaiter && selectedPendingOrders.length > 0 && (
                         <div className="bg-blue-500 rounded-2xl shadow-lg border-2 border-blue-600 p-4 mb-4 sticky top-4 z-10">
@@ -1343,6 +1411,7 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                           isManagerViewMode={isManagerViewMode}
                           isWaiter={isWaiter}
                             selectedDeliveryOrders={selectedDeliveryOrders}
+                            selectedTakeawayOrders={selectedTakeawayOrders}
                             onToggleSelectOrder={(orderId) => {
                               setSelectedDeliveryOrders(prev => {
                                 if (prev.includes(orderId)) {
@@ -1357,6 +1426,15 @@ export default function Dashboard({ defaultMode = 'dashboard' }) {
                                     });
                                     return prev;
                                   }
+                                  return [...prev, orderId];
+                                }
+                              });
+                            }}
+                            onToggleSelectTakeaway={(orderId) => {
+                              setSelectedTakeawayOrders(prev => {
+                                if (prev.includes(orderId)) {
+                                  return prev.filter(id => id !== orderId);
+                                } else {
                                   return [...prev, orderId];
                                 }
                               });

@@ -2,12 +2,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { customerApi } from '../../api/customerApi';
-import { Coffee, Calendar, ShoppingBag, ArrowRight, CupSoda, GlassWater, IceCream, Cookie, UtensilsCrossed } from 'lucide-react';
+import { Coffee, Calendar, ShoppingBag, ArrowRight, CupSoda, GlassWater, IceCream, Cookie, UtensilsCrossed, Gift, Tag, Percent } from 'lucide-react';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [featuredItems, setFeaturedItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export default function HomePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [itemsRes, categoriesRes] = await Promise.all([
+      const [itemsRes, categoriesRes, promotionsRes] = await Promise.all([
         customerApi.getMenuItems().catch(err => {
           console.error('Error loading menu items:', err);
           return { data: [] };
@@ -25,11 +26,16 @@ export default function HomePage() {
         customerApi.getCategories().catch(err => {
           console.error('Error loading categories:', err);
           return { data: [] };
+        }),
+        customerApi.getPromotions().catch(err => {
+          console.error('Error loading promotions:', err);
+          return { data: [] };
         })
       ]);
 
       console.log('HomePage - Items response:', itemsRes);
       console.log('HomePage - Categories response:', categoriesRes);
+      console.log('HomePage - Promotions response:', promotionsRes);
 
       // Get first 6 items as featured
       if (itemsRes && itemsRes.data && Array.isArray(itemsRes.data)) {
@@ -45,14 +51,33 @@ export default function HomePage() {
         console.error('Invalid categories response:', categoriesRes);
         setCategories([]);
       }
+
+      // Get first 3 promotions for homepage
+      if (promotionsRes && promotionsRes.data && Array.isArray(promotionsRes.data)) {
+        setPromotions(promotionsRes.data.slice(0, 3));
+      } else {
+        setPromotions([]);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
-      // Don't use alert, just log and set empty arrays
       setFeaturedItems([]);
       setCategories([]);
+      setPromotions([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Get discount display text
+  const getDiscountText = (promo) => {
+    if (promo.loai_giam === 'PERCENT') {
+      return `-${promo.gia_tri}%`;
+    } else if (promo.loai_giam === 'FIXED') {
+      return `-${promo.gia_tri?.toLocaleString('vi-VN')}đ`;
+    } else if (promo.loai_giam === 'PRODUCT') {
+      return 'Tặng món';
+    }
+    return promo.gia_tri;
   };
 
   return (
@@ -119,6 +144,85 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Promotions Section */}
+      {promotions.length > 0 && (
+        <section className="py-16 bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Gift className="w-8 h-8 text-[#c9975b]" />
+                  <h2 className="text-3xl font-bold text-gray-900">Khuyến mãi hot</h2>
+                </div>
+                <p className="text-gray-600">Ưu đãi đặc biệt dành cho bạn</p>
+              </div>
+              <Link
+                to="/customer/promotions"
+                className="hidden md:flex items-center gap-2 px-5 py-2.5 border-2 border-[#c9975b] text-[#c9975b] font-semibold rounded-lg hover:bg-[#c9975b] hover:text-white transition"
+              >
+                <span>Xem tất cả</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {promotions.map((promo) => (
+                <div 
+                  key={promo.id}
+                  className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition overflow-hidden group cursor-pointer"
+                  onClick={() => navigate('/customer/promotions')}
+                >
+                  {/* Header */}
+                  <div className="relative bg-gradient-to-r from-[#c9975b] to-[#e8b97a] p-5 text-white">
+                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-white/20 rounded-full"></div>
+                    <div className="absolute right-3 top-3">
+                      <span className="text-2xl font-bold">{getDiscountText(promo)}</span>
+                    </div>
+                    
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full text-xs font-medium mb-2">
+                      {promo.loai_giam === 'PERCENT' && <Percent className="w-3 h-3" />}
+                      {promo.loai_giam === 'FIXED' && <Tag className="w-3 h-3" />}
+                      {promo.loai_giam === 'PRODUCT' && <Gift className="w-3 h-3" />}
+                      {promo.loai_giam === 'PERCENT' ? 'Giảm %' : promo.loai_giam === 'FIXED' ? 'Giảm tiền' : 'Tặng món'}
+                    </span>
+                    
+                    <h3 className="text-lg font-bold pr-14 line-clamp-1">{promo.ten}</h3>
+                  </div>
+                  
+                  {/* Body */}
+                  <div className="p-4">
+                    {promo.ma && (
+                      <div className="mb-3">
+                        <code className="px-3 py-1.5 bg-amber-50 border-2 border-dashed border-amber-300 rounded-lg text-amber-700 font-mono font-bold text-sm">
+                          {promo.ma}
+                        </code>
+                      </div>
+                    )}
+                    
+                    {promo.gia_tri_don_toi_thieu > 0 && (
+                      <p className="text-sm text-gray-600">
+                        Đơn tối thiểu: <strong>{promo.gia_tri_don_toi_thieu?.toLocaleString('vi-VN')}đ</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile view all link */}
+            <div className="md:hidden text-center mt-8">
+              <Link
+                to="/customer/promotions"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#c9975b] text-white font-semibold rounded-lg hover:bg-[#d4a574] transition"
+              >
+                <span>Xem tất cả khuyến mãi</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Featured Products */}
       <section className="py-16 bg-gray-50">

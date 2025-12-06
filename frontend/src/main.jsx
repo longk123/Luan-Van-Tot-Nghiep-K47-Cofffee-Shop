@@ -36,6 +36,7 @@ import CustomerReservationPage from './pages/customer/CustomerReservationPage.js
 import CustomerLogin from './pages/customer/CustomerLogin.jsx'
 import CustomerRegister from './pages/customer/CustomerRegister.jsx'
 import CustomerProfilePage from './pages/customer/CustomerProfilePage.jsx'
+import PromotionsPage from './pages/customer/PromotionsPage.jsx'
 
 const router = createBrowserRouter([
   { path: '/', element: <Login /> },
@@ -158,6 +159,7 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'menu', element: <MenuPage /> },
       { path: 'menu/:id', element: <ProductDetailPage /> },
+      { path: 'promotions', element: <PromotionsPage /> },
       { path: 'cart', element: <CartPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'orders', element: <OrderHistoryPage /> },

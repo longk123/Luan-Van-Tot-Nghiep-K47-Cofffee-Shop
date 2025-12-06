@@ -83,6 +83,9 @@ export default function CustomerHeader() {
             <Link to="/customer/menu" className="text-gray-700 hover:text-[#c9975b] font-medium transition">
               Thực đơn
             </Link>
+            <Link to="/customer/promotions" className="text-gray-700 hover:text-[#c9975b] font-medium transition">
+              Khuyến mãi
+            </Link>
             <Link to="/customer/reservation" className="text-gray-700 hover:text-[#c9975b] font-medium transition">
               Đặt bàn
             </Link>
@@ -166,6 +169,13 @@ export default function CustomerHeader() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Thực đơn
+              </Link>
+              <Link
+                to="/customer/promotions"
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Khuyến mãi
               </Link>
               <Link
                 to="/customer/reservation"

@@ -170,12 +170,16 @@ export default function Login() {
       const isWaiter = originalUserRoles.some(role => 
         role.toLowerCase() === 'waiter'
       );
+      const isAdmin = originalUserRoles.some(role => 
+        role.toLowerCase() === 'admin'
+      );
       const isManager = originalUserRoles.some(role => 
-        ['manager', 'admin'].includes(role.toLowerCase())
+        role.toLowerCase() === 'manager'
       );
       
       console.log('🔍 Login - isKitchenStaff:', isKitchenStaff);
       console.log('🔍 Login - isWaiter:', isWaiter);
+      console.log('🔍 Login - isAdmin:', isAdmin);
       console.log('🔍 Login - isManager:', isManager);
       
       // Kiểm tra xem có payment result pending không
@@ -225,6 +229,9 @@ export default function Login() {
         } else if (isWaiter) {
           console.log('🚚 Waiter → redirect to /dashboard with takeaway tab');
           navigate("/dashboard?tab=takeaway");
+        } else if (isAdmin) {
+          console.log('👑 Admin → redirect to /admin');
+          window.location.href = '/admin';
         } else if (isManager) {
           console.log('👔 Manager → redirect to /manager');
           window.location.href = '/manager';

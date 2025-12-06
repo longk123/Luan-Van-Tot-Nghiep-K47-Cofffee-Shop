@@ -103,6 +103,8 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
   // Hủy các lô hàng đã hết hạn
   const handleDisposeExpired = async () => {
     const expiredBatches = expiringBatches.filter(b => b.daysRemaining < 0);
+    console.log('🔍 Expired batches to dispose:', expiredBatches);
+    
     if (expiredBatches.length === 0) {
       alert('Không có lô hàng nào đã hết hạn để hủy');
       return;
@@ -110,16 +112,25 @@ const BatchExpiryNotification = forwardRef(function BatchExpiryNotification({ sh
     
     setDisposing(true);
     try {
-      const batchIds = expiredBatches.map(b => b.batchId);
+      // Đảm bảo batchIds là mảng số nguyên
+      const batchIds = expiredBatches.map(b => parseInt(b.batchId));
+      console.log('🔍 Batch IDs to dispose (parsed):', batchIds);
+      
       const res = await api.disposeExpiredBatches({ 
         batchIds, 
         reason: 'Hết hạn sử dụng - Hủy tự động' 
       });
       
+      console.log('🔍 Dispose response:', res);
+      
+      // Backend trả về { ok, data: { disposed, ... } }
+      const disposed = res.data?.disposed || res.disposed || 0;
+      const errors = res.data?.errors || res.errors || 0;
+      
       setDisposeResult({
         success: true,
-        message: `Đã hủy ${res.data?.disposed || 0} lô hàng thành công`,
-        details: res.data
+        message: `Đã hủy ${disposed} lô hàng thành công${errors > 0 ? `, ${errors} lỗi` : ''}`,
+        details: res.data || res
       });
       
       // Reload danh sách

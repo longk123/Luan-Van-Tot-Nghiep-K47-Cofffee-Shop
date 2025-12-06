@@ -24,6 +24,13 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
+  // Yêu cầu đăng nhập để thanh toán
+  useEffect(() => {
+    if (!isCustomerLoggedIn()) {
+      navigate('/customer/login?return=/customer/checkout&message=Vui lòng đăng nhập để đặt hàng');
+    }
+  }, [navigate]);
+  
   // Order type
   const [orderType, setOrderType] = useState('TAKEAWAY'); // TAKEAWAY or DELIVERY
   
@@ -42,7 +49,7 @@ export default function CheckoutPage() {
   
   // Delivery info (for delivery - giao hàng tận nhà)
   const [deliveryInfo, setDeliveryInfo] = useState({
-    deliveryAddress: '',  // Địa chỉ giao hàng
+    deliveryAddress: '',  // Địa chỉ giao hàng (tự động ghép từ số nhà + phường)
     deliveryPhone: '',   // Số điện thoại người nhận
     deliveryTime: '',     // Thời gian muốn nhận hàng
     deliveryNotes: '',    // Ghi chú địa chỉ
@@ -52,73 +59,161 @@ export default function CheckoutPage() {
     deliveryFee: 0        // Phí giao hàng
   });
   
+  // Địa chỉ giao hàng - chọn phường và nhập số nhà/đường
+  const [selectedWard, setSelectedWard] = useState('');
+  const [streetAddress, setStreetAddress] = useState('');
+  
+  // Danh sách 4 phường mới sau sáp nhập (Q. Ninh Kiều, TP. Cần Thơ)
+  // Theo Nghị quyết sáp nhập 2024-2025
+  const ALLOWED_WARDS = [
+    { 
+      id: 'ninh_kieu', 
+      name: 'Phường Ninh Kiều', 
+      description: 'Từ P. Tân An, Thới Bình, Xuân Khánh cũ',
+      oldWards: ['tân an', 'tan an', 'thới bình', 'thoi binh', 'xuân khánh', 'xuan khanh', 'ninh kiều', 'ninh kieu']
+    },
+    { 
+      id: 'cai_khe', 
+      name: 'Phường Cái Khế', 
+      description: 'Từ P. An Hòa, Cái Khế cũ, một phần Bùi Hữu Nghĩa',
+      oldWards: ['an hòa', 'an hoa', 'cái khế', 'cai khe', 'bùi hữu nghĩa', 'bui huu nghia']
+    },
+    { 
+      id: 'tan_an', 
+      name: 'Phường Tân An', 
+      description: 'Từ P. An Khánh, Hưng Lợi cũ',
+      oldWards: ['an khánh', 'an khanh', 'hưng lợi', 'hung loi']
+    },
+    { 
+      id: 'an_binh', 
+      name: 'Phường An Bình', 
+      description: 'Từ P. An Bình cũ, xã Mỹ Khánh, một phần Long Tuyền',
+      oldWards: ['an bình', 'an binh', 'mỹ khánh', 'my khanh', 'long tuyền', 'long tuyen']
+    }
+  ];
+  
   // Store location (địa chỉ ảo cho demo)
   const STORE_LOCATION = {
     lat: 10.0310,
     lng: 105.7690,
-    address: '123 Đường 3/2, Phường Xuân Khánh, Ninh Kiều, Cần Thơ' // Địa chỉ demo
+    address: '123 Đường 3/2, Phường Ninh Kiều, Q. Ninh Kiều, TP. Cần Thơ'
   };
   
   const DELIVERY_FEE = 8000; // Phí giao hàng cố định
   
-  // Kiểm tra địa chỉ có thuộc quận Ninh Kiều, Cần Thơ không
-  const checkIsNinhKieu = (address) => {
-    if (!address) return false;
+  // Kiểm tra địa chỉ thuộc phường nào trong 4 phường mới
+  const detectWard = (address) => {
+    if (!address) return null;
     const addressLower = address.toLowerCase();
-    // Danh sách các phường thuộc quận Ninh Kiều, Cần Thơ
-    const ninhKieuKeywords = [
-      'ninh kiều',
-      'xuân khánh',
-      'an khánh',
-      'an hòa',
-      'an cư',
-      'an nghiệp',
-      'an phú',
-      'an thới',
-      'cái khế',
-      'hưng lợi',
-      'tân an',
-      'thới bình',
-      'an bình',
-      'an lạc'
-    ];
-    // Phải có từ khóa Ninh Kiều hoặc các phường thuộc Ninh Kiều VÀ phải có Cần Thơ
-    const hasNinhKieu = ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+    
+    // Kiểm tra có Cần Thơ không
     const hasCanTho = addressLower.includes('cần thơ') || addressLower.includes('can tho');
-    return hasNinhKieu && hasCanTho;
+    if (!hasCanTho) return null;
+    
+    // Tìm phường phù hợp
+    for (const ward of ALLOWED_WARDS) {
+      if (ward.oldWards.some(keyword => addressLower.includes(keyword))) {
+        return ward;
+      }
+    }
+    return null;
+  };
+  
+  // Kiểm tra địa chỉ có hợp lệ không
+  const checkIsValidAddress = (address) => {
+    return detectWard(address) !== null;
   };
   
   // Payment method
   const [paymentMethod, setPaymentMethod] = useState('CASH'); // CASH, ONLINE, CARD
 
   const mapRef = useRef(null);
-  const autocompleteRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const storeMarkerRef = useRef(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // Dùng để hiển thị địa chỉ đầy đủ
+
+  // Tự động ghép địa chỉ khi chọn phường hoặc nhập số nhà/đường
+  useEffect(() => {
+    if (selectedWard && streetAddress.trim()) {
+      const ward = ALLOWED_WARDS.find(w => w.id === selectedWard);
+      if (ward) {
+        const fullAddress = `${streetAddress.trim()}, ${ward.name}, TP. Cần Thơ`;
+        setDeliveryInfo(prev => ({
+          ...prev,
+          deliveryAddress: fullAddress,
+          deliveryFee: DELIVERY_FEE
+        }));
+        setSearchQuery(fullAddress);
+        
+        // Geocode địa chỉ để lấy tọa độ
+        geocodeAddress(fullAddress, ward.name);
+      }
+    } else if (!selectedWard || !streetAddress.trim()) {
+      setDeliveryInfo(prev => ({
+        ...prev,
+        deliveryAddress: '',
+        latitude: null,
+        longitude: null,
+        distance: null,
+        deliveryFee: 0
+      }));
+      setSearchQuery('');
+    }
+  }, [selectedWard, streetAddress]);
+  
+  // Geocode địa chỉ để lấy tọa độ và tính khoảng cách
+  const geocodeAddress = async (fullAddress, wardName) => {
+    try {
+      // Tìm theo tên phường trước
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(wardName + ', Cần Thơ, Việt Nam')}&limit=1&addressdetails=1&accept-language=vi`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
+        
+        setDeliveryInfo(prev => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+          distance: distance,
+          deliveryFee: DELIVERY_FEE
+        }));
+        
+        // Cập nhật marker trên bản đồ
+        if (mapInstanceRef.current) {
+          if (markerRef.current) {
+            mapInstanceRef.current.removeLayer(markerRef.current);
+          }
+          const deliveryIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          });
+          markerRef.current = L.marker([lat, lng], { icon: deliveryIcon })
+            .addTo(mapInstanceRef.current)
+            .bindPopup(`Giao đến: ${fullAddress}`);
+          
+          mapInstanceRef.current.setView([lat, lng], 15);
+        }
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+    }
+  };
 
   useEffect(() => {
     loadCart();
     if (isCustomerLoggedIn()) {
       loadCustomerInfo();
     }
-  }, []);
-
-  // Close search results when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target)) {
-        setSearchResults([]);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, []);
 
   // Load Leaflet map when DELIVERY is selected
@@ -176,7 +271,7 @@ export default function CheckoutPage() {
 
     try {
       // Initialize Leaflet map
-      const map = L.map(mapRef.current).setView([STORE_LOCATION.lat, STORE_LOCATION.lng], 15);
+      const map = L.map(mapRef.current).setView([STORE_LOCATION.lat, STORE_LOCATION.lng], 14);
 
       // Add OpenStreetMap tile layer
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -199,15 +294,13 @@ export default function CheckoutPage() {
         .addTo(map)
         .bindPopup('Quán của chúng tôi');
 
-      // Không cần vòng tròn bán kính - chỉ giao hàng trong quận Ninh Kiều
-
-      // Add click listener to map for selecting location
+      // Click trên bản đồ để chọn địa chỉ
       map.on('click', async (e) => {
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
 
-        // Reverse geocoding using Nominatim (free, no API key needed)
         try {
+          // Reverse geocoding using Nominatim
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=vi`
           );
@@ -215,29 +308,42 @@ export default function CheckoutPage() {
 
           if (data && data.display_name) {
             const address = data.display_name;
+            const detectedWard = detectWard(address);
             
-            // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
-            if (!checkIsNinhKieu(address)) {
-              toast.error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ. Vui lòng chọn địa chỉ khác.');
+            if (!detectedWard) {
+              toast.error('Vị trí này không thuộc 4 phường được giao hàng (Ninh Kiều, Cái Khế, Tân An, An Bình). Vui lòng chọn vị trí khác.');
               return;
             }
             
+            // Trích xuất số nhà/đường từ địa chỉ
+            let street = '';
+            if (data.address) {
+              const parts = [];
+              if (data.address.house_number) parts.push(data.address.house_number);
+              if (data.address.road) parts.push(data.address.road);
+              if (data.address.neighbourhood) parts.push(data.address.neighbourhood);
+              street = parts.join(' ') || address.split(',')[0];
+            } else {
+              street = address.split(',')[0];
+            }
+            
             const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
-            const deliveryFee = DELIVERY_FEE;
-
+            
+            // Tự động điền vào các field
+            setSelectedWard(detectedWard.id);
+            setStreetAddress(street);
+            
             // Update delivery info
+            const fullAddress = `${street}, ${detectedWard.name}, Q. Ninh Kiều, TP. Cần Thơ`;
             setDeliveryInfo(prev => ({
               ...prev,
-              deliveryAddress: address,
+              deliveryAddress: fullAddress,
               latitude: lat,
               longitude: lng,
               distance: distance,
-              deliveryFee: deliveryFee
+              deliveryFee: DELIVERY_FEE
             }));
-
-            // Update search input
-            setSearchQuery(address);
-            setSearchResults([]);
+            setSearchQuery(fullAddress);
 
             // Add/update marker (blue)
             if (markerRef.current) {
@@ -253,11 +359,11 @@ export default function CheckoutPage() {
             });
             markerRef.current = L.marker([lat, lng], { icon: deliveryIcon })
               .addTo(map)
-              .bindPopup('Địa chỉ giao hàng');
+              .bindPopup(`Giao đến: ${fullAddress}`);
 
             map.setView([lat, lng], 16);
 
-            toast.success(`Đã chọn vị trí! Cách quán ${distance.toFixed(2)}km - Phí ship: ${DELIVERY_FEE.toLocaleString()}đ`);
+            toast.success(`✓ ${detectedWard.name} - Cách quán ${distance.toFixed(2)}km - Phí ship: ${DELIVERY_FEE.toLocaleString()}đ`);
           }
         } catch (error) {
           console.error('Error reverse geocoding:', error);
@@ -268,82 +374,6 @@ export default function CheckoutPage() {
       console.error('Error initializing Leaflet map:', error);
       toast.error('Có lỗi xảy ra khi khởi tạo bản đồ. Vui lòng thử lại.');
     }
-  };
-
-  // Search address using Nominatim (free geocoding service)
-  const searchAddress = async (query) => {
-    if (!query || query.trim().length < 3) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&countrycodes=vn&accept-language=vi`
-      );
-      const data = await response.json();
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error('Error searching address:', error);
-      toast.error('Không thể tìm kiếm địa chỉ. Vui lòng thử lại.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Handle address selection from search results
-  const handleAddressSelect = (result) => {
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-    const address = result.display_name;
-    
-    // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
-    if (!checkIsNinhKieu(address)) {
-      toast.error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ. Vui lòng chọn địa chỉ khác.');
-      setSearchQuery('');
-      setSearchResults([]);
-      return;
-    }
-    
-    const distance = calculateDistance(STORE_LOCATION.lat, STORE_LOCATION.lng, lat, lng);
-    const deliveryFee = DELIVERY_FEE;
-
-    // Update delivery info
-    setDeliveryInfo(prev => ({
-      ...prev,
-      deliveryAddress: address,
-      latitude: lat,
-      longitude: lng,
-      distance: distance,
-      deliveryFee: deliveryFee
-    }));
-
-    // Update search input
-    setSearchQuery(address);
-    setSearchResults([]);
-
-    // Add/update marker
-    if (markerRef.current && mapInstanceRef.current) {
-      mapInstanceRef.current.removeLayer(markerRef.current);
-    }
-    if (mapInstanceRef.current) {
-      const deliveryIcon = L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-      });
-      markerRef.current = L.marker([lat, lng], { icon: deliveryIcon })
-        .addTo(mapInstanceRef.current)
-        .bindPopup('Địa chỉ giao hàng');
-
-      mapInstanceRef.current.setView([lat, lng], 16);
-    }
-
-    toast.success(`Địa chỉ hợp lệ! Cách quán ${distance.toFixed(2)}km - Phí ship: ${DELIVERY_FEE.toLocaleString()}đ`);
   };
 
   // Enrich cart items with price information
@@ -457,17 +487,16 @@ export default function CheckoutPage() {
     }
 
     if (orderType === 'DELIVERY') {
+      if (!selectedWard) {
+        toast.warning('Vui lòng chọn phường giao hàng');
+        return;
+      }
+      if (!streetAddress.trim()) {
+        toast.warning('Vui lòng nhập số nhà, tên đường');
+        return;
+      }
       if (!deliveryInfo.deliveryAddress.trim()) {
-        toast.warning('Vui lòng chọn địa chỉ giao hàng');
-        return;
-      }
-      if (!deliveryInfo.latitude || !deliveryInfo.longitude) {
-        toast.warning('Vui lòng chọn địa chỉ từ bản đồ');
-        return;
-      }
-      // Kiểm tra địa chỉ có thuộc quận Ninh Kiều không
-      if (!checkIsNinhKieu(deliveryInfo.deliveryAddress)) {
-        toast.error('Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ. Vui lòng chọn địa chỉ khác.');
+        toast.warning('Vui lòng điền đầy đủ địa chỉ giao hàng');
         return;
       }
       if (!deliveryInfo.deliveryPhone.trim()) {
@@ -726,105 +755,25 @@ export default function CheckoutPage() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-blue-900">Địa chỉ quán:</p>
                       <p className="text-sm text-blue-800">{STORE_LOCATION.address}</p>
-                      <p className="text-xs text-blue-600 mt-1">Giao hàng: Toàn quận Ninh Kiều, Cần Thơ</p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Giao hàng: 4 phường Q. Ninh Kiều (Ninh Kiều, Cái Khế, Tân An, An Bình)
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
+                  {/* Bản đồ - Click để chọn địa chỉ */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Chọn địa chỉ giao hàng trên bản đồ <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative" ref={autocompleteRef}>
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          searchAddress(e.target.value);
-                        }}
-                        onFocus={() => {
-                          if (searchQuery.length >= 3) {
-                            searchAddress(searchQuery);
-                          }
-                        }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
-                        placeholder="Nhập địa chỉ hoặc click trên bản đồ..."
-                      />
-                      {isSearching && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <div className="w-5 h-5 border-2 border-[#c9975b] border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      )}
-                      {searchResults.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {searchResults.map((result, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => handleAddressSelect(result)}
-                              className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="flex items-start gap-2">
-                                <MapPin className="w-4 h-4 text-[#c9975b] flex-shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">{result.display_name}</p>
-                                  {result.address && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      {result.address.road && `${result.address.road}, `}
-                                      {result.address.ward && `${result.address.ward}, `}
-                                      {result.address.district && `${result.address.district}, `}
-                                      {result.address.city && result.address.city}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {deliveryInfo.deliveryAddress && (
-                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span className="font-medium">{deliveryInfo.deliveryAddress}</span>
-                        </div>
-                        {deliveryInfo.distance !== null && (
-                          <p className="text-xs mt-1">
-                            Khoảng cách: <strong>{deliveryInfo.distance.toFixed(2)}km</strong> từ quán
-                            {deliveryInfo.deliveryFee > 0 && (
-                              <> • Phí ship: <strong>{deliveryInfo.deliveryFee.toLocaleString('vi-VN')}đ</strong></>
-                            )}
-                          </p>
-                        )}
-                        {deliveryInfo.distance === null && deliveryInfo.deliveryAddress && (
-                          <p className="text-xs mt-1 text-yellow-600">
-                            ⚠️ Vui lòng chọn địa chỉ từ danh sách gợi ý hoặc click trên bản đồ
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {deliveryInfo.deliveryAddress && !checkIsNinhKieu(deliveryInfo.deliveryAddress) && (
-                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>Chúng tôi chỉ giao hàng trong quận Ninh Kiều, Cần Thơ</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Leaflet Map (OpenStreetMap - Free, no API key needed) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Bản đồ
+                      Chọn vị trí trên bản đồ <span className="text-gray-400 font-normal">(hoặc tự nhập bên dưới)</span>
                     </label>
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
                       <div 
                         ref={mapRef}
-                        className="w-full h-80"
+                        className="w-full h-72 cursor-crosshair"
                         style={{ 
-                          minHeight: '320px',
+                          minHeight: '288px',
                           position: 'relative',
                           zIndex: 1
                         }}
@@ -832,9 +781,70 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      Click trên bản đồ hoặc nhập địa chỉ để chọn vị trí giao hàng (chỉ giao hàng trong quận Ninh Kiều, Cần Thơ)
+                      Click vào bản đồ để chọn vị trí giao hàng. Chỉ chấp nhận 4 phường: Ninh Kiều, Cái Khế, Tân An, An Bình
                     </p>
                   </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-gray-200"></div>
+                    <span className="text-sm text-gray-400">hoặc tự nhập</span>
+                    <div className="flex-1 h-px bg-gray-200"></div>
+                  </div>
+                  
+                  {/* Chọn phường */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Chọn phường <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedWard}
+                      onChange={(e) => setSelectedWard(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent bg-white"
+                    >
+                      <option value="">-- Chọn phường --</option>
+                      {ALLOWED_WARDS.map(ward => (
+                        <option key={ward.id} value={ward.id}>
+                          {ward.name} ({ward.description})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Nhập số nhà, tên đường */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số nhà, tên đường <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={streetAddress}
+                      onChange={(e) => setStreetAddress(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#c9975b] focus:border-transparent"
+                      placeholder="Ví dụ: 123 Đường 3/2, Hẻm 5..."
+                    />
+                  </div>
+                  
+                  {/* Hiển thị địa chỉ đầy đủ đã ghép */}
+                  {deliveryInfo.deliveryAddress && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-green-900">Địa chỉ giao hàng:</p>
+                          <p className="text-sm text-green-800">{deliveryInfo.deliveryAddress}</p>
+                          {deliveryInfo.distance !== null && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Khoảng cách: <strong>{deliveryInfo.distance.toFixed(2)}km</strong> từ quán
+                              {deliveryInfo.deliveryFee > 0 && (
+                                <> • Phí ship: <strong>{deliveryInfo.deliveryFee.toLocaleString('vi-VN')}đ</strong></>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Số điện thoại người nhận <span className="text-red-500">*</span>

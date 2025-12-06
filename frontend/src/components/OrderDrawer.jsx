@@ -50,13 +50,13 @@ export default function OrderDrawer({
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   
-  // Kiểm tra quyền chỉnh sửa: Waiter chỉ có thể sửa đơn do mình tạo
+  // Waiter có quyền thêm/sửa/hủy món cho tất cả đơn (giống Cashier)
+  // Chỉ không có quyền thanh toán
   const currentUser = getUser();
   const canEditOrder = useMemo(() => {
-    if (!isWaiter) return true; // Cashier/Manager/Admin có thể sửa tất cả
-    // Waiter chỉ có thể sửa đơn do mình tạo
-    return localOrder?.nhan_vien_id === currentUser?.user_id;
-  }, [isWaiter, localOrder?.nhan_vien_id, currentUser?.user_id]);
+    // Tất cả staff (waiter, cashier, manager, admin) đều có thể sửa đơn
+    return true;
+  }, []);
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingTables, setLoadingTables] = useState(false);
   const [editDialog, setEditDialog] = useState({ open: false, line: null });
@@ -1177,7 +1177,7 @@ export default function OrderDrawer({
               </>
             )}
             
-            {/* Nút hủy đơn - Waiter chỉ có thể hủy đơn do mình tạo */}
+            {/* Nút hủy đơn - Staff có thể hủy đơn */}
             {canEditOrder && (
               <button
                 onClick={() => setShowCancelDialog(true)}

@@ -22,6 +22,8 @@ async function request(method, path, body) {
   console.log(`📡 Response status: ${res.status} ${res.statusText}`);
   
   if (res.status === 401) {
+    // Token hết hạn hoặc không hợp lệ
+    console.error('🔴 401 Unauthorized - Session expired');
     clearToken();
     window.location.href = '/login';
     return;
@@ -358,6 +360,50 @@ export const api = {
   getInventoryWarnings: () => request('GET', '/inventory/warnings'),
   // Báo cáo tồn kho
   getInventoryReport: () => request('GET', '/inventory/report'),
+  
+  // Export báo cáo (Excel/PDF)
+  exportReport: async (reportType, format, params = {}) => {
+    const token = getToken();
+    const url = `/api/v1/reports/export`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reportType,
+          format,
+          ...params
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || error.error || 'Export failed');
+      }
+      
+      // Download file
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition?.split('filename=')[1]?.replace(/"/g, '') 
+        || `${reportType}_report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      
+      return { success: true, filename };
+    } catch (error) {
+      console.error('Export error:', error);
+      throw error;
+    }
+  },
+  
   // Tính giá vốn món
   calculateCost: (monId, bienTheId = null) => {
     const params = new URLSearchParams();

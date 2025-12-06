@@ -657,30 +657,29 @@ export default {
       const checkIsNinhKieu = (address) => {
         if (!address) return false;
         const addressLower = address.toLowerCase();
-        const ninhKieuKeywords = [
-          'ninh kiều',
-          'xuân khánh',
-          'an khánh', 
-          'an hòa',
-          'an cư',
-          'an nghiệp',
-          'an phú',
-          'an thới',
-          'cái khế',
-          'hưng lợi',
-          'tân an',
-          'thới bình',
-          'an bình',
-          'an lạc'
+        // Danh sách 4 phường mới sau sáp nhập (Q. Ninh Kiều, TP. Cần Thơ)
+        // 1. Phường Ninh Kiều (từ Tân An, Thới Bình, Xuân Khánh cũ)
+        // 2. Phường Cái Khế (từ An Hòa, Cái Khế cũ, một phần Bùi Hữu Nghĩa)
+        // 3. Phường Tân An (từ An Khánh, Hưng Lợi cũ)
+        // 4. Phường An Bình (từ An Bình cũ, xã Mỹ Khánh, một phần Long Tuyền)
+        const allowedWards = [
+          // Phường Ninh Kiều mới + các phường cũ
+          'ninh kiều', 'ninh kieu', 'tân an', 'tan an', 'thới bình', 'thoi binh', 'xuân khánh', 'xuan khanh',
+          // Phường Cái Khế mới + các phường cũ
+          'cái khế', 'cai khe', 'an hòa', 'an hoa', 'bùi hữu nghĩa', 'bui huu nghia',
+          // Phường Tân An mới + các phường cũ
+          'an khánh', 'an khanh', 'hưng lợi', 'hung loi',
+          // Phường An Bình mới + các khu vực
+          'an bình', 'an binh', 'mỹ khánh', 'my khanh', 'long tuyền', 'long tuyen'
         ];
-        // Phải có từ khóa Ninh Kiều hoặc các phường thuộc Ninh Kiều VÀ phải có Cần Thơ
-        const hasNinhKieu = ninhKieuKeywords.some(keyword => addressLower.includes(keyword));
+        // Phải có từ khóa phường thuộc Q. Ninh Kiều VÀ phải có Cần Thơ
+        const hasValidWard = allowedWards.some(keyword => addressLower.includes(keyword));
         const hasCanTho = addressLower.includes('cần thơ') || addressLower.includes('can tho');
-        return hasNinhKieu && hasCanTho;
+        return hasValidWard && hasCanTho;
       };
       
       if (!checkIsNinhKieu(deliveryInfo.deliveryAddress)) {
-        throw new BadRequest('Chúng tôi chỉ giao hàng trong phạm vi quận Ninh Kiều, TP. Cần Thơ. Vui lòng chọn địa chỉ khác hoặc đổi sang hình thức Mang đi.');
+        throw new BadRequest('Chúng tôi chỉ giao hàng đến 4 phường Q. Ninh Kiều: Ninh Kiều, Cái Khế, Tân An, An Bình (TP. Cần Thơ). Vui lòng chọn địa chỉ khác hoặc đổi sang hình thức Mang đi.');
       }
     }
 
@@ -761,6 +760,33 @@ export default {
     }
 
     return order;
+  },
+
+  // ==================== PROMOTIONS ====================
+
+  /**
+   * Get active promotions for customers
+   * Only returns promotions that are:
+   * - Active (kich_hoat = true)
+   * - Within valid date range
+   * - Haven't exceeded usage limit
+   */
+  async getActivePromotions() {
+    const promotions = await promotionRepository.getActivePromotions();
+    
+    // Filter and transform for customer display
+    return promotions.map(promo => ({
+      id: promo.id,
+      ma: promo.ma,
+      ten: promo.ten,
+      mo_ta: promo.mo_ta,
+      loai_giam: promo.loai_giam,
+      gia_tri: parseFloat(promo.gia_tri) || 0,
+      gia_tri_don_toi_thieu: parseFloat(promo.gia_tri_don_toi_thieu) || 0,
+      giam_toi_da: parseFloat(promo.giam_toi_da) || 0,
+      ngay_bat_dau: promo.ngay_bat_dau,
+      ngay_ket_thuc: promo.ngay_ket_thuc
+    }));
   }
 };
 

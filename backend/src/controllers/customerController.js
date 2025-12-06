@@ -473,6 +473,21 @@ export default {
       success: true,
       data: order
     });
+  }),
+
+  // ==================== PROMOTIONS ====================
+
+  /**
+   * GET /api/v1/customer/promotions
+   * Get active promotions for customers
+   */
+  getActivePromotions: asyncHandler(async (req, res) => {
+    const promotions = await customerService.getActivePromotions();
+
+    res.json({
+      success: true,
+      data: promotions
+    });
   })
 };
 

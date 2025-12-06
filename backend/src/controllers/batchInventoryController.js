@@ -413,7 +413,7 @@ export async function disposeBatch(req, res, next) {
   try {
     const batchId = parseInt(req.params.batchId);
     const { reason, note } = req.body;
-    const userId = req.user?.userId;
+    const userId = req.user?.user_id;
     
     if (!reason) {
       return res.status(400).json({
@@ -459,7 +459,7 @@ export async function disposeBatch(req, res, next) {
 export async function disposeExpiredBatches(req, res, next) {
   try {
     const { batchIds, reason = 'Hết hạn sử dụng' } = req.body;
-    const userId = req.user?.userId;
+    const userId = req.user?.user_id;
     
     if (!userId) {
       return res.status(401).json({

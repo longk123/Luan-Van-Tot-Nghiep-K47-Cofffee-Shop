@@ -39,8 +39,8 @@ router.post('/customer/cart/apply-promo', optionalCustomerAuth, customerControll
 router.delete('/customer/cart/promo', optionalCustomerAuth, customerController.clearPromoCode);
 
 // ==================== ORDERS ====================
-// Create order (optional auth - works for guests)
-router.post('/customer/orders', optionalCustomerAuth, customerController.createOrder);
+// Create order - YÊU CẦU ĐĂNG NHẬP (khách vãng lai không được đặt hàng)
+router.post('/customer/orders', customerAuth, customerController.createOrder);
 // Get orders (require authentication)
 router.get('/customer/orders', customerAuth, customerController.getOrders);
 router.get('/customer/orders/:id', customerAuth, customerController.getOrderDetail);
@@ -60,6 +60,10 @@ router.get('/customer/chatbot/conversation/active', optionalCustomerAuth, chatbo
 // Conversations (require authentication)
 router.get('/customer/chatbot/conversations', customerAuth, chatbotController.getConversations);
 router.get('/customer/chatbot/conversations/:id/messages', customerAuth, chatbotController.getMessages);
+
+// ==================== PROMOTIONS ====================
+// Public - get active promotions for customers
+router.get('/customer/promotions', customerController.getActivePromotions);
 
 export default router;
 

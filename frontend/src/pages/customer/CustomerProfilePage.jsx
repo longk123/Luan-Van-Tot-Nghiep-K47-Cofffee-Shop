@@ -80,16 +80,29 @@ export default function CustomerProfilePage() {
   const loadStats = async () => {
     try {
       // Load order history to calculate stats
-      const { data } = await customerApi.getOrders({ limit: 100 });
-      const orders = data || [];
+      const { data: ordersData } = await customerApi.getOrders({ limit: 100 });
+      const orders = ordersData || [];
       
       const totalOrders = orders.length;
-      const totalSpent = orders.reduce((sum, order) => sum + (order.total || order.grand_total || 0), 0);
+      // Đảm bảo parse số đúng cách (có thể là string từ database)
+      const totalSpent = orders.reduce((sum, order) => {
+        const orderTotal = parseFloat(order.total) || parseFloat(order.grand_total) || 0;
+        return sum + orderTotal;
+      }, 0);
+      
+      // Load reservations to count
+      let totalReservations = 0;
+      try {
+        const { data: reservationsData } = await customerApi.getReservations({ limit: 100 });
+        totalReservations = (reservationsData || []).length;
+      } catch (err) {
+        console.log('Could not load reservations count');
+      }
       
       setStats({
         totalOrders,
         totalSpent,
-        totalReservations: 0 // TODO: Load from reservations API
+        totalReservations
       });
     } catch (error) {
       console.error('Error loading stats:', error);

@@ -347,12 +347,11 @@ export const batchInventoryRepository = {
         [phieuXuat.id, batch.nguyen_lieu_id, batchId, soLuongHuy, batch.don_gia, giaTriHuy]
       );
       
-      // 4. Cập nhật batch thành DISPOSED
+      // 4. Cập nhật batch thành DEPLETED (đã hết/hủy) - gia_tri_ton tự tính từ so_luong_ton * don_gia
       await client.query(
         `UPDATE batch_inventory 
          SET so_luong_ton = 0,
-             gia_tri_ton = 0,
-             trang_thai = 'DISPOSED',
+             trang_thai = 'DEPLETED',
              ly_do_block = $1,
              updated_at = NOW()
          WHERE id = $2`,
@@ -362,7 +361,7 @@ export const batchInventoryRepository = {
       // 5. Cập nhật số lượng tồn kho nguyên liệu
       await client.query(
         `UPDATE nguyen_lieu 
-         SET so_luong = so_luong - $1,
+         SET ton_kho = ton_kho - $1,
              updated_at = NOW()
          WHERE id = $2`,
         [soLuongHuy, batch.nguyen_lieu_id]
@@ -395,15 +394,21 @@ export const batchInventoryRepository = {
     const results = [];
     const errors = [];
     
+    console.log(`🔍 disposeMultipleBatches called with:`, { batchIds, nguoiHuyId, lyDoHuy });
+    
     for (const batchId of batchIds) {
       try {
+        console.log(`🔍 Disposing batch ${batchId}...`);
         const result = await this.disposeBatch(batchId, nguoiHuyId, lyDoHuy);
+        console.log(`✅ Batch ${batchId} disposed successfully:`, result);
         results.push(result);
       } catch (error) {
+        console.error(`❌ Error disposing batch ${batchId}:`, error.message);
         errors.push({ batchId, error: error.message });
       }
     }
     
+    console.log(`🔍 disposeMultipleBatches result:`, { results: results.length, errors: errors.length });
     return { results, errors };
   }
 };

@@ -102,6 +102,28 @@ class PromotionRepository {
     return rows[0] || null;
   }
 
+  // Get active promotions for customer display
+  async getActivePromotions() {
+    const { rows } = await pool.query(`
+      SELECT 
+        id, ma, ten, mo_ta, loai as loai_giam, gia_tri,
+        COALESCE((dieu_kien->>'min_order_value')::numeric, 0) as gia_tri_don_toi_thieu,
+        COALESCE(max_giam, 0) as giam_toi_da,
+        bat_dau as ngay_bat_dau,
+        ket_thuc as ngay_ket_thuc
+      FROM khuyen_mai 
+      WHERE deleted_at IS NULL
+        AND active = TRUE
+        AND (bat_dau IS NULL OR bat_dau <= CURRENT_DATE)
+        AND (ket_thuc IS NULL OR ket_thuc >= CURRENT_DATE)
+        AND (usage_limit IS NULL OR used_count < usage_limit)
+      ORDER BY 
+        CASE WHEN ket_thuc IS NOT NULL THEN ket_thuc ELSE '9999-12-31'::date END ASC,
+        bat_dau DESC
+    `);
+    return rows;
+  }
+
   // Get promotion by code
   async getByCode(code) {
     const { rows } = await pool.query(

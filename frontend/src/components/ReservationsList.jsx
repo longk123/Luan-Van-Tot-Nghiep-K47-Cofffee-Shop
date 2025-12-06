@@ -10,6 +10,13 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
   const [filter, setFilter] = useState('ALL'); // ALL, PENDING, CONFIRMED, SEATED
   const [noShowConfirm, setNoShowConfirm] = useState({ open: false, id: null });
   const [cancelDialog, setCancelDialog] = useState({ open: false, id: null, reason: '' });
+  
+  // State cho modal chọn bàn khi check-in
+  const [checkInDialog, setCheckInDialog] = useState({ open: false, reservation: null });
+  const [availableTables, setAvailableTables] = useState([]);
+  const [selectedTableId, setSelectedTableId] = useState(null);
+  const [loadingTables, setLoadingTables] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -102,6 +109,67 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
 
   const handleNoShow = (id) => {
     setNoShowConfirm({ open: true, id });
+  };
+
+  // Xử lý check-in: nếu chưa có bàn thì mở dialog chọn bàn
+  const handleCheckIn = async (reservation) => {
+    // Nếu đã có bàn, gọi onCheckIn trực tiếp
+    if (reservation.ban_ids && reservation.ban_ids.length > 0) {
+      onCheckIn?.(reservation);
+      return;
+    }
+    
+    // Nếu chưa có bàn, mở dialog chọn bàn
+    setCheckInDialog({ open: true, reservation });
+    setSelectedTableId(null);
+    setLoadingTables(true);
+    
+    try {
+      // Lấy danh sách bàn trống
+      const res = await api.getTablesWithSummary();
+      const tables = (res?.data || res || []).filter(t => t.trang_thai === 'TRONG');
+      setAvailableTables(tables);
+    } catch (error) {
+      console.error('Error loading tables:', error);
+      onShowToast?.({
+        show: true,
+        type: 'error',
+        title: 'Lỗi tải bàn',
+        message: 'Không thể tải danh sách bàn trống'
+      });
+    } finally {
+      setLoadingTables(false);
+    }
+  };
+
+  // Xác nhận check-in với bàn đã chọn
+  const confirmCheckIn = async () => {
+    if (!selectedTableId || !checkInDialog.reservation) return;
+    
+    setCheckingIn(true);
+    try {
+      // Gán bàn cho đặt bàn trước
+      await api.assignTablesToReservation(checkInDialog.reservation.id, [selectedTableId]);
+      
+      // Sau đó gọi check-in
+      const updatedReservation = {
+        ...checkInDialog.reservation,
+        ban_ids: [selectedTableId]
+      };
+      
+      setCheckInDialog({ open: false, reservation: null });
+      onCheckIn?.(updatedReservation);
+    } catch (error) {
+      console.error('Error assigning table:', error);
+      onShowToast?.({
+        show: true,
+        type: 'error',
+        title: 'Lỗi gán bàn',
+        message: error.message || 'Không thể gán bàn cho đặt bàn'
+      });
+    } finally {
+      setCheckingIn(false);
+    }
   };
 
   const confirmNoShow = async () => {
@@ -332,7 +400,7 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
                         {reservation.trang_thai === 'CONFIRMED' && (
                           <>
                             <button
-                              onClick={() => onCheckIn?.(reservation)}
+                              onClick={() => handleCheckIn(reservation)}
                               className="px-5 py-2.5 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl font-bold transition-all hover:bg-white hover:text-[#c9975b] outline-none focus:outline-none flex items-center gap-2"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,6 +518,92 @@ export default function ReservationsList({ open, onClose, onCheckIn, onReservati
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                   Xác nhận hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Dialog chọn bàn khi check-in */}
+      {checkInDialog.open && (
+        <>
+          <div 
+            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md"
+            onClick={() => setCheckInDialog({ open: false, reservation: null })}
+          />
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full pointer-events-auto border-2 border-[#e7d4b8] animate-fadeIn">
+              <div className="px-6 py-5 bg-[#c9975b] border-b-2 border-[#e7d4b8] rounded-t-3xl">
+                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Chọn bàn để Check-in
+                </h3>
+                <p className="text-white/90 text-sm mt-1">
+                  Khách: {checkInDialog.reservation?.khach} - {checkInDialog.reservation?.so_nguoi} người
+                </p>
+              </div>
+              
+              <div className="p-6 max-h-[400px] overflow-y-auto">
+                {loadingTables ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#c9975b]"></div>
+                  </div>
+                ) : availableTables.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <p>Không có bàn trống</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3">
+                    {availableTables.map(table => (
+                      <button
+                        key={table.id}
+                        onClick={() => setSelectedTableId(table.id)}
+                        className={`p-4 rounded-xl border-2 transition-all text-center ${
+                          selectedTableId === table.id
+                            ? 'border-[#c9975b] bg-[#fef7ed] text-[#8b6f47]'
+                            : 'border-gray-200 hover:border-[#c9975b]/50 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="font-bold text-lg">{table.ten_ban}</div>
+                        <div className="text-xs text-gray-500">{table.khu_vuc_ten}</div>
+                        <div className="text-xs text-gray-400">{table.suc_chua} chỗ</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div className="px-6 py-4 bg-[#fef7ed] border-t-2 border-[#e7d4b8] flex gap-3 rounded-b-3xl">
+                <button
+                  onClick={() => setCheckInDialog({ open: false, reservation: null })}
+                  className="flex-1 py-3 px-4 bg-gray-200 hover:bg-white text-gray-700 border-2 border-gray-300 hover:border-gray-400 rounded-xl font-bold transition-all outline-none focus:outline-none"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={confirmCheckIn}
+                  disabled={!selectedTableId || checkingIn}
+                  className="flex-1 py-3 px-4 bg-[#c9975b] text-white border-2 border-[#c9975b] rounded-xl font-bold transition-all hover:bg-white hover:text-[#c9975b] disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:outline-none flex items-center justify-center gap-2"
+                >
+                  {checkingIn ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Check-in
+                    </>
+                  )}
                 </button>
               </div>
             </div>

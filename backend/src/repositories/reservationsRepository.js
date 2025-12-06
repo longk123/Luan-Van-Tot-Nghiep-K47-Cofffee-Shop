@@ -6,6 +6,7 @@ class ReservationsRepository {
   async create(data) {
     const {
       khach_hang_id,
+      customer_account_id,
       ten_khach,
       so_dien_thoai,
       so_nguoi,
@@ -22,6 +23,7 @@ class ReservationsRepository {
     // Clean NaN values for integer fields
     console.log('🧹 Repository.create - Cleaning values:');
     console.log('  khach_hang_id:', khach_hang_id, 'isNaN:', isNaN(khach_hang_id));
+    console.log('  customer_account_id:', customer_account_id);
     console.log('  khu_vuc_id:', khu_vuc_id, 'isNaN:', isNaN(khu_vuc_id));
     console.log('  so_nguoi:', so_nguoi, 'isNaN:', isNaN(so_nguoi));
     console.log('  dat_coc:', dat_coc, 'isNaN:', isNaN(dat_coc));
@@ -29,28 +31,30 @@ class ReservationsRepository {
     
     const cleanKhuVucId = (khu_vuc_id && !isNaN(khu_vuc_id)) ? khu_vuc_id : null;
     const cleanKhachHangId = (khach_hang_id && !isNaN(khach_hang_id)) ? khach_hang_id : null;
+    const cleanCustomerAccountId = (customer_account_id && !isNaN(customer_account_id)) ? customer_account_id : null;
     const cleanCreatedBy = (created_by && !isNaN(created_by)) ? created_by : null;
     const cleanSoNguoi = (so_nguoi && !isNaN(so_nguoi)) ? so_nguoi : 2;
     const cleanDatCoc = (dat_coc && !isNaN(dat_coc)) ? dat_coc : 0;
 
     console.log('✅ After cleaning:');
     console.log('  cleanKhachHangId:', cleanKhachHangId);
+    console.log('  cleanCustomerAccountId:', cleanCustomerAccountId);
     console.log('  cleanKhuVucId:', cleanKhuVucId);
     console.log('  cleanSoNguoi:', cleanSoNguoi);
     console.log('  cleanDatCoc:', cleanDatCoc);
     console.log('  cleanCreatedBy:', cleanCreatedBy);
 
-    const params = [cleanKhachHangId, ten_khach, so_dien_thoai, cleanSoNguoi, cleanKhuVucId,
+    const params = [cleanKhachHangId, cleanCustomerAccountId, ten_khach, so_dien_thoai, cleanSoNguoi, cleanKhuVucId,
        start_at, end_at, ghi_chu, cleanDatCoc, dat_coc_trang_thai, nguon, cleanCreatedBy];
     
     console.log('💉 SQL Params:', params);
 
     const { rows } = await pool.query(
       `INSERT INTO dat_ban(
-        khach_hang_id, ten_khach, so_dien_thoai, so_nguoi, khu_vuc_id,
+        khach_hang_id, customer_account_id, ten_khach, so_dien_thoai, so_nguoi, khu_vuc_id,
         start_at, end_at, ghi_chu, dat_coc, dat_coc_trang_thai, nguon, created_by, trang_thai
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'PENDING')
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'PENDING')
       RETURNING *`,
       params
     );

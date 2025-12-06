@@ -1,6 +1,7 @@
 // src/services/reservationsService.js
 import reservationsRepo from '../repositories/reservationsRepository.js';
 import { BadRequest } from '../utils/httpErrors.js';
+import { emitChange } from '../utils/eventBus.js';
 
 class ReservationsService {
   // Validate thời gian
@@ -59,11 +60,13 @@ class ReservationsService {
     // Tạo đặt bàn
     const createData = {
       ...data,
-      khach_hang_id
+      khach_hang_id,
+      customer_account_id: data.customer_account_id || null
     };
     
     console.log('🔧 Service createReservation - data to repository:', createData);
     console.log('khu_vuc_id value:', createData.khu_vuc_id, 'isNaN:', isNaN(createData.khu_vuc_id));
+    console.log('customer_account_id value:', createData.customer_account_id);
     
     const reservation = await reservationsRepo.create(createData);
 
@@ -72,7 +75,12 @@ class ReservationsService {
       await reservationsRepo.assignTables(reservation.id, data.table_ids);
     }
 
-    return await reservationsRepo.getById(reservation.id);
+    const result = await reservationsRepo.getById(reservation.id);
+    
+    // Emit SSE event
+    emitChange('reservation.created', { reservationId: result.id, customer_account_id: result.customer_account_id });
+    
+    return result;
   }
 
   // Lấy danh sách theo ngày
@@ -113,7 +121,12 @@ class ReservationsService {
       this.validateTimeRange(start, end);
     }
 
-    return await reservationsRepo.update(id, data);
+    const result = await reservationsRepo.update(id, data);
+    
+    // Emit SSE event
+    emitChange('reservation.updated', { reservationId: id, customer_account_id: existing.customer_account_id });
+    
+    return result;
   }
 
   // Gán bàn
@@ -167,7 +180,12 @@ class ReservationsService {
       throw new BadRequest('Không thể hủy đặt bàn đã hoàn thành hoặc đã hủy');
     }
 
-    return await reservationsRepo.cancel(id, reason);
+    const result = await reservationsRepo.cancel(id, reason);
+    
+    // Emit SSE event
+    emitChange('reservation.cancelled', { reservationId: id, customer_account_id: reservation.customer_account_id });
+    
+    return result;
   }
 
   // No-show
@@ -177,7 +195,12 @@ class ReservationsService {
       throw new BadRequest('Không tìm thấy đặt bàn');
     }
 
-    return await reservationsRepo.markNoShow(id);
+    const result = await reservationsRepo.markNoShow(id);
+    
+    // Emit SSE event
+    emitChange('reservation.no_show', { reservationId: id, customer_account_id: reservation.customer_account_id });
+    
+    return result;
   }
 
   // Check-in
@@ -205,7 +228,12 @@ class ReservationsService {
       throw new BadRequest('Bàn này không thuộc đặt chỗ');
     }
 
-    return await reservationsRepo.checkIn(id, primary_table_id, created_by);
+    const result = await reservationsRepo.checkIn(id, primary_table_id, created_by);
+    
+    // Emit SSE event
+    emitChange('reservation.checked_in', { reservationId: id, customer_account_id: reservation.customer_account_id });
+    
+    return result;
   }
 
   // Hoàn thành
@@ -215,7 +243,12 @@ class ReservationsService {
       throw new BadRequest('Không tìm thấy đặt bàn');
     }
 
-    return await reservationsRepo.complete(id);
+    const result = await reservationsRepo.complete(id);
+    
+    // Emit SSE event
+    emitChange('reservation.completed', { reservationId: id, customer_account_id: reservation.customer_account_id });
+    
+    return result;
   }
 
   // Tìm bàn trống

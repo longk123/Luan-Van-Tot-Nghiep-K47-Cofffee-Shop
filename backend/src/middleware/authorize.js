@@ -58,6 +58,12 @@ export function authorize(allowedRoles = []) {
 export const cashierOnly = authorize(['cashier', 'manager', 'admin']);
 
 /**
+ * Middleware cho staff (waiter + cashier) - tất cả chức năng ngoại trừ thanh toán
+ * Waiter có thể: xem bàn, nhận order, check-in đặt bàn, cập nhật order
+ */
+export const staffOnly = authorize(['waiter', 'cashier', 'manager', 'admin']);
+
+/**
  * Middleware cho manager/admin - toàn quyền
  */
 export const managerOnly = authorize(['manager', 'admin']);
