@@ -4,18 +4,49 @@ import chatbotRepository from '../repositories/chatbotRepository.js';
 import customerRepository from '../repositories/customerRepository.js';
 import promotionRepository from '../repositories/promotionRepository.js';
 import analyticsService from './analyticsService.js';
+import { pool } from '../db.js';
 
-// Initialize Gemini
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
-  console.error('❌ GEMINI_API_KEY not found in environment variables!');
+// Helper function to get Gemini API key from system_settings or env
+async function getGeminiApiKey() {
+  try {
+    // Try to get from system_settings first
+    const { rows } = await pool.query(`
+      SELECT value FROM system_settings WHERE key = 'gemini_api_key'
+    `);
+    
+    if (rows.length > 0 && rows[0].value && rows[0].value.trim() !== '') {
+      return rows[0].value.trim();
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not get Gemini API key from system_settings:', error.message);
+  }
+  
+  // Fallback to environment variable
+  return process.env.GEMINI_API_KEY || null;
 }
 
-const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+// Initialize Gemini (will be initialized lazily when needed)
+let genAI = null;
+let geminiApiKey = null;
+
+async function initializeGemini() {
+  if (genAI) return genAI; // Already initialized
+  
+  geminiApiKey = await getGeminiApiKey();
+  
+  if (!geminiApiKey) {
+    console.error('❌ GEMINI_API_KEY not found in system_settings or environment variables!');
+    return null;
+  }
+  
+  genAI = new GoogleGenerativeAI(geminiApiKey);
+  return genAI;
+}
 
 // Helper function to get model with fallback
-function getModel() {
-  if (!genAI) return null;
+async function getModel() {
+  const ai = await initializeGemini();
+  if (!ai) return null;
   
   // Try different model names (some API keys may have access to different models)
   const modelNames = [
@@ -26,10 +57,8 @@ function getModel() {
   ];
   
   // Try first model (most common)
-  return genAI.getGenerativeModel({ model: modelNames[0] });
+  return ai.getGenerativeModel({ model: modelNames[0] });
 }
-
-const model = getModel();
 
 export default {
   /**
@@ -222,8 +251,9 @@ ${context.customer}
       const history = await this.getConversationHistory(conversation.id, 5);
 
       // 5. Call Gemini API
-      if (!genAI) {
-        throw new Error('Gemini API not initialized. Check GEMINI_API_KEY in .env');
+      const ai = await initializeGemini();
+      if (!ai) {
+        throw new Error('Gemini API not initialized. Check GEMINI_API_KEY in system_settings or .env');
       }
 
       console.log('🤖 Calling Gemini API...');
@@ -250,7 +280,7 @@ ${context.customer}
       for (const modelName of modelNames) {
         try {
           console.log(`🔄 Trying model: ${modelName}...`);
-          const testModel = genAI.getGenerativeModel({ model: modelName });
+          const testModel = ai.getGenerativeModel({ model: modelName });
           result = await testModel.generateContent(prompt);
           response = result.response.text();
           console.log(`✅ Success with model: ${modelName}`);

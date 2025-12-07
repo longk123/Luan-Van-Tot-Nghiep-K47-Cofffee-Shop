@@ -11,6 +11,7 @@ export default function SystemSettings() {
     store_address: '',
     store_phone: '',
     store_email: '',
+    store_logo: '', // Logo URL or base64
     
     // Business
     opening_hours: '',
@@ -23,6 +24,20 @@ export default function SystemSettings() {
     allow_order_cancellation: true,
     allow_price_edit: false,
     auto_print_invoice: false,
+    
+    // Payment (PayOS)
+    payos_client_id: '',
+    payos_api_key: '',
+    payos_checksum_key: '',
+    payos_webhook_url: '',
+    
+    // Inventory
+    inventory_low_stock_threshold: 20, // %
+    auto_deduct_inventory: true,
+    allow_sell_out_of_stock: false,
+    
+    // AI (Google Gemini)
+    gemini_api_key: '',
     
     // Security
     session_timeout: 30, // minutes
@@ -131,6 +146,30 @@ export default function SystemSettings() {
               className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               placeholder="contact@coffeeshop.com"
             />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Logo cửa hàng (URL)
+            </label>
+            <input
+              type="text"
+              value={settings.store_logo}
+              onChange={(e) => handleChange('store_logo', e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="https://example.com/logo.png hoặc data:image/..."
+            />
+            {settings.store_logo && (
+              <div className="mt-2">
+                <img 
+                  src={settings.store_logo} 
+                  alt="Logo preview" 
+                  className="h-20 w-auto object-contain border border-gray-200 rounded"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -243,6 +282,130 @@ export default function SystemSettings() {
               <p className="text-sm text-gray-600">Tự động in hóa đơn sau khi thanh toán</p>
             </div>
           </label>
+        </div>
+      </div>
+
+      {/* Payment Settings */}
+      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">💳 Cấu hình Thanh toán (PayOS)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              PayOS Client ID
+            </label>
+            <input
+              type="text"
+              value={settings.payos_client_id}
+              onChange={(e) => handleChange('payos_client_id', e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Client ID từ PayOS"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              PayOS API Key
+            </label>
+            <input
+              type="password"
+              value={settings.payos_api_key}
+              onChange={(e) => handleChange('payos_api_key', e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="API Key từ PayOS"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              PayOS Checksum Key
+            </label>
+            <input
+              type="password"
+              value={settings.payos_checksum_key}
+              onChange={(e) => handleChange('payos_checksum_key', e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Checksum Key từ PayOS"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Webhook URL
+            </label>
+            <input
+              type="text"
+              value={settings.payos_webhook_url}
+              onChange={(e) => handleChange('payos_webhook_url', e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="https://yourdomain.com/api/v1/payments/webhook"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Inventory Settings */}
+      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">📦 Cấu hình Kho</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Ngưỡng cảnh báo tồn kho thấp (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={settings.inventory_low_stock_threshold}
+              onChange={(e) => handleChange('inventory_low_stock_threshold', parseFloat(e.target.value) || 20)}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 mt-1">Cảnh báo khi tồn kho còn dưới % này</p>
+          </div>
+        </div>
+        <div className="mt-4 space-y-4">
+          <label className="flex items-center gap-3 p-4 bg-white rounded-lg border-2 border-gray-200 cursor-pointer hover:bg-gray-50">
+            <input
+              type="checkbox"
+              checked={settings.auto_deduct_inventory}
+              onChange={(e) => handleChange('auto_deduct_inventory', e.target.checked)}
+              className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+            />
+            <div>
+              <span className="font-medium text-gray-900">Tự động trừ kho khi tạo đơn</span>
+              <p className="text-sm text-gray-600">Tự động giảm số lượng tồn kho khi tạo đơn hàng</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 p-4 bg-white rounded-lg border-2 border-gray-200 cursor-pointer hover:bg-gray-50">
+            <input
+              type="checkbox"
+              checked={settings.allow_sell_out_of_stock}
+              onChange={(e) => handleChange('allow_sell_out_of_stock', e.target.checked)}
+              className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+            />
+            <div>
+              <span className="font-medium text-gray-900">Cho phép bán khi hết hàng</span>
+              <p className="text-sm text-gray-600">Cho phép tạo đơn ngay cả khi sản phẩm hết hàng</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* AI Settings */}
+      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">🤖 Cấu hình AI (Google Gemini)</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Google Gemini API Key
+            </label>
+            <input
+              type="password"
+              value={settings.gemini_api_key}
+              onChange={(e) => handleChange('gemini_api_key', e.target.value)}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="AIzaSy..."
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              API Key từ Google AI Studio. Nếu để trống, hệ thống sẽ sử dụng API key từ file .env
+            </p>
+          </div>
         </div>
       </div>
 
